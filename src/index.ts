@@ -8,4 +8,4 @@ client.once('ready', () => {
     console.log('Ready!')
 })
 
-client.login(token.DISCORD_TOKEN)
+client.login(token)
