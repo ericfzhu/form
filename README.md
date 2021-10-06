@@ -1,5 +1,6 @@
 <h1 align="center">
-<img src="https://raw.githubusercontent.com/ericfzhu/form/master/form.png">
+<img src="https://raw.githubusercontent.com/ericfzhu/form/master/form.png" width="150">
+  
   PCSoc Form
   <br>
 </h1>
