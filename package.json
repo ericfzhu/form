@@ -1,0 +1,25 @@
+{
+  "name": "form",
+  "version": "1.0.0",
+  "description": "A Discord bot that generates Google Forms",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ericfzhu/form.git"
+  },
+  "author": "Eric Zhu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ericfzhu/form/issues"
+  },
+  "homepage": "https://github.com/ericfzhu/form#readme",
+  "dependencies": {
+    "@discordjs/builders": "^0.6.0",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "discord-api-types": "^0.23.1",
+    "dotenv": "^10.0.0"
+  }
+}
