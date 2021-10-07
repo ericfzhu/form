@@ -12,6 +12,7 @@ const commands = [
         option.setName('input')
         .setDescription('The title of the form')
         .setRequired(true))
+        .setDefaultPermission(false)
 ]
     .map(command => command.toJSON());
 
