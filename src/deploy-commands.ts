@@ -12,12 +12,20 @@ const commands = [
         option.setName('input')
         .setDescription('The title of the form')
         .setRequired(true))
-        .setDefaultPermission(false)
+    .setDefaultPermission(false)
 ]
     .map(command => command.toJSON());
+
 
 const rest = new REST({ version: '9' }).setToken(token);
 
 rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands })
     .then(() => console.log('Successfully registered application commands.'))
     .catch(console.error);
+
+async function getfunction() {
+    const guildCommands = await rest.get(Routes.applicationGuildCommands(clientId, guildId));
+    console.log(guildCommands)
+}
+
+getfunction();
