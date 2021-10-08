@@ -1,14 +1,19 @@
+import {drive} from "googleapis/build/src/apis/drive";
+
 const { Client, Intents, Permissions } = require('discord.js')
 // @ts-ignore
 // const { clientId, guildId, token } = require('dotenv').config();
 const { token } = require('./config.json');
+const axios = require('axios').default;
+
+const client = new Client({ intents: [Intents.FLAGS.GUILDS] })
 
 const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 
 // If modifying these scopes, delete token.json.
-const SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly'];
+const SCOPES = ['https://www.googleapis.com/auth/drive.metadata'];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
@@ -21,6 +26,15 @@ fs.readFile('credentials.json', (err, content) => {
     authorize(JSON.parse(content), listFiles);
 });
 
+const {client_secret, client_id, redirect_uris} = JSON.parse(fs.readFile('credentials.json')).installed;
+const oAuth2Client = new google.auth.OAuth2(
+    client_id, client_secret, redirect_uris[0]);
+
+
+const drive = google.drive({
+    version: 'v3',
+    auth: oAuth2Client,
+})
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
@@ -31,6 +45,12 @@ function authorize(credentials, callback) {
     const {client_secret, client_id, redirect_uris} = credentials.installed;
     const oAuth2Client = new google.auth.OAuth2(
         client_id, client_secret, redirect_uris[0]);
+
+
+    const drive = google.drive({
+        version: 'v3',
+        auth: oAuth2Client,
+    })
 
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
@@ -94,7 +114,6 @@ function listFiles(auth) {
     });
 }
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] })
 
 client.once('ready', async () => {
     if (!client.application?.owner) await client.application?.fetch();
@@ -119,6 +138,9 @@ client.on('interactionCreate', async interaction => {
     const { commandName } = interaction;
 
     if (commandName === 'form') {
+        const res = await drive.files.copy({
+            
+        })
         const link = 'test link here'
         await interaction.reply(link);
     }
