@@ -2,14 +2,12 @@ const { Client, Intents, Permissions } = require("discord.js");
 // @ts-ignore
 // const { clientId, guildId, token } = require('dotenv').config();
 const { token } = require("./config.json");
-const axios = require("axios").default;
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
-const fs = require("fs");
-const readline = require("readline");
-const { google } = require("googleapis");
-const { GoogleAuth } = require("google-auth-library");
 const moment = require("moment");
+const express = require('express');
+const { spawn } = require('child_process');
+const wait = require('util').promisify(setTimeout);
 
 client.once("ready", async () => {
   if (!client.application?.owner) await client.application?.fetch();
@@ -38,23 +36,19 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "form") {
     let string = interaction.options.getString("input");
     let date = moment().format("L");
-    date.replace("/", "-");
-    string = date + " " + string;
+    date = date.replaceAll("/", "-");
 
-    console.log(string);
-    // Load client secrets from a local file.
-    // const auth = fs.readFile('credentials.json', (err, content) => {
-    //     if (err) return console.log('Error loading client secret file:', err);
-    //     // Authorize a client with credentials, then call the Google Apps Script API.
-    //     return authorize(JSON.parse(content));
-    // });
-
-    // Acquire an auth client, and bind it to all future calls
-    // const authClient = await auth.getClient();
-    // google.options({auth: authClient});
-
-    // const link = runAppsScript(auth, '1GN47fE8lUdv3ItcKIr6sAlb1hsftxVkO', string)
-    // await interaction.reply(link);
+    await interaction.reply('Generating link');
+    let link;
+    // spawn new child process to call the python script
+    const python = spawn('python', ['script.py', date, string]);
+    // collect data from script
+    await python.stdout.on('data', function (data) {
+      link = data.toString();
+      console.log(link);
+    });
+    await wait(5000);
+    await interaction.editReply(String(link));
   }
 });
 

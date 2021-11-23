@@ -1,5 +1,7 @@
 node_modules
-.env
+src/.env
 src/config.json
 tsconfig.json
 credentials.json
+/src/client_secrets.json
+/src/settings.yaml
