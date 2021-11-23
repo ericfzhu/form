@@ -35,5 +35,4 @@ form = drive.auth.service.files().copy(
         'title': 'Arc Online Event Attendance List',
     }
 ).execute()
-
-print(f'https://docs.google.com/forms/d/{form["id"]}')
+print(f'https://docs.google.com/forms/d/{form["id"]}/viewform?usp=sf_link')

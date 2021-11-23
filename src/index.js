@@ -47,7 +47,7 @@ client.on("interactionCreate", async (interaction) => {
       link = data.toString();
       console.log(link);
     });
-    await wait(5000);
+    await wait(8000);
     await interaction.editReply(String(link));
   }
 });
