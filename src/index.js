@@ -14,11 +14,16 @@ client.once("ready", async () => {
 
   const command = await client.guilds.cache
     .get("860941635047522374")
-    ?.commands.fetch("895574855666245672");
+    ?.commands.fetch("912727695123705856");
 
   const permissions = [
     {
       id: "895602909390209034",
+      type: "ROLE",
+      permission: true,
+    },
+    {
+      id: "201930117944049664",
       type: "ROLE",
       permission: true,
     },
@@ -38,7 +43,7 @@ client.on("interactionCreate", async (interaction) => {
     let date = moment().format("L");
     date = date.replaceAll("/", "-");
 
-    await interaction.reply('Generating link');
+    await interaction.reply('Generating link...');
     let link;
     // spawn new child process to call the python script
     const python = spawn('python', ['script.py', date, string]);
