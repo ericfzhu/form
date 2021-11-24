@@ -3,12 +3,14 @@ from pydrive.drive import GoogleDrive
 import sys
 import dotenv
 import os
+import requests
+import json
 
 dotenv.load_dotenv()
 team_drive_id = os.getenv('TEAM_DRIVE_ID')
 parent_folder_id = os.getenv('PARENT_FOLDER_ID')
 form_id = os.getenv('FORM_ID')
-
+bitly_token = os.getenv('BITLY_TOKEN')
 
 gauth = GoogleAuth()
 gauth.LocalWebserverAuth()
@@ -35,4 +37,14 @@ form = drive.auth.service.files().copy(
         'title': 'Arc Online Event Attendance List',
     }
 ).execute()
-print(f'https://docs.google.com/forms/d/{form["id"]}/viewform?usp=sf_link')
+link = f'https://docs.google.com/forms/d/{form["id"]}/viewform?usp=sf_link'
+header = {'Content-Type': 'application/json',
+          'Authorization': f'Bearer {bitly_token}'}
+json = {'long_url': link}
+result = requests.post('https://api-ssl.bitly.com/v4/shorten', json=json, headers=header)
+data = result.json()
+
+if 'link' in data.keys():
+    print(data['link'])
+else:
+    print(link)

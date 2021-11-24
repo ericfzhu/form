@@ -13,8 +13,8 @@ client.once("ready", async () => {
   if (!client.application?.owner) await client.application?.fetch();
 
   const command = await client.guilds.cache
-    .get("860941635047522374")
-    ?.commands.fetch("912727695123705856");
+    .get("157263595128881153")
+    ?.commands.fetch("912871983488839720");
 
   const permissions = [
     {
