@@ -9,8 +9,8 @@ PCSoc Form
 <h3 align="center">Automatically generates Arc attendance form</h3>
 
 <p align="center">
-    <a href="https://www.typescriptlang.org/">
-        <img src="https://img.shields.io/badge/-TypeScript-3178C6?logo=typescript&logoColor=white&style=flat" alt="Typescript"/>
+    <a href="https://www.javascript.com/">
+        <img src="https://img.shields.io/badge/-JavaScript-323330?logo=typescript&logoColor=F7DF1E&style=flat" alt="Typescript"/>
     </a>
     <a href="https://github.com/makenotion/notion-sdk-js">
         <img src="https://img.shields.io/badge/-Discord.js-5865F2?logo=discord&style=flat&logoColor=FFFFFF" alt="Notion.so">
