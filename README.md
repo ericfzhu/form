@@ -1,12 +1,4 @@
-<h1 align="center">
-<img src="https://raw.githubusercontent.com/ericfzhu/form/master/form.png" width="150">
-
-PCSoc Form
-<br>
-
-</h1>
-
-<h3 align="center">Automatically generates Arc attendance form</h3>
+![](assets/banner.png)
 
 <p align="center">
     <a href="https://www.javascript.com/">
