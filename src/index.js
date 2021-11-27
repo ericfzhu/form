@@ -43,18 +43,19 @@ client.on("interactionCreate", async (interaction) => {
 
     await interaction.reply('Generating link...');
     let link;
-    // spawn new child process to call the python script
+    // Spawns a child process to run the python script
     const python = spawn('python', ['script.py', date, string]);
-    // collect data from script
+
+    // Collect response from script
     await python.stdout.on('data', function (data) {
       link = data.toString();
       console.log(link);
     });
+
+    // Edit original message with script response after script closes
     await python.on('close', (code => {
       interaction.editReply(String(link));
     }))
-    // await wait(8000);
-    // await interaction.editReply(String(link));
   }
 });
 
