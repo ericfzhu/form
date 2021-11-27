@@ -50,8 +50,11 @@ client.on("interactionCreate", async (interaction) => {
       link = data.toString();
       console.log(link);
     });
-    await wait(8000);
-    await interaction.editReply(String(link));
+    await python.on('close', (code => {
+      interaction.editReply(String(link));
+    }))
+    // await wait(8000);
+    // await interaction.editReply(String(link));
   }
 });
 
