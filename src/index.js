@@ -1,15 +1,15 @@
 const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 const moment = require("moment");
-const { token } = require("./config.json");
 const { spawn } = require('child_process');
 const wait = require('util').promisify(setTimeout);
+require('dotenv').config();
 
 client.once("ready", async () => {
   if (!client.application?.owner) await client.application?.fetch();
   // get(guildId)?.commands.fetch(commandId);
   const command = await client.guilds.cache
-    .get("157263595128881153")
+    .get(process.env.GUILD_ID)
     ?.commands.fetch("912871983488839720");
 
   const permissions = [
@@ -21,14 +21,14 @@ client.once("ready", async () => {
     },
       // PCSoc exec role ID
     {
-      id: "201930117944049664",
+      id: process.env.ROLE_ID,
       type: "ROLE",
       permission: true,
     },
   ];
 
   await command.permissions.set({ permissions });
-  console.log("Ready!");
+  console.log("Command permissions set");
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -55,4 +55,4 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-client.login(token);
+client.login(process.env.DISCORD_TOKEN);

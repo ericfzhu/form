@@ -4,7 +4,6 @@ import sys
 import dotenv
 import os
 import requests
-import json
 
 dotenv.load_dotenv()
 team_drive_id = os.getenv('TEAM_DRIVE_ID')
@@ -38,6 +37,8 @@ form = drive.auth.service.files().copy(
     }
 ).execute()
 link = f'https://docs.google.com/forms/d/{form["id"]}/viewform?usp=sf_link'
+
+# Convert link to bitly
 header = {'Content-Type': 'application/json',
           'Authorization': f'Bearer {bitly_token}'}
 json = {'long_url': link}
