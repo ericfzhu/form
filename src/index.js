@@ -2,7 +2,6 @@ const { Client, Intents } = require("discord.js");
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 const moment = require("moment");
 const { spawn } = require('child_process');
-const wait = require('util').promisify(setTimeout);
 require('dotenv').config();
 
 client.once("ready", async () => {

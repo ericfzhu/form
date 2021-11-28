@@ -1,6 +1,4 @@
 node_modules
 src/.env
-src/config.json
 credentials.json
-/src/client_secrets.json
 /src/settings.yaml
