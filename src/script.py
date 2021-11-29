@@ -15,6 +15,7 @@ gauth = GoogleAuth()
 gauth.LocalWebserverAuth()
 drive = GoogleDrive(gauth)
 
+# Creates the child folder for the form
 folder = drive.CreateFile({
     'title': f'{sys.argv[1]} {sys.argv[2]}',
     'mimeType': 'application/vnd.google-apps.folder',
@@ -29,6 +30,7 @@ folder.Upload(param={'supportsAllDrives': True})
 # Saves the child folder ID as an environment variable
 dotenv.set_key('.env', 'CHILD_FOLDER_ID', folder['id'])
 
+# Copies the target form into the folder
 form = drive.auth.service.files().copy(
     fileId=form_id,
     body={
