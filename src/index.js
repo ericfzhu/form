@@ -4,6 +4,8 @@ const moment = require("moment");
 const { spawn } = require('child_process');
 require('dotenv').config();
 
+const axios = require('axios').default;
+
 client.once("ready", async () => {
   if (!client.application?.owner) await client.application?.fetch();
   // get(guildId)?.commands.fetch(commandId);
@@ -39,6 +41,19 @@ client.on("interactionCreate", async (interaction) => {
     let string = interaction.options.getString("input");
     let date = moment().format("L");
     date = date.replaceAll("/", "-");
+
+    // let url = 'https://script.googleapis.com/v1/scripts/AKfycbw1TaLKmd24DnaY9aDVLr_XSvOtEOKORQLfmBHvDpNyvou4YNbZ5cxCBXttyNBYiQI:run?folderId';
+    // axios({
+    //   method: 'get',
+    //   url: url,
+    //   data: {
+    //     folderId: '1hlCengkODUbKymUQHRvOk2cgSCMYrU-0',
+    //     folderName: date + string,
+    //   }
+    // }).then(function (link) {
+    //   console.log(link);
+    // });
+
 
     await interaction.reply('Generating link...');
     let link;
