@@ -23,7 +23,7 @@
 ## Getting Started
 Clone this repo
 ```bash
-git clone https://github.com/ericfzhu/form.git
+git clone https://github.com/ericfzhu/discord-forms.git
 ```
 Install the necessary dependencies
 ```bash
