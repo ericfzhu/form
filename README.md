@@ -1,4 +1,9 @@
-![](assets/banner.png)
+<p align="center">
+    <img src="assets/icon.png" alt="icon" width="125px" />
+</p>
+<h1 align="center">
+    Discord Forms
+</h1>
 
 <p align="center">
     <a href="https://www.javascript.com/">
@@ -10,6 +15,9 @@
     <a href="https://prettier.io/">
         <img src="https://img.shields.io/badge/-Prettier-1A2B34?logo=prettier&style=flat" alt="Prettier.io">
     </a>  
+</p>
+<p align="center">
+    Discord Forms is a Discord.js bot that allows you to create Google Forms in your Discord server.
 </p>
 
 ## Getting Started
