@@ -46,7 +46,7 @@ cd .\src\
 node deploy-commands.js
 node deploy-commands.js
 ```
-Run `index.js` to start your Discord bot!
+Run `index.js` to start the Discord bot
 ```bash
 node index.js
 ```
