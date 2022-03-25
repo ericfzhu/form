@@ -6,19 +6,19 @@
 </h1>
 
 <p align="center">
-    Discord Forms is a Discord.js bot that allows you to create Google Forms in your Discord server.
+    Discord Forms is a Discord.js bot that allows you to generate Google Form links from your Discord server.
 </p>
 
-## Getting Started
-Clone this repo
-```bash
-git clone https://github.com/ericfzhu/discord-forms.git
-```
+## Overview
+
+
+## Installation
 Install the necessary dependencies
 ```bash
 yarn install
 ```
 Rename `.env.template` to `.env` and fill the environment variables:
+
 - `TEAM_DRIVE_ID`: ID of the root folder of your shared Google Teams directory (`drive.google.com/drive/u/0/folders/xxxxxxxxxx`)
 - `PARENT_FOLDER_ID`: ID of the parent folder that holds all the event forms
 - `FORM_ID`: ID of the Google form that you want to copy
@@ -28,7 +28,7 @@ Rename `.env.template` to `.env` and fill the environment variables:
 - `ROLE_ID`: Role that's authorized to use the command to generate forms (usually Admin or Exec)
 - `DISCORD_TOKEN`: Token of your Discord bot
 
-## Usage
+## Running the bot
 Run `deploy-commands.ts` twice
 ```bash
 cd .\src\
