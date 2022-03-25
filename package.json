@@ -13,9 +13,9 @@
   "author": "Eric Zhu",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ericfzhu/form/issues"
+    "url": "https://github.com/ericfzhu/discord-forms/issues"
   },
-  "homepage": "https://github.com/ericfzhu/form#readme",
+  "homepage": "https://github.com/ericfzhu/discord-forms#readme",
   "dependencies": {
     "@discordjs/rest": "^0.3.0",
     "@discordjs/builders": "^0.12.0",
