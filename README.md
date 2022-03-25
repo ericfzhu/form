@@ -10,7 +10,7 @@
 </p>
 
 ## Overview
-Forms is a basic Discord bot that creates and links Google Forms through using Slash Commands. Due to the nature of Google's OAuth timeout, this bot is currently somewhat unreliable and a stable version is currently in the works.
+Forms enables users to programmatically create and link Google Forms on Discord using Slash Commands. Due to the nature of Google's OAuth timeout, this bot is currently somewhat unreliable and a stable version is currently in the works.
 
 ## Installation
 Install the necessary dependencies
