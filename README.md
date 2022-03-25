@@ -6,7 +6,7 @@
 </h1>
 
 <p align="center">
-    Discord Forms is a Discord.js bot that allows you to generate Google Form links from your Discord server.
+    Google Forms simplified for Discord
 </p>
 
 ## Overview
