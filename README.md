@@ -40,13 +40,13 @@ Rename `.env.template` to `.env` and fill the environment variables:
 - `DISCORD_TOKEN`: Token of your Discord bot
 
 ## Usage
-Run `deploy-commands.js` twice
+Run `deploy-commands.ts` twice
 ```bash
 cd .\src\
-node deploy-commands.js
-node deploy-commands.js
+node deploy-commands.ts
+node deploy-commands.ts
 ```
-Run `index.js` to start the Discord bot
+Run `index.ts` to start the Discord bot
 ```bash
-node index.js
+node index.ts
 ```
