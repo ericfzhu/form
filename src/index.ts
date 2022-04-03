@@ -1,6 +1,6 @@
-import { Client, Intents } from 'discord.js';
-import moment = require('moment');
-import { spawn } from 'child_process';
+const { Client, Intents } = require('discord.js');
+const moment = require('moment');
+const { spawn } = require('child_process');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
 require('dotenv').config();

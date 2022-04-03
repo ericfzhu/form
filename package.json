@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ericfzhu/form.git"
+    "url": "git+https://github.com/ericfzhu/discord-forms.git"
   },
   "author": "Eric Zhu",
   "license": "MIT",
