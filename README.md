@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="assets/icon.png" alt="icon" width="125px" />
+    <img src="static/icon.png" alt="icon" width="125px" />
 </p>
 <h1 align="center">
     Discord Forms
@@ -11,9 +11,12 @@
 
 ## Still in a proof of concept stage
 
-
 ## Overview
-Discord Forms enables users to create and link Google Forms on Discord using Slash Commands. Due to the nature of Google's OAuth timeout, this bot is currently in the proof of concept stage.
+A tool that automates event management on Google Drives via Discord.
+
+## Design
+
+![](static/design.png)
 
 ## Installation
 Install the necessary dependencies
