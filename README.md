@@ -9,6 +9,9 @@
     Google Forms simplified for Discord
 </p>
 
+## Still in a proof of concept stage
+
+
 ## Overview
 Discord Forms enables users to create and link Google Forms on Discord using Slash Commands. Due to the nature of Google's OAuth timeout, this bot is currently in the proof of concept stage.
 
