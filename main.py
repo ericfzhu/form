@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from nextcord import SlashOption
 from nextcord.ext import commands, application_checks
 
+from endpoints import bitly
+
 load_dotenv()
 DISCORD_BOT_TOKEN = os.environ['DISCORD_BOT_TOKEN']
 
