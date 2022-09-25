@@ -1,5 +1,5 @@
 node_modules
-src/.env
+.env
 credentials.json
-/src/settings.yaml
+/settings.yaml
 /.idea/workspace.xml
