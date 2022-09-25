@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from nextcord import SlashOption
 from nextcord.ext import commands, application_checks
 
-from endpoints import bitly
+from endpoints import bitly, google_forms
 
 load_dotenv()
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
@@ -28,8 +28,11 @@ async def form(
         default=datetime.today().strftime("%Y-%m-%d"),
     ),
 ):
+    url = google_forms.post(name, date)
 
-    await interaction.send(f"{date} {name}")
+    shortened_url = bitly.post(url)
+
+    await interaction.send(f"{shortened_url}")
 
 
 bot.run(DISCORD_BOT_TOKEN)
