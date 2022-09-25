@@ -1,15 +1,15 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import sys
-import dotenv
+from dotenv import load_dotenv
 import os
 import requests
 
-dotenv.load_dotenv()
-team_drive_id = os.getenv('TEAM_DRIVE_ID')
-parent_folder_id = os.getenv('PARENT_FOLDER_ID')
-form_id = os.getenv('FORM_ID')
-bitly_token = os.getenv('BITLY_TOKEN')
+load_dotenv()
+TEAM_DRIVE_ID = os.getenv('TEAM_DRIVE_ID')
+PARENT_FOLDER_ID = os.getenv('PARENT_FOLDER_ID')
+FORM_ID = os.getenv('FORM_ID')
+BITLY_TOKEN = os.getenv('BITLY_TOKEN')
 
 gauth = GoogleAuth()
 gauth.LocalWebserverAuth()
