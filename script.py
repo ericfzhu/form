@@ -43,13 +43,6 @@ form = drive.auth.service.files().copy(
 ).execute()
 link = f'https://docs.google.com/forms/d/{form["id"]}/viewform?usp=sf_link'
 
-# Convert link to bitly
-header = {'Content-Type': 'application/json',
-          'Authorization': f'Bearer {bitly_token}'}
-json = {'long_url': link}
-result = requests.post('https://api-ssl.bitly.com/v4/shorten', json=json, headers=header)
-data = result.json()
-
 if 'link' in data.keys():
     print(data['link'])
 else:
