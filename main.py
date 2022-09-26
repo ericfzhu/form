@@ -16,15 +16,15 @@ bot = commands.Bot()
 
 
 @bot.slash_command(
-    description="Creates an Arc Attendance Form.", guild_ids=[860941635047522374]
+    description="Creates an Arc Attendance Form", guild_ids=[860941635047522374, 157263595128881153]
 )
 @application_checks.has_role("Exec")
 async def form(
     interaction: nextcord.Interaction,
-    name: str = SlashOption(required=True, description="Name of the event."),
+    name: str = SlashOption(required=True, description="Name of the event"),
     date: Optional[str] = SlashOption(
         required=False,
-        description="Date of the event (YY-MM-DD).",
+        description="Date of the event (YY-MM-DD, defaults to today)",
         default=datetime.today().strftime("%Y-%m-%d"),
     ),
 ):
