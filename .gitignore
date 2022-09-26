@@ -3,3 +3,4 @@ node_modules
 credentials.json
 /settings.yaml
 /.idea/workspace.xml
+/client_secrets.json

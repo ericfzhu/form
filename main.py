@@ -28,6 +28,9 @@ async def form(
         default=datetime.today().strftime("%Y-%m-%d"),
     ),
 ):
+
+    await interaction.response.defer()
+
     url = google_forms.post(name, date)
 
     shortened_url = bitly.post(url)
