@@ -15,6 +15,10 @@ A tool that automates event management on Google Drives via Discord.
 
 ![](static/design.png)
 
+## Serverless Design
+
+![](static/serverless_design.png)
+
 ## Installation
 Install the necessary dependencies
 ```bash
