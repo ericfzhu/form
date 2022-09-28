@@ -1,23 +1,16 @@
-<h1 align="center">
-    Discord Forms
-</h1>
-
-<p align="center">
-    Arc Attendance forms on Discord
-</p>
-
-## Still in a proof of concept stage
-
-## Overview
+# Discord Forms
 A tool that automates event management on Google Drives via Discord.
+
+Still in a proof of concept stage
 
 ## API Design
 
-![](static/design.png)
+<img src="static/design.png" width=700>
 
 ## Serverless Architecture
 
-![](static/serverless.png)
+<img src="static/serverless.png" width=700>
+
 
 ## Installation
 Install the necessary dependencies
