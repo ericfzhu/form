@@ -11,18 +11,18 @@
 ## Overview
 A tool that automates event management on Google Drives via Discord.
 
-## Design
+## API Design
 
 ![](static/design.png)
 
-## Serverless Design
+## Serverless Architecture
 
-![](static/serverless_design.png)
+![](static/serverless.png)
 
 ## Installation
 Install the necessary dependencies
 ```bash
-yarn install
+python3 pip install -r requirements.txt
 ```
 
 ## Running the bot
