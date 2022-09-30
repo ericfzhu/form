@@ -1,4 +1,0 @@
-nextcord~=2.2.0
-python-dotenv~=0.21.0
-requests~=2.24.0
-PyDrive2~=1.14.0

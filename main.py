@@ -24,7 +24,7 @@ async def form(
     name: str = SlashOption(required=True, description="Name of the event"),
     date: Optional[str] = SlashOption(
         required=False,
-        description="Date of the event (YY-MM-DD, defaults to today)",
+        description="Date of the event (YYYY-MM-DD, defaults to today)",
         default=datetime.today().strftime("%Y-%m-%d"),
     ),
 ):
@@ -35,7 +35,7 @@ async def form(
 
     shortened_url = bitly.post(url)
 
-    await interaction.send(f"{shortened_url}")
+    await interaction.send(f"{date} {name}: {shortened_url}")
 
 
 bot.run(DISCORD_BOT_TOKEN)
