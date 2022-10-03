@@ -22,6 +22,10 @@ bot = commands.Bot()
 async def form(
     interaction: nextcord.Interaction,
     name: str = SlashOption(required=True, description="Name of the event"),
+    choice: int = SlashOption(
+        name="format",
+        choices={"Online": 1, "Offline": 2}
+    ),
     date: Optional[str] = SlashOption(
         required=False,
         description="Date of the event (YYYY-MM-DD, defaults to today)",
@@ -31,7 +35,7 @@ async def form(
 
     await interaction.response.defer()
 
-    url = google_forms.post(name, date)
+    url = google_forms.post(name, date, choice)
 
     shortened_url = bitly.post(url)
 
