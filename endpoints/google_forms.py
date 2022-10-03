@@ -18,7 +18,16 @@ FORM_ID_ONLINE = os.getenv('FORM_ID_ONLINE')
 FORM_ID_OFFLINE = os.getenv('FORM_ID_OFFLINE')
 
 
-def post(name: str, date: Optional[datetime], choice: int):
+def post(name: str, choice: int, date: str):
+    """
+    Creates a Google Form contained within a folder
+
+    :param str name: Name of the event
+    :param choice: Whether it's an online or offline event
+    :param str date: The date of the event in YYYY-MM-DD format
+
+    :return: URL of the attendance form URL
+    """
     FORM_ID = FORM_ID_ONLINE if choice == 1 else FORM_ID_OFFLINE
     folder = drive.CreateFile({
         'title': f'{date} {name}',

@@ -26,16 +26,27 @@ async def form(
         name="format",
         choices={"Online": 1, "Offline": 2}
     ),
-    date: Optional[str] = SlashOption(
+    date: str = SlashOption(
         required=False,
         description="Date of the event (YYYY-MM-DD, defaults to today)",
         default=datetime.today().strftime("%Y-%m-%d"),
     ),
 ):
+    """
+    Creates an Attendance Form
+
+    :param interaction: The /form slash command
+    :param str name: Name of the event
+    :param int choice: Whether it's an online or offline event
+    :param Optional[datetime] date: The date of the event in YYYY-MM-DD format, defaults to the current date if not
+    provided
+
+    :return: Shortened URL of the attendance form with Bitly
+    """
 
     await interaction.response.defer()
 
-    url = google_forms.post(name, date, choice)
+    url = google_forms.post(name, choice, date)
 
     shortened_url = bitly.post(url)
 
