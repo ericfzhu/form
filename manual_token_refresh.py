@@ -5,6 +5,6 @@ from pydrive2.auth import GoogleAuth
 if os.path.exists("credentials.json"):
     os.remove("credentials.json")
 
-# Reauth with Google
+# Reauthenticate with Google
 gauth = GoogleAuth()
 gauth.LocalWebserverAuth()
