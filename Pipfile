@@ -1,13 +1,13 @@
 [[source]]
+name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
-name = "pypi"
 
 [packages]
-nextcord = "~=2.2.0"
-python-dotenv = "~=0.21.0"
-requests = "~=2.28.1"
-pydrive2 = "~=1.14.0"
+nextcord = "*"
+python-dotenv = "*"
+requests = "*"
+pydrive2 = "*"
 validators = "*"
 
 [dev-packages]

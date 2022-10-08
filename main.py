@@ -27,7 +27,6 @@ async def form(
     date: str = SlashOption(
         required=False,
         description="Date of the event (YYYY-MM-DD, defaults to today)",
-        default=datetime.today().strftime("%Y-%m-%d"),
     ),
 ):
     """
@@ -41,6 +40,9 @@ async def form(
 
     :return: Shortened URL of the attendance form with Bitly
     """
+
+    if not date:
+        date = datetime.today().strftime("%Y-%m-%d")
 
     await interaction.response.defer()
 
