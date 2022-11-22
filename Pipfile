@@ -9,6 +9,7 @@ python-dotenv = "*"
 requests = "*"
 pydrive2 = "*"
 validators = "*"
+pre-commit = "*"
 
 [dev-packages]
 

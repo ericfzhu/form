@@ -22,7 +22,7 @@ def post(url):
     """
     if not validators.url(url):
         warnings.warn("Not a valid url")
-        return
+        return "Invalid URL was provided"
 
     endpoint = "https://api-ssl.bitly.com/v4/shorten"
     headers = {

@@ -7,4 +7,4 @@ if os.path.exists("credentials.json"):
 
 # Reauthenticate with Google
 gauth = GoogleAuth()
-gauth.LocalWebserverAuth()
+print(gauth.LocalWebserverAuth())
