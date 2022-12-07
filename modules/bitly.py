@@ -12,7 +12,7 @@ load_dotenv()
 BITLY_TOKEN = os.environ["BITLY_TOKEN"]
 
 
-def post(url):
+def shorten_url(url):
     """
     Shortens a given URL
 
@@ -29,10 +29,16 @@ def post(url):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {BITLY_TOKEN}",
     }
-    data = json.dumps(
-        {"long_url": url, "domain": "bit.ly", "group_guid": "Blbo2svkX02"}
-    )
-    result = requests.request("POST", endpoint, headers=headers, data=data)
-    data = result.json()
+    params = {"long_url": url}
+    response = requests.request("POST", endpoint, headers=headers, json=params)
+    if not response.ok:
+        warnings.warn(f"Invalid response from Bitly {response.content}")
+        return "Invalid response from Bitly"
+
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        warnings.warn(f"Response from Bitly could not be decoded {response.content}")
+        return "Response could not be decoded"
 
     return data["link"]
