@@ -43,7 +43,7 @@ struct ActiveWorkoutView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 18) {
-                    VStack(alignment: .leading, spacing: 7) {
+                    VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 8) {
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(InkPalette.cinnabar)
@@ -63,9 +63,6 @@ struct ActiveWorkoutView: View {
                             .frame(minWidth: 44, minHeight: 44)
                             .buttonStyle(PressableButtonStyle())
                         }
-                        Text("Move with control.")
-                            .font(.system(size: 30, weight: .semibold, design: .serif))
-                            .foregroundStyle(InkPalette.ink)
                         InkDivider().padding(.top, 4)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
