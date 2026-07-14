@@ -52,6 +52,16 @@ struct ActiveWorkoutView: View {
                                 .font(.caption.weight(.semibold))
                                 .tracking(2.6)
                                 .foregroundStyle(InkPalette.softInk)
+
+                            Spacer()
+
+                            Button("Close") {
+                                showingCancelConfirmation = true
+                            }
+                            .font(.system(.subheadline, design: .serif, weight: .medium))
+                            .foregroundStyle(InkPalette.ink)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .buttonStyle(PressableButtonStyle())
                         }
                         Text("Move with control.")
                             .font(.system(size: 30, weight: .semibold, design: .serif))
@@ -72,18 +82,7 @@ struct ActiveWorkoutView: View {
                 .padding(.bottom, restEnd == nil ? 96 : 158)
             }
         }
-        .navigationTitle(routine.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Close") { showingCancelConfirmation = true }
-                    .font(.system(.body, design: .serif))
-                    .foregroundStyle(InkPalette.ink)
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 9) {
                 if let restEnd {
