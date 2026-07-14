@@ -103,27 +103,127 @@ struct InkPrimaryButton: View {
     }
 }
 
+private enum AppTab: CaseIterable, Hashable {
+    case train
+    case history
+
+    var title: String {
+        switch self {
+        case .train: "Train"
+        case .history: "History"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .train: "circle.grid.cross"
+        case .history: "clock"
+        }
+    }
+}
+
 struct RootView: View {
+    @State private var selection: AppTab = .train
+
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             NavigationStack {
                 RoutineListView()
             }
-            .tabItem {
-                Label("Train", systemImage: "circle.grid.cross")
-            }
+            .tag(AppTab.train)
 
             NavigationStack {
                 HistoryView()
             }
-            .tabItem {
-                Label("History", systemImage: "clock")
+            .tag(AppTab.history)
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .tint(InkPalette.ink)
+        .fontDesign(.serif)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            InkTabBar(selection: $selection)
+                .padding(.horizontal, 42)
+                .padding(.top, 8)
+                .padding(.bottom, 6)
+                .background(
+                    LinearGradient(
+                        colors: [InkPalette.paper.opacity(0), InkPalette.paper],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+        }
+    }
+}
+
+private struct InkTabBar: View {
+    @Binding var selection: AppTab
+    @Namespace private var selectionNamespace
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(AppTab.allCases, id: \.self) { tab in
+                Button {
+                    selection = tab
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: tab.symbol)
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(width: 20, height: 20)
+                        Text(tab.title)
+                            .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    }
+                    .foregroundStyle(selection == tab ? InkPalette.paper : InkPalette.softInk)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background {
+                        if selection == tab {
+                            UnevenRoundedRectangle(
+                                cornerRadii: .init(
+                                    topLeading: 16,
+                                    bottomLeading: 13,
+                                    bottomTrailing: 17,
+                                    topTrailing: 12
+                                ),
+                                style: .continuous
+                            )
+                            .fill(InkPalette.ink)
+                            .matchedGeometryEffect(id: "selected-tab", in: selectionNamespace)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
-        .tint(InkPalette.ink)
-        .toolbarBackground(InkPalette.raisedPaper.opacity(0.96), for: .tabBar)
-        .toolbarBackground(.visible, for: .tabBar)
-        .fontDesign(.serif)
+        .padding(5)
+        .background(
+            UnevenRoundedRectangle(
+                cornerRadii: .init(
+                    topLeading: 22,
+                    bottomLeading: 19,
+                    bottomTrailing: 24,
+                    topTrailing: 18
+                ),
+                style: .continuous
+            )
+            .fill(InkPalette.raisedPaper)
+            .shadow(color: InkPalette.ink.opacity(0.12), radius: 18, y: 8)
+        )
+        .overlay {
+            UnevenRoundedRectangle(
+                cornerRadii: .init(
+                    topLeading: 22,
+                    bottomLeading: 19,
+                    bottomTrailing: 24,
+                    topTrailing: 18
+                ),
+                style: .continuous
+            )
+            .stroke(.black.opacity(0.10), lineWidth: 1)
+        }
+        .animation(.easeOut(duration: 0.22), value: selection)
     }
 }
 

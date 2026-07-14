@@ -39,47 +39,61 @@ struct ActiveWorkoutView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach($drafts) { $draft in
-                    ExerciseLoggingCard(draft: $draft) {
-                        restEnd = Date().addingTimeInterval(90)
+        ZStack {
+            PaperBackground()
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text("IN PROGRESS")
+                            .font(.caption.weight(.semibold))
+                            .tracking(2.6)
+                            .foregroundStyle(InkPalette.softInk)
+                        Text("Move with control.")
+                            .font(.system(size: 30, weight: .semibold, design: .serif))
+                            .foregroundStyle(InkPalette.ink)
+                        InkDivider().padding(.top, 4)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 2)
+
+                    ForEach($drafts) { $draft in
+                        ExerciseLoggingCard(draft: $draft) {
+                            restEnd = Date().addingTimeInterval(90)
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, restEnd == nil ? 96 : 158)
             }
-            .padding(20)
-            .padding(.bottom, restEnd == nil ? 90 : 146)
         }
-        .background(Color(.systemGroupedBackground))
         .navigationTitle(routine.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { showingCancelConfirmation = true }
-                    .foregroundStyle(.primary)
+                    .font(.system(.body, design: .serif))
+                    .foregroundStyle(InkPalette.ink)
+                    .frame(minWidth: 44, minHeight: 44)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 8) {
+            VStack(spacing: 9) {
                 if let restEnd {
                     RestTimer(end: restEnd) {
                         self.restEnd = nil
                     }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                Button(action: finishWorkout) {
-                    Text("Finish workout")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(.black, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-                }
-                .buttonStyle(PressableButtonStyle())
+                InkPrimaryButton(title: "Finish session", action: finishWorkout)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
+            .background(InkPalette.paper.opacity(0.95))
+            .animation(.easeOut(duration: 0.2), value: restEnd)
         }
         .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
             Button("Discard workout", role: .destructive) { dismiss() }
@@ -134,23 +148,25 @@ private struct ExerciseLoggingCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
+            HStack(spacing: 15) {
                 DemonstrationImage(assetName: draft.template.assetName)
-                    .frame(width: 82, height: 82)
+                    .frame(width: 94, height: 94)
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(draft.template.name)
-                        .font(.headline)
+                        .font(.system(.headline, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
                     Text(draft.template.targetText)
                         .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(InkPalette.softInk)
                 }
                 Spacer()
             }
-            .padding(10)
+            .padding(11)
 
-            Divider()
-                .padding(.horizontal, 12)
+            InkDivider()
+                .padding(.horizontal, 14)
+                .padding(.vertical, 5)
 
             HStack {
                 Text("SET")
@@ -161,10 +177,11 @@ private struct ExerciseLoggingCard: View {
                     .frame(maxWidth: .infinity)
                 Color.clear.frame(width: 44, height: 1)
             }
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.secondary)
+            .font(.caption2.weight(.semibold))
+            .tracking(1.2)
+            .foregroundStyle(InkPalette.softInk)
             .padding(.horizontal, 14)
-            .padding(.top, 12)
+            .padding(.top, 6)
 
             ForEach(Array(draft.sets.indices), id: \.self) { index in
                 SetLoggingRow(
@@ -178,20 +195,27 @@ private struct ExerciseLoggingCard: View {
             .padding(.horizontal, 10)
 
             Button {
-                draft.sets.append(SetDraft(weight: draft.sets.last?.weight ?? 0, repetitions: draft.sets.last?.repetitions ?? draft.template.minimumRepetitions))
+                draft.sets.append(
+                    SetDraft(
+                        weight: draft.sets.last?.weight ?? 0,
+                        repetitions: draft.sets.last?.repetitions ?? draft.template.minimumRepetitions
+                    )
+                )
             } label: {
-                Label("Add set", systemImage: "plus")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                    Text("Add another set")
+                }
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
             }
             .buttonStyle(PressableButtonStyle())
             .padding(.horizontal, 10)
-            .padding(.bottom, 8)
+            .padding(.bottom, 9)
         }
-        .background(.white, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+        .inkCard()
     }
 }
 
@@ -205,6 +229,7 @@ private struct SetLoggingRow: View {
         HStack(spacing: 8) {
             Text("\(index)")
                 .font(.body.monospacedDigit().weight(.semibold))
+                .foregroundStyle(InkPalette.softInk)
                 .frame(width: 36, alignment: .leading)
 
             if measurement == .weighted {
@@ -212,31 +237,40 @@ private struct SetLoggingRow: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
-                    .inputSurface()
+                    .inkInput()
             } else {
                 Text("BODY")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(InkPalette.paper.opacity(0.78), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
 
             TextField("0", value: $set.repetitions, format: .number)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
-                .inputSurface()
+                .inkInput()
 
             Button {
                 set.completed.toggle()
                 if set.completed { didComplete() }
             } label: {
-                Image(systemName: set.completed ? "checkmark" : "circle")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(set.completed ? .white : .secondary)
-                    .frame(width: 42, height: 42)
-                    .background(set.completed ? .black : Color(.secondarySystemGroupedBackground), in: Circle())
+                ZStack {
+                    Circle()
+                        .stroke(InkPalette.ink.opacity(set.completed ? 0 : 0.28), lineWidth: 1)
+                    Circle()
+                        .fill(set.completed ? InkPalette.ink : .clear)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(InkPalette.paper)
+                        .scaleEffect(set.completed ? 1 : 0.25)
+                        .opacity(set.completed ? 1 : 0)
+                        .blur(radius: set.completed ? 0 : 4)
+                }
+                .frame(width: 42, height: 42)
+                .animation(.easeOut(duration: 0.2), value: set.completed)
             }
             .buttonStyle(PressableButtonStyle())
             .accessibilityLabel(set.completed ? "Mark incomplete" : "Mark complete")
@@ -245,18 +279,23 @@ private struct SetLoggingRow: View {
     }
 }
 
-private struct InputSurface: ViewModifier {
+private struct InkInput: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.body.monospacedDigit().weight(.medium))
+            .foregroundStyle(InkPalette.ink)
             .frame(height: 42)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(InkPalette.paper.opacity(0.78), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(InkPalette.ink.opacity(0.07), lineWidth: 1)
+            }
     }
 }
 
 private extension View {
-    func inputSurface() -> some View {
-        modifier(InputSurface())
+    func inkInput() -> some View {
+        modifier(InkInput())
     }
 }
 
@@ -270,21 +309,22 @@ private struct RestTimer: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("REST")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.8)
+                        .foregroundStyle(InkPalette.softInk)
                     Text(timeString(remaining))
-                        .font(.title3.monospacedDigit().weight(.bold))
+                        .font(.title3.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(InkPalette.ink)
                 }
                 Spacer()
                 Button("Skip", action: cancel)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
                     .frame(minWidth: 44, minHeight: 44)
             }
             .padding(.horizontal, 16)
-            .frame(height: 62)
-            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+            .frame(height: 64)
+            .inkCard()
             .onChange(of: remaining) { _, value in
                 if value == 0 { cancel() }
             }
