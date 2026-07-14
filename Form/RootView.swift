@@ -129,17 +129,26 @@ private enum AppTab: CaseIterable, Hashable {
 
 struct RootView: View {
     @State private var selection: AppTab = .train
+    @State private var trainPath: [RoutineTemplate] = []
+    @State private var historyPath: [WorkoutRecord] = []
+
+    private var isFooterVisible: Bool {
+        switch selection {
+        case .train: trainPath.isEmpty
+        case .history: historyPath.isEmpty
+        }
+    }
 
     var body: some View {
         ZStack {
-            NavigationStack {
+            NavigationStack(path: $trainPath) {
                 RoutineListView()
             }
             .opacity(selection == .train ? 1 : 0)
             .allowsHitTesting(selection == .train)
             .accessibilityHidden(selection != .train)
 
-            NavigationStack {
+            NavigationStack(path: $historyPath) {
                 HistoryView()
             }
             .opacity(selection == .history ? 1 : 0)
@@ -149,7 +158,9 @@ struct RootView: View {
         .tint(InkPalette.ink)
         .fontDesign(.serif)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            InkTabBar(selection: $selection)
+            if isFooterVisible {
+                InkTabBar(selection: $selection)
+            }
         }
     }
 }

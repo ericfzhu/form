@@ -17,9 +17,7 @@ struct HistoryView: View {
                         historyHeader
 
                         ForEach(workouts) { workout in
-                            NavigationLink {
-                                WorkoutHistoryDetail(workout: workout)
-                            } label: {
+                            NavigationLink(value: workout) {
                                 HistoryCard(workout: workout)
                             }
                             .buttonStyle(PressableButtonStyle())
@@ -37,6 +35,9 @@ struct HistoryView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: WorkoutRecord.self) { workout in
+            WorkoutHistoryDetail(workout: workout)
+        }
     }
 
     private var historyHeader: some View {
