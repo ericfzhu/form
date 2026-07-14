@@ -194,11 +194,7 @@ private struct RoutineListView: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    VStack(spacing: 9) {
-                        Text("FORM")
-                            .font(.caption.weight(.semibold))
-                            .tracking(4.5)
-                            .foregroundStyle(InkPalette.ink)
+                    VStack(spacing: 0) {
                         Text("Continue the A → B → C rotation, however often you train.")
                             .font(.system(.caption, design: .serif))
                             .foregroundStyle(InkPalette.softInk.opacity(0.72))
@@ -233,24 +229,24 @@ private struct RoutineCard: View {
     let routine: RoutineTemplate
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 9) {
                 Text(routine.id)
                     .font(.system(size: 48, weight: .medium, design: .serif))
                     .foregroundStyle(InkPalette.ink)
-                Text(routine.focus.components(separatedBy: " · ").joined(separator: "\n"))
+                Text(routine.focus.replacingOccurrences(of: " · ", with: ", "))
                     .font(.system(size: 15, weight: .medium, design: .serif))
                     .foregroundStyle(InkPalette.softInk.opacity(0.82))
                     .lineSpacing(3)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.leading, 18)
-            .padding(.vertical, 18)
-
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
 
             DemonstrationImage(assetName: routine.exercises[0].assetName, outlined: false)
-                .frame(width: 150, height: 156)
+                .frame(width: 136, height: 144)
+                .offset(x: -10)
                 .mask(
                     RadialGradient(
                         colors: [.black, .black, .clear],
@@ -260,6 +256,8 @@ private struct RoutineCard: View {
                     )
                 )
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 15)
         .frame(minHeight: 174)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -293,9 +291,6 @@ private struct RoutineDetailView: View {
                                 .tracking(2.2)
                                 .foregroundStyle(InkPalette.softInk)
                         }
-                        Text("Six movements.\nOne deliberate session.")
-                            .font(.system(size: 30, weight: .semibold, design: .serif))
-                            .foregroundStyle(InkPalette.ink)
                         InkDivider().padding(.top, 4)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,7 +305,7 @@ private struct RoutineDetailView: View {
                 .padding(.bottom, 104)
             }
         }
-        .navigationTitle(routine.name)
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(InkPalette.paper.opacity(0.94), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
