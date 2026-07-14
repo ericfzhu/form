@@ -7,29 +7,22 @@ enum InkPalette {
     static let paper = Color(red: 0.955, green: 0.938, blue: 0.89)
     static let raisedPaper = Color(red: 0.982, green: 0.969, blue: 0.925)
     static let washedInk = Color(red: 0.83, green: 0.81, blue: 0.75)
+    static let cinnabar = Color(red: 0.56, green: 0.12, blue: 0.09)
 }
 
 struct PaperBackground: View {
     var body: some View {
         ZStack {
             InkPalette.paper
-            GeometryReader { proxy in
-                Path { path in
-                    path.move(to: CGPoint(x: -30, y: proxy.size.height * 0.18))
-                    path.addCurve(
-                        to: CGPoint(x: proxy.size.width + 30, y: proxy.size.height * 0.13),
-                        control1: CGPoint(x: proxy.size.width * 0.24, y: proxy.size.height * 0.12),
-                        control2: CGPoint(x: proxy.size.width * 0.68, y: proxy.size.height * 0.22)
-                    )
-                    path.move(to: CGPoint(x: -20, y: proxy.size.height * 0.72))
-                    path.addCurve(
-                        to: CGPoint(x: proxy.size.width + 20, y: proxy.size.height * 0.78),
-                        control1: CGPoint(x: proxy.size.width * 0.34, y: proxy.size.height * 0.82),
-                        control2: CGPoint(x: proxy.size.width * 0.72, y: proxy.size.height * 0.68)
-                    )
-                }
-                .stroke(InkPalette.ink.opacity(0.025), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
-            }
+            Image("xuan-paper")
+                .resizable(resizingMode: .tile)
+                .blendMode(.multiply)
+                .opacity(0.34)
+            LinearGradient(
+                colors: [.white.opacity(0.12), .clear, InkPalette.ink.opacity(0.018)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
         .ignoresSafeArea()
     }
@@ -37,11 +30,21 @@ struct PaperBackground: View {
 
 struct InkDivider: View {
     var body: some View {
-        HStack(spacing: 4) {
-            Capsule().fill(InkPalette.ink.opacity(0.62)).frame(width: 34, height: 2)
-            Capsule().fill(InkPalette.ink.opacity(0.20)).frame(height: 1)
+        GeometryReader { proxy in
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 2))
+                path.addCurve(
+                    to: CGPoint(x: proxy.size.width, y: 2),
+                    control1: CGPoint(x: proxy.size.width * 0.30, y: 1.2),
+                    control2: CGPoint(x: proxy.size.width * 0.70, y: 2.8)
+                )
+            }
+            .stroke(
+                InkPalette.ink.opacity(0.24),
+                style: StrokeStyle(lineWidth: 1, lineCap: .round)
+            )
         }
-        .frame(height: 4)
+        .frame(height: 5)
         .accessibilityHidden(true)
     }
 }
@@ -49,21 +52,6 @@ struct InkDivider: View {
 private struct InkCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(
-                UnevenRoundedRectangle(
-                    cornerRadii: .init(topLeading: 24, bottomLeading: 18, bottomTrailing: 25, topTrailing: 20),
-                    style: .continuous
-                )
-                .fill(InkPalette.raisedPaper)
-                .shadow(color: InkPalette.ink.opacity(0.07), radius: 14, y: 7)
-            )
-            .overlay {
-                UnevenRoundedRectangle(
-                    cornerRadii: .init(topLeading: 24, bottomLeading: 18, bottomTrailing: 25, topTrailing: 20),
-                    style: .continuous
-                )
-                .stroke(InkPalette.ink.opacity(0.10), lineWidth: 1)
-            }
     }
 }
 
@@ -92,14 +80,31 @@ struct InkPrimaryButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                UnevenRoundedRectangle(
-                    cornerRadii: .init(topLeading: 18, bottomLeading: 15, bottomTrailing: 20, topTrailing: 14),
-                    style: .continuous
-                )
-                .fill(InkPalette.ink)
+                BrushBandShape()
+                    .fill(InkPalette.ink)
             )
         }
         .buttonStyle(PressableButtonStyle())
+    }
+}
+
+private struct BrushBandShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + 5, y: rect.minY + 3))
+        path.addCurve(
+            to: CGPoint(x: rect.maxX - 3, y: rect.minY + 1),
+            control1: CGPoint(x: rect.width * 0.28, y: rect.minY),
+            control2: CGPoint(x: rect.width * 0.72, y: rect.minY + 5)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - 5))
+        path.addCurve(
+            to: CGPoint(x: rect.minX + 2, y: rect.maxY - 2),
+            control1: CGPoint(x: rect.width * 0.68, y: rect.maxY),
+            control2: CGPoint(x: rect.width * 0.24, y: rect.maxY - 5)
+        )
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -142,87 +147,42 @@ struct RootView: View {
         .fontDesign(.serif)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             InkTabBar(selection: $selection)
-                .padding(.horizontal, 42)
-                .padding(.top, 8)
-                .padding(.bottom, 6)
-                .background(
-                    LinearGradient(
-                        colors: [InkPalette.paper.opacity(0), InkPalette.paper],
-                        startPoint: .top,
-                        endPoint: .center
-                    )
-                )
         }
     }
 }
 
 private struct InkTabBar: View {
     @Binding var selection: AppTab
-    @Namespace private var selectionNamespace
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 56) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 Button {
                     selection = tab
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: tab.symbol)
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(width: 20, height: 20)
-                        Text(tab.title)
-                            .font(.system(.subheadline, design: .serif, weight: .semibold))
-                    }
-                    .foregroundStyle(selection == tab ? InkPalette.paper : InkPalette.softInk)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background {
-                        if selection == tab {
-                            UnevenRoundedRectangle(
-                                cornerRadii: .init(
-                                    topLeading: 16,
-                                    bottomLeading: 13,
-                                    bottomTrailing: 17,
-                                    topTrailing: 12
-                                ),
-                                style: .continuous
-                            )
-                            .fill(InkPalette.ink)
-                            .matchedGeometryEffect(id: "selected-tab", in: selectionNamespace)
+                    VStack(spacing: 4) {
+                        HStack(spacing: 7) {
+                            Image(systemName: tab.symbol)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.softInk.opacity(0.55))
+                            Text(tab.title)
+                                .font(.system(.subheadline, design: .serif, weight: selection == tab ? .semibold : .regular))
+                                .foregroundStyle(selection == tab ? InkPalette.ink : InkPalette.softInk.opacity(0.62))
                         }
+                        Circle()
+                            .fill(selection == tab ? InkPalette.cinnabar : .clear)
+                            .frame(width: 4, height: 4)
                     }
+                    .frame(minWidth: 96, minHeight: 50)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
-        .padding(5)
-        .background(
-            UnevenRoundedRectangle(
-                cornerRadii: .init(
-                    topLeading: 22,
-                    bottomLeading: 19,
-                    bottomTrailing: 24,
-                    topTrailing: 18
-                ),
-                style: .continuous
-            )
-            .fill(InkPalette.raisedPaper)
-            .shadow(color: InkPalette.ink.opacity(0.12), radius: 18, y: 8)
-        )
-        .overlay {
-            UnevenRoundedRectangle(
-                cornerRadii: .init(
-                    topLeading: 22,
-                    bottomLeading: 19,
-                    bottomTrailing: 24,
-                    topTrailing: 18
-                ),
-                style: .continuous
-            )
-            .stroke(.black.opacity(0.10), lineWidth: 1)
-        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 5)
+        .background(InkPalette.raisedPaper.opacity(0.82))
         .animation(.easeOut(duration: 0.22), value: selection)
     }
 }
@@ -233,34 +193,40 @@ private struct RoutineListView: View {
             PaperBackground()
 
             ScrollView {
-                LazyVStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 10) {
+                LazyVStack(spacing: 0) {
+                    VStack(spacing: 9) {
                         Text("FORM")
                             .font(.caption.weight(.semibold))
-                            .tracking(4)
-                            .foregroundStyle(InkPalette.softInk)
-                        Text("Train with intent.")
-                            .font(.system(size: 39, weight: .semibold, design: .serif))
+                            .tracking(4.5)
                             .foregroundStyle(InkPalette.ink)
-                        InkDivider()
-                            .padding(.vertical, 2)
                         Text("Continue the A → B → C rotation, however often you train.")
-                            .font(.system(.body, design: .serif))
-                            .foregroundStyle(InkPalette.softInk)
+                            .font(.system(.caption, design: .serif))
+                            .foregroundStyle(InkPalette.softInk.opacity(0.72))
+                            .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 12)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 28)
 
-                    ForEach(WorkoutCatalog.routines) { routine in
-                        NavigationLink(value: routine) {
-                            RoutineCard(routine: routine)
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(InkPalette.ink.opacity(0.13))
+                            .frame(width: 1)
+                            .padding(.leading, 7)
+                            .padding(.vertical, 58)
+
+                        LazyVStack(spacing: 6) {
+                            ForEach(WorkoutCatalog.routines) { routine in
+                                NavigationLink(value: routine) {
+                                    RoutineCard(routine: routine)
+                                }
+                                .buttonStyle(PressableButtonStyle())
+                            }
                         }
-                        .buttonStyle(PressableButtonStyle())
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 22)
+                .padding(.horizontal, 30)
+                .padding(.top, 18)
                 .padding(.bottom, 30)
             }
         }
@@ -275,44 +241,39 @@ private struct RoutineCard: View {
     let routine: RoutineTemplate
 
     var body: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 14) {
+            Circle()
+                .fill(InkPalette.cinnabar)
+                .frame(width: 7, height: 7)
+                .frame(width: 15)
+
+            VStack(alignment: .leading, spacing: 9) {
                 Text(routine.id)
-                    .font(.system(size: 42, weight: .medium, design: .serif))
+                    .font(.system(size: 48, weight: .medium, design: .serif))
                     .foregroundStyle(InkPalette.ink)
-                Text(routine.name)
-                    .font(.system(.title3, design: .serif, weight: .semibold))
-                    .foregroundStyle(InkPalette.ink)
-                Text(routine.focus)
-                    .font(.system(.subheadline, design: .serif))
-                    .foregroundStyle(InkPalette.softInk)
-                Capsule()
-                    .fill(InkPalette.ink.opacity(0.48))
-                    .frame(width: 42, height: 2)
-                    .padding(.top, 4)
+                Text(routine.focus.components(separatedBy: " · ").joined(separator: "\n"))
+                    .font(.system(size: 15, weight: .medium, design: .serif))
+                    .foregroundStyle(InkPalette.softInk.opacity(0.82))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.leading, 18)
             .padding(.vertical, 18)
 
             Spacer(minLength: 0)
 
             DemonstrationImage(assetName: routine.exercises[0].assetName, outlined: false)
-                .frame(width: 138, height: 142)
+                .frame(width: 150, height: 156)
                 .mask(
-                    LinearGradient(
-                        colors: [.clear, .black, .black],
-                        startPoint: .leading,
-                        endPoint: .trailing
+                    RadialGradient(
+                        colors: [.black, .black, .clear],
+                        center: .center,
+                        startRadius: 42,
+                        endRadius: 105
                     )
                 )
         }
-        .frame(minHeight: 154)
-        .inkCard()
-        .contentShape(
-            UnevenRoundedRectangle(
-                cornerRadii: .init(topLeading: 24, bottomLeading: 18, bottomTrailing: 25, topTrailing: 20)
-            )
-        )
+        .frame(minHeight: 174)
+        .contentShape(Rectangle())
     }
 }
 
@@ -326,10 +287,15 @@ private struct RoutineDetailView: View {
             ScrollView {
                 LazyVStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(routine.focus.uppercased())
-                            .font(.caption.weight(.semibold))
-                            .tracking(2.2)
-                            .foregroundStyle(InkPalette.softInk)
+                        HStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(InkPalette.cinnabar)
+                                .frame(width: 9, height: 9)
+                            Text(routine.focus.uppercased())
+                                .font(.caption.weight(.semibold))
+                                .tracking(2.2)
+                                .foregroundStyle(InkPalette.softInk)
+                        }
                         Text("Six movements.\nOne deliberate session.")
                             .font(.system(size: 30, weight: .semibold, design: .serif))
                             .foregroundStyle(InkPalette.ink)
@@ -352,7 +318,7 @@ private struct RoutineDetailView: View {
         .toolbarBackground(InkPalette.paper.opacity(0.94), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
-            InkPrimaryButton(title: "Begin (routine.name)") {
+            InkPrimaryButton(title: "Begin \(routine.name)") {
                 showingWorkout = true
             }
             .padding(.horizontal, 20)
@@ -405,18 +371,12 @@ struct DemonstrationImage: View {
             .scaledToFill()
             .blendMode(.multiply)
             .clipShape(
-                UnevenRoundedRectangle(
-                    cornerRadii: .init(topLeading: 15, bottomLeading: 12, bottomTrailing: 16, topTrailing: 11),
-                    style: .continuous
-                )
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
             )
             .overlay {
                 if outlined {
-                    UnevenRoundedRectangle(
-                        cornerRadii: .init(topLeading: 15, bottomLeading: 12, bottomTrailing: 16, topTrailing: 11),
-                        style: .continuous
-                    )
-                    .stroke(.black.opacity(0.10), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .stroke(.black.opacity(0.10), lineWidth: 1)
                 }
             }
             .accessibilityLabel("Ink illustration demonstrating the exercise")

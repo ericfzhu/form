@@ -44,10 +44,15 @@ struct ActiveWorkoutView: View {
             ScrollView {
                 LazyVStack(spacing: 18) {
                     VStack(alignment: .leading, spacing: 7) {
-                        Text("IN PROGRESS")
-                            .font(.caption.weight(.semibold))
-                            .tracking(2.6)
-                            .foregroundStyle(InkPalette.softInk)
+                        HStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(InkPalette.cinnabar)
+                                .frame(width: 9, height: 9)
+                            Text("IN PROGRESS")
+                                .font(.caption.weight(.semibold))
+                                .tracking(2.6)
+                                .foregroundStyle(InkPalette.softInk)
+                        }
                         Text("Move with control.")
                             .font(.system(size: 30, weight: .semibold, design: .serif))
                             .foregroundStyle(InkPalette.ink)
@@ -244,7 +249,12 @@ private struct SetLoggingRow: View {
                     .foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
-                    .background(InkPalette.paper.opacity(0.78), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(InkPalette.paper.opacity(0.45))
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(InkPalette.ink.opacity(0.28))
+                            .frame(height: 1)
+                    }
             }
 
             TextField("0", value: $set.repetitions, format: .number)
@@ -258,10 +268,10 @@ private struct SetLoggingRow: View {
                 if set.completed { didComplete() }
             } label: {
                 ZStack {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 2)
                         .stroke(InkPalette.ink.opacity(set.completed ? 0 : 0.28), lineWidth: 1)
-                    Circle()
-                        .fill(set.completed ? InkPalette.ink : .clear)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(set.completed ? InkPalette.cinnabar : .clear)
                     Image(systemName: "checkmark")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(InkPalette.paper)
@@ -285,10 +295,11 @@ private struct InkInput: ViewModifier {
             .font(.body.monospacedDigit().weight(.medium))
             .foregroundStyle(InkPalette.ink)
             .frame(height: 42)
-            .background(InkPalette.paper.opacity(0.78), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(InkPalette.ink.opacity(0.07), lineWidth: 1)
+            .background(InkPalette.paper.opacity(0.45))
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(InkPalette.ink.opacity(0.28))
+                    .frame(height: 1)
             }
     }
 }

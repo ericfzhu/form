@@ -41,10 +41,15 @@ struct HistoryView: View {
 
     private var historyHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("PRACTICE LOG")
-                .font(.caption.weight(.semibold))
-                .tracking(3)
-                .foregroundStyle(InkPalette.softInk)
+            HStack(spacing: 9) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(InkPalette.cinnabar)
+                    .frame(width: 10, height: 10)
+                Text("PRACTICE LOG")
+                    .font(.caption.weight(.semibold))
+                    .tracking(3)
+                    .foregroundStyle(InkPalette.softInk)
+            }
             Text("The work, recorded.")
                 .font(.system(size: 36, weight: .semibold, design: .serif))
                 .foregroundStyle(InkPalette.ink)
@@ -145,10 +150,15 @@ private struct WorkoutHistoryDetail: View {
             ScrollView {
                 LazyVStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(workout.date.formatted(date: .long, time: .omitted).uppercased())
-                            .font(.caption.weight(.semibold))
-                            .tracking(1.8)
-                            .foregroundStyle(InkPalette.softInk)
+                        HStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(InkPalette.cinnabar)
+                                .frame(width: 9, height: 9)
+                            Text(workout.date.formatted(date: .long, time: .omitted).uppercased())
+                                .font(.caption.weight(.semibold))
+                                .tracking(1.8)
+                                .foregroundStyle(InkPalette.softInk)
+                        }
                         Text("A record of the session.")
                             .font(.system(size: 28, weight: .semibold, design: .serif))
                             .foregroundStyle(InkPalette.ink)
