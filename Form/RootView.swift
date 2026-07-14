@@ -208,24 +208,16 @@ private struct RoutineListView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, 28)
 
-                    ZStack(alignment: .leading) {
-                        Rectangle()
-                            .fill(InkPalette.ink.opacity(0.13))
-                            .frame(width: 1)
-                            .padding(.leading, 7)
-                            .padding(.vertical, 58)
-
-                        LazyVStack(spacing: 6) {
-                            ForEach(WorkoutCatalog.routines) { routine in
-                                NavigationLink(value: routine) {
-                                    RoutineCard(routine: routine)
-                                }
-                                .buttonStyle(PressableButtonStyle())
+                    LazyVStack(spacing: 16) {
+                        ForEach(WorkoutCatalog.routines) { routine in
+                            NavigationLink(value: routine) {
+                                RoutineCard(routine: routine)
                             }
+                            .buttonStyle(PressableButtonStyle())
                         }
                     }
                 }
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 20)
                 .padding(.top, 18)
                 .padding(.bottom, 30)
             }
@@ -242,11 +234,6 @@ private struct RoutineCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Circle()
-                .fill(InkPalette.cinnabar)
-                .frame(width: 7, height: 7)
-                .frame(width: 15)
-
             VStack(alignment: .leading, spacing: 9) {
                 Text(routine.id)
                     .font(.system(size: 48, weight: .medium, design: .serif))
@@ -257,6 +244,7 @@ private struct RoutineCard: View {
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .padding(.leading, 18)
             .padding(.vertical, 18)
 
             Spacer(minLength: 0)
@@ -273,7 +261,16 @@ private struct RoutineCard: View {
                 )
         }
         .frame(minHeight: 174)
-        .contentShape(Rectangle())
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(InkPalette.raisedPaper.opacity(0.92))
+                .shadow(color: InkPalette.ink.opacity(0.07), radius: 12, y: 6)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.black.opacity(0.08), lineWidth: 1)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
@@ -366,10 +363,16 @@ struct DemonstrationImage: View {
     var outlined = true
 
     var body: some View {
-        Image(assetName)
-            .resizable()
-            .scaledToFill()
-            .blendMode(.multiply)
+        InkPalette.ink
+            .mask {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .grayscale(1)
+                    .contrast(3)
+                    .colorInvert()
+                    .luminanceToAlpha()
+            }
             .clipShape(
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
             )
