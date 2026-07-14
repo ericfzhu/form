@@ -131,18 +131,21 @@ struct RootView: View {
     @State private var selection: AppTab = .train
 
     var body: some View {
-        TabView(selection: $selection) {
+        ZStack {
             NavigationStack {
                 RoutineListView()
             }
-            .tag(AppTab.train)
+            .opacity(selection == .train ? 1 : 0)
+            .allowsHitTesting(selection == .train)
+            .accessibilityHidden(selection != .train)
 
             NavigationStack {
                 HistoryView()
             }
-            .tag(AppTab.history)
+            .opacity(selection == .history ? 1 : 0)
+            .allowsHitTesting(selection == .history)
+            .accessibilityHidden(selection != .history)
         }
-        .toolbar(.hidden, for: .tabBar)
         .tint(InkPalette.ink)
         .fontDesign(.serif)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -274,6 +277,7 @@ private struct RoutineCard: View {
 
 private struct RoutineDetailView: View {
     let routine: RoutineTemplate
+    @Environment(\.dismiss) private var dismiss
     @State private var showingWorkout = false
 
     var body: some View {
@@ -281,6 +285,19 @@ private struct RoutineDetailView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 14) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(InkPalette.ink)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel("Back")
+
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
                             RoundedRectangle(cornerRadius: 1)
@@ -305,10 +322,7 @@ private struct RoutineDetailView: View {
                 .padding(.bottom, 104)
             }
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(InkPalette.paper.opacity(0.94), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
             InkPrimaryButton(title: "Begin \(routine.name)") {
                 showingWorkout = true
