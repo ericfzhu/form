@@ -1,6 +1,108 @@
 import SwiftUI
 import SwiftData
 
+enum InkPalette {
+    static let ink = Color(red: 0.08, green: 0.075, blue: 0.065)
+    static let softInk = Color(red: 0.34, green: 0.32, blue: 0.28)
+    static let paper = Color(red: 0.955, green: 0.938, blue: 0.89)
+    static let raisedPaper = Color(red: 0.982, green: 0.969, blue: 0.925)
+    static let washedInk = Color(red: 0.83, green: 0.81, blue: 0.75)
+}
+
+struct PaperBackground: View {
+    var body: some View {
+        ZStack {
+            InkPalette.paper
+            GeometryReader { proxy in
+                Path { path in
+                    path.move(to: CGPoint(x: -30, y: proxy.size.height * 0.18))
+                    path.addCurve(
+                        to: CGPoint(x: proxy.size.width + 30, y: proxy.size.height * 0.13),
+                        control1: CGPoint(x: proxy.size.width * 0.24, y: proxy.size.height * 0.12),
+                        control2: CGPoint(x: proxy.size.width * 0.68, y: proxy.size.height * 0.22)
+                    )
+                    path.move(to: CGPoint(x: -20, y: proxy.size.height * 0.72))
+                    path.addCurve(
+                        to: CGPoint(x: proxy.size.width + 20, y: proxy.size.height * 0.78),
+                        control1: CGPoint(x: proxy.size.width * 0.34, y: proxy.size.height * 0.82),
+                        control2: CGPoint(x: proxy.size.width * 0.72, y: proxy.size.height * 0.68)
+                    )
+                }
+                .stroke(InkPalette.ink.opacity(0.025), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+struct InkDivider: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Capsule().fill(InkPalette.ink.opacity(0.62)).frame(width: 34, height: 2)
+            Capsule().fill(InkPalette.ink.opacity(0.20)).frame(height: 1)
+        }
+        .frame(height: 4)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct InkCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(
+                UnevenRoundedRectangle(
+                    cornerRadii: .init(topLeading: 24, bottomLeading: 18, bottomTrailing: 25, topTrailing: 20),
+                    style: .continuous
+                )
+                .fill(InkPalette.raisedPaper)
+                .shadow(color: InkPalette.ink.opacity(0.07), radius: 14, y: 7)
+            )
+            .overlay {
+                UnevenRoundedRectangle(
+                    cornerRadii: .init(topLeading: 24, bottomLeading: 18, bottomTrailing: 25, topTrailing: 20),
+                    style: .continuous
+                )
+                .stroke(InkPalette.ink.opacity(0.10), lineWidth: 1)
+            }
+    }
+}
+
+extension View {
+    func inkCard() -> some View {
+        modifier(InkCardModifier())
+    }
+}
+
+struct InkPrimaryButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Text(title)
+                    .font(.system(.headline, design: .serif, weight: .semibold))
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .offset(x: 1)
+            }
+            .foregroundStyle(InkPalette.paper)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                UnevenRoundedRectangle(
+                    cornerRadii: .init(topLeading: 18, bottomLeading: 15, bottomTrailing: 20, topTrailing: 14),
+                    style: .continuous
+                )
+                .fill(InkPalette.ink)
+            )
+        }
+        .buttonStyle(PressableButtonStyle())
+    }
+}
+
 struct RootView: View {
     var body: some View {
         TabView {
@@ -8,48 +110,60 @@ struct RootView: View {
                 RoutineListView()
             }
             .tabItem {
-                Label("Train", systemImage: "figure.strengthtraining.traditional")
+                Label("Train", systemImage: "circle.grid.cross")
             }
 
             NavigationStack {
                 HistoryView()
             }
             .tabItem {
-                Label("History", systemImage: "clock.arrow.circlepath")
+                Label("History", systemImage: "clock")
             }
         }
-        .tint(.black)
+        .tint(InkPalette.ink)
+        .toolbarBackground(InkPalette.raisedPaper.opacity(0.96), for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .fontDesign(.serif)
     }
 }
 
 private struct RoutineListView: View {
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("FORM")
-                        .font(.caption.weight(.bold))
-                        .tracking(2.4)
-                    Text("Train with intent.")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                    Text("Continue the A → B → C rotation, regardless of how many times you train this week.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 10)
+        ZStack {
+            PaperBackground()
 
-                ForEach(WorkoutCatalog.routines) { routine in
-                    NavigationLink(value: routine) {
-                        RoutineCard(routine: routine)
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("FORM")
+                            .font(.caption.weight(.semibold))
+                            .tracking(4)
+                            .foregroundStyle(InkPalette.softInk)
+                        Text("Train with intent.")
+                            .font(.system(size: 39, weight: .semibold, design: .serif))
+                            .foregroundStyle(InkPalette.ink)
+                        InkDivider()
+                            .padding(.vertical, 2)
+                        Text("Continue the A → B → C rotation, however often you train.")
+                            .font(.system(.body, design: .serif))
+                            .foregroundStyle(InkPalette.softInk)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .buttonStyle(PressableButtonStyle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 12)
+
+                    ForEach(WorkoutCatalog.routines) { routine in
+                        NavigationLink(value: routine) {
+                            RoutineCard(routine: routine)
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 22)
+                .padding(.bottom, 30)
             }
-            .padding(20)
         }
-        .background(Color(.systemGroupedBackground))
         .navigationDestination(for: RoutineTemplate.self) { routine in
             RoutineDetailView(routine: routine)
         }
@@ -61,35 +175,44 @@ private struct RoutineCard: View {
     let routine: RoutineTemplate
 
     var body: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.black)
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(routine.id)
-                    .font(.title2.bold())
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 58, height: 58)
-
-            VStack(alignment: .leading, spacing: 5) {
+                    .font(.system(size: 42, weight: .medium, design: .serif))
+                    .foregroundStyle(InkPalette.ink)
                 Text(routine.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                    .font(.system(.title3, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
                 Text(routine.focus)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.system(.subheadline, design: .serif))
+                    .foregroundStyle(InkPalette.softInk)
+                Capsule()
+                    .fill(InkPalette.ink.opacity(0.48))
+                    .frame(width: 42, height: 2)
+                    .padding(.top, 4)
             }
+            .padding(.leading, 18)
+            .padding(.vertical, 18)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tertiary)
+            DemonstrationImage(assetName: routine.exercises[0].assetName, outlined: false)
+                .frame(width: 138, height: 142)
+                .mask(
+                    LinearGradient(
+                        colors: [.clear, .black, .black],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
         }
-        .padding(14)
-        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
-        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .frame(minHeight: 154)
+        .inkCard()
+        .contentShape(
+            UnevenRoundedRectangle(
+                cornerRadii: .init(topLeading: 24, bottomLeading: 18, bottomTrailing: 25, topTrailing: 20)
+            )
+        )
     }
 }
 
@@ -98,33 +221,43 @@ private struct RoutineDetailView: View {
     @State private var showingWorkout = false
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(Array(routine.exercises.enumerated()), id: \.element.id) { index, exercise in
-                    ExercisePreviewRow(index: index + 1, exercise: exercise)
+        ZStack {
+            PaperBackground()
+            ScrollView {
+                LazyVStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(routine.focus.uppercased())
+                            .font(.caption.weight(.semibold))
+                            .tracking(2.2)
+                            .foregroundStyle(InkPalette.softInk)
+                        Text("Six movements.\nOne deliberate session.")
+                            .font(.system(size: 30, weight: .semibold, design: .serif))
+                            .foregroundStyle(InkPalette.ink)
+                        InkDivider().padding(.top, 4)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 8)
+
+                    ForEach(Array(routine.exercises.enumerated()), id: \.element.id) { index, exercise in
+                        ExercisePreviewRow(index: index + 1, exercise: exercise)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 104)
             }
-            .padding(20)
-            .padding(.bottom, 88)
         }
-        .background(Color(.systemGroupedBackground))
         .navigationTitle(routine.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(InkPalette.paper.opacity(0.94), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .safeAreaInset(edge: .bottom) {
-            Button {
+            InkPrimaryButton(title: "Begin (routine.name)") {
                 showingWorkout = true
-            } label: {
-                Text("Start workout")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(.black, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
             }
-            .buttonStyle(PressableButtonStyle())
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
+            .background(InkPalette.paper.opacity(0.94))
         }
         .fullScreenCover(isPresented: $showingWorkout) {
             NavigationStack {
@@ -139,42 +272,54 @@ private struct ExercisePreviewRow: View {
     let exercise: ExerciseTemplate
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 16) {
             DemonstrationImage(assetName: exercise.assetName)
-                .frame(width: 94, height: 94)
+                .frame(width: 106, height: 106)
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(String(format: "%02d", index))
                     .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(InkPalette.softInk)
                 Text(exercise.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(exercise.targetText)
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(InkPalette.softInk)
             }
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: .black.opacity(0.045), radius: 9, y: 3)
+        .inkCard()
     }
 }
 
 struct DemonstrationImage: View {
     let assetName: String
+    var outlined = true
 
     var body: some View {
         Image(assetName)
             .resizable()
             .scaledToFill()
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .blendMode(.multiply)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    cornerRadii: .init(topLeading: 15, bottomLeading: 12, bottomTrailing: 16, topTrailing: 11),
+                    style: .continuous
+                )
+            )
             .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                if outlined {
+                    UnevenRoundedRectangle(
+                        cornerRadii: .init(topLeading: 15, bottomLeading: 12, bottomTrailing: 16, topTrailing: 11),
+                        style: .continuous
+                    )
                     .stroke(.black.opacity(0.10), lineWidth: 1)
+                }
             }
-            .accessibilityLabel("Abstract demonstration")
+            .accessibilityLabel("Ink illustration demonstrating the exercise")
     }
 }
 
@@ -182,7 +327,7 @@ struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(configuration.isPressed ? 0.88 : 1)
+            .opacity(configuration.isPressed ? 0.84 : 1)
             .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
