@@ -296,28 +296,29 @@ private struct RoutineDetailView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(InkPalette.ink)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PressableButtonStyle())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("Back")
-
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(InkPalette.cinnabar)
-                                .frame(width: 9, height: 9)
-                            Text(routine.focus.uppercased())
-                                .font(.caption.weight(.semibold))
-                                .tracking(2.2)
-                                .foregroundStyle(InkPalette.softInk)
+                        HStack(spacing: 0) {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundStyle(InkPalette.ink)
+                                    .frame(width: 40, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(PressableButtonStyle())
+                            .accessibilityLabel("Back")
+
+                            HStack(spacing: 8) {
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(InkPalette.cinnabar)
+                                    .frame(width: 9, height: 9)
+                                Text(routine.focus.uppercased())
+                                    .font(.caption.weight(.semibold))
+                                    .tracking(2.2)
+                                    .foregroundStyle(InkPalette.softInk)
+                            }
                         }
                         InkDivider().padding(.top, 4)
                     }
