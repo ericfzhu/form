@@ -64,10 +64,7 @@ struct HistoryView: View {
 private struct EmptyHistoryView: View {
     var body: some View {
         VStack(spacing: 18) {
-            Image("plank")
-                .resizable()
-                .scaledToFit()
-                .blendMode(.multiply)
+            DemonstrationImage(assetName: "plank", outlined: false)
                 .frame(width: 230, height: 180)
                 .mask(
                     LinearGradient(
