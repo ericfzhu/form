@@ -39,7 +39,7 @@ enum WorkoutCatalog {
             name: "Workout A",
             focus: "Squat · press · pull",
             exercises: [
-                exercise("leg-press", "Leg Press or Squat", 3, 6, 10),
+                exercise("barbell-back-squat", "Barbell Back Squat", 3, 6, 10),
                 exercise("chest-press", "Dumbbell Chest Press", 3, 6, 10),
                 exercise("seated-row", "Seated Cable Row", 3, 8, 12),
                 exercise("romanian-deadlift", "Romanian Deadlift", 2, 8, 10),
@@ -52,9 +52,9 @@ enum WorkoutCatalog {
             name: "Workout B",
             focus: "Hinge · incline · unilateral",
             exercises: [
-                exercise("trap-bar-deadlift", "Trap-Bar Deadlift", 3, 6, 10),
+                exercise("conventional-deadlift", "Conventional Barbell Deadlift", 3, 5, 6),
                 exercise("incline-press", "Incline Dumbbell Press", 3, 8, 12),
-                exercise("assisted-chinup", "Assisted Chin-Up", 3, 8, 12),
+                exercise("underhand-lat-pulldown", "Underhand Lat Pulldown", 3, 8, 12),
                 exercise("split-squat", "Split Squat", 2, 8, 12),
                 exercise("chest-supported-row", "Chest-Supported Row", 2, 8, 12),
                 timed("side-plank", "Side Plank", 2)
