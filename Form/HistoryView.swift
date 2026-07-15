@@ -14,8 +14,6 @@ struct HistoryView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 14) {
-                        historyHeader
-
                         ForEach(workouts) { workout in
                             NavigationLink(value: workout) {
                                 HistoryCard(workout: workout)
@@ -39,26 +37,6 @@ struct HistoryView: View {
             WorkoutHistoryDetail(workout: workout)
         }
     }
-
-    private var historyHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 9) {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(InkPalette.cinnabar)
-                    .frame(width: 10, height: 10)
-                Text("PRACTICE LOG")
-                    .font(.caption.weight(.semibold))
-                    .tracking(3)
-                    .foregroundStyle(InkPalette.softInk)
-            }
-            Text("The work, recorded.")
-                .font(.system(size: 36, weight: .semibold, design: .serif))
-                .foregroundStyle(InkPalette.ink)
-            InkDivider().padding(.top, 2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.bottom, 12)
-    }
 }
 
 private struct EmptyHistoryView: View {
@@ -74,12 +52,12 @@ private struct EmptyHistoryView: View {
                     )
                 )
 
-            Text("No marks yet.")
+            Text("No workouts yet")
                 .font(.system(size: 30, weight: .semibold, design: .serif))
                 .foregroundStyle(InkPalette.ink)
             InkDivider()
                 .frame(width: 120)
-            Text("Complete your first session and its weights, repetitions, and duration will gather here.")
+            Text("Completed workouts will appear here.")
                 .font(.system(.body, design: .serif))
                 .foregroundStyle(InkPalette.softInk)
                 .multilineTextAlignment(.center)
@@ -157,9 +135,6 @@ private struct WorkoutHistoryDetail: View {
                                 .tracking(1.8)
                                 .foregroundStyle(InkPalette.softInk)
                         }
-                        Text("A record of the session.")
-                            .font(.system(size: 28, weight: .semibold, design: .serif))
-                            .foregroundStyle(InkPalette.ink)
                         InkDivider().padding(.top, 3)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

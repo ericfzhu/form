@@ -209,7 +209,7 @@ private struct RoutineListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     VStack(spacing: 0) {
-                        Text("Continue the A → B → C rotation, however often you train.")
+                        Text("A → B → C")
                             .font(.system(.caption, design: .serif))
                             .foregroundStyle(InkPalette.softInk.opacity(0.72))
                             .multilineTextAlignment(.center)
