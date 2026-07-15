@@ -12,29 +12,46 @@ struct HistoryView: View {
             if workouts.isEmpty {
                 EmptyHistoryView()
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 14) {
-                        ForEach(workouts) { workout in
-                            NavigationLink(value: workout) {
-                                HistoryCard(workout: workout)
+                List {
+                    ForEach(workouts) { workout in
+                        NavigationLink(value: workout) {
+                            HistoryCard(workout: workout)
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(
+                            EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20)
+                        )
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                delete(workout)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
-                            .buttonStyle(PressableButtonStyle())
-                            .contextMenu {
-                                Button("Delete workout", role: .destructive) {
-                                    modelContext.delete(workout)
-                                }
+                            .tint(InkPalette.cinnabar)
+                        }
+                        .contextMenu {
+                            Button("Delete workout", role: .destructive) {
+                                delete(workout)
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 22)
-                    .padding(.bottom, 30)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .contentMargins(.vertical, 15, for: .scrollContent)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: WorkoutRecord.self) { workout in
             WorkoutHistoryDetail(workout: workout)
+        }
+    }
+
+    private func delete(_ workout: WorkoutRecord) {
+        withAnimation(.easeOut(duration: 0.2)) {
+            modelContext.delete(workout)
         }
     }
 }
