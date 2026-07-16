@@ -136,6 +136,7 @@ private struct HistoryCard: View {
 
 private struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
@@ -170,6 +171,9 @@ private struct WorkoutHistoryDetail: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .swipeToGoBack {
+            dismiss()
+        }
     }
 }
 

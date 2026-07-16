@@ -43,31 +43,6 @@ struct ActiveWorkoutView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 18) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 8) {
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(InkPalette.cinnabar)
-                                .frame(width: 9, height: 9)
-                            Text("IN PROGRESS")
-                                .font(.caption.weight(.semibold))
-                                .tracking(2.6)
-                                .foregroundStyle(InkPalette.softInk)
-
-                            Spacer()
-
-                            Button("Close") {
-                                showingCancelConfirmation = true
-                            }
-                            .font(.system(.subheadline, design: .serif, weight: .medium))
-                            .foregroundStyle(InkPalette.ink)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .buttonStyle(PressableButtonStyle())
-                        }
-                        InkDivider().padding(.top, 4)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 2)
-
                     ForEach($drafts) { $draft in
                         ExerciseLoggingCard(draft: $draft) {
                             restEnd = Date().addingTimeInterval(90)
@@ -75,11 +50,16 @@ struct ActiveWorkoutView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.top, 14)
                 .padding(.bottom, restEnd == nil ? 96 : 158)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            ActiveWorkoutHeader {
+                showingCancelConfirmation = true
+            }
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 9) {
                 if let restEnd {
@@ -99,6 +79,9 @@ struct ActiveWorkoutView: View {
         .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
             Button("Discard workout", role: .destructive) { dismiss() }
             Button("Keep training", role: .cancel) {}
+        }
+        .swipeToGoBack {
+            showingCancelConfirmation = true
         }
         .onAppear(perform: prefillFromHistory)
     }
@@ -140,6 +123,38 @@ struct ActiveWorkoutView: View {
         modelContext.insert(record)
         try? modelContext.save()
         dismiss()
+    }
+}
+
+private struct ActiveWorkoutHeader: View {
+    let close: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(InkPalette.cinnabar)
+                    .frame(width: 9, height: 9)
+                Text("IN PROGRESS")
+                    .font(.caption.weight(.semibold))
+                    .tracking(2.6)
+                    .foregroundStyle(InkPalette.softInk)
+
+                Spacer()
+
+                Button("Close", action: close)
+                    .font(.system(.subheadline, design: .serif, weight: .medium))
+                    .foregroundStyle(InkPalette.ink)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .buttonStyle(PressableButtonStyle())
+            }
+
+            InkDivider()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .background(InkPalette.paper.opacity(0.96))
     }
 }
 

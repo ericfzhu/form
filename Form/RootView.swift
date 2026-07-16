@@ -125,12 +125,20 @@ private enum AppTab: CaseIterable, Hashable {
         case .history: "clock"
         }
     }
+
+    var index: Int {
+        switch self {
+        case .train: 0
+        case .history: 1
+        }
+    }
 }
 
 struct RootView: View {
     @State private var selection: AppTab = .train
     @State private var trainPath: [RoutineTemplate] = []
     @State private var historyPath: [WorkoutRecord] = []
+    @GestureState private var pageTranslation: CGFloat = 0
 
     private var isFooterVisible: Bool {
         switch selection {
@@ -140,21 +148,32 @@ struct RootView: View {
     }
 
     var body: some View {
-        ZStack {
-            NavigationStack(path: $trainPath) {
-                RoutineListView()
-            }
-            .opacity(selection == .train ? 1 : 0)
-            .allowsHitTesting(selection == .train)
-            .accessibilityHidden(selection != .train)
+        GeometryReader { proxy in
+            HStack(spacing: 0) {
+                NavigationStack(path: $trainPath) {
+                    RoutineListView()
+                }
+                .frame(width: proxy.size.width)
+                .allowsHitTesting(selection == .train)
+                .accessibilityHidden(selection != .train)
 
-            NavigationStack(path: $historyPath) {
-                HistoryView()
+                NavigationStack(path: $historyPath) {
+                    HistoryView()
+                }
+                .frame(width: proxy.size.width)
+                .allowsHitTesting(selection == .history)
+                .accessibilityHidden(selection != .history)
             }
-            .opacity(selection == .history ? 1 : 0)
-            .allowsHitTesting(selection == .history)
-            .accessibilityHidden(selection != .history)
+            .frame(width: proxy.size.width * 2, alignment: .leading)
+            .offset(
+                x: -CGFloat(selection.index) * proxy.size.width
+                    + constrainedPageTranslation
+            )
+            .contentShape(Rectangle())
+            .simultaneousGesture(pageGesture)
+            .animation(.easeOut(duration: 0.24), value: selection)
         }
+        .clipped()
         .tint(InkPalette.ink)
         .fontDesign(.serif)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -162,6 +181,38 @@ struct RootView: View {
                 InkTabBar(selection: $selection)
             }
         }
+    }
+
+    private var constrainedPageTranslation: CGFloat {
+        guard isFooterVisible else { return 0 }
+        switch selection {
+        case .train:
+            return min(0, pageTranslation)
+        case .history:
+            return max(0, pageTranslation)
+        }
+    }
+
+    private var pageGesture: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .updating($pageTranslation) { value, state, _ in
+                guard isFooterVisible,
+                      abs(value.translation.width) > abs(value.translation.height) else { return }
+                state = value.translation.width
+            }
+            .onEnded { value in
+                guard isFooterVisible,
+                      abs(value.translation.width) > abs(value.translation.height) * 1.25 else { return }
+
+                let projected = value.predictedEndTranslation.width
+                withAnimation(.easeOut(duration: 0.24)) {
+                    if selection == .train, projected < -90 {
+                        selection = .history
+                    } else if selection == .history, projected > 90 {
+                        selection = .train
+                    }
+                }
+            }
     }
 }
 
@@ -296,45 +347,21 @@ private struct RoutineDetailView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 0) {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(InkPalette.ink)
-                                    .frame(width: 40, height: 44)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(PressableButtonStyle())
-                            .accessibilityLabel("Back")
-
-                            HStack(spacing: 8) {
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(InkPalette.cinnabar)
-                                    .frame(width: 9, height: 9)
-                                Text(routine.focus.uppercased())
-                                    .font(.caption.weight(.semibold))
-                                    .tracking(2.2)
-                                    .foregroundStyle(InkPalette.softInk)
-                            }
-                        }
-                        InkDivider().padding(.top, 4)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 8)
-
                     ForEach(Array(routine.exercises.enumerated()), id: \.element.id) { index, exercise in
                         ExercisePreviewRow(index: index + 1, exercise: exercise)
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 10)
+                .padding(.top, 14)
                 .padding(.bottom, 104)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            RoutineDetailHeader(routine: routine) {
+                dismiss()
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             InkPrimaryButton(title: "Begin \(routine.name)") {
                 showingWorkout = true
@@ -343,11 +370,52 @@ private struct RoutineDetailView: View {
             .padding(.vertical, 10)
             .background(InkPalette.paper.opacity(0.94))
         }
+        .swipeToGoBack {
+            dismiss()
+        }
         .fullScreenCover(isPresented: $showingWorkout) {
             NavigationStack {
                 ActiveWorkoutView(routine: routine)
             }
         }
+    }
+}
+
+private struct RoutineDetailHeader: View {
+    let routine: RoutineTemplate
+    let back: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 0) {
+                Button(action: back) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                        .frame(width: 40, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityLabel("Back")
+
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(InkPalette.cinnabar)
+                        .frame(width: 9, height: 9)
+                    Text(routine.focus.uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2.2)
+                        .foregroundStyle(InkPalette.softInk)
+                        .lineLimit(1)
+                }
+            }
+
+            InkDivider()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .background(InkPalette.paper.opacity(0.96))
     }
 }
 
@@ -413,5 +481,29 @@ struct PressableButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .opacity(configuration.isPressed ? 0.84 : 1)
             .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+    }
+}
+
+private struct SwipeToGoBackModifier: ViewModifier {
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content.simultaneousGesture(
+            DragGesture(minimumDistance: 24)
+                .onEnded { value in
+                    let horizontalDistance = value.translation.width
+                    let projectedDistance = value.predictedEndTranslation.width
+                    guard horizontalDistance > 55,
+                          projectedDistance > 110,
+                          horizontalDistance > abs(value.translation.height) * 1.4 else { return }
+                    action()
+                }
+        )
+    }
+}
+
+extension View {
+    func swipeToGoBack(action: @escaping () -> Void) -> some View {
+        modifier(SwipeToGoBackModifier(action: action))
     }
 }
