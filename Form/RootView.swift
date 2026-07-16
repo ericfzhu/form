@@ -10,7 +10,7 @@ enum InkPalette {
     static let cinnabar = Color(red: 0.56, green: 0.12, blue: 0.09)
 }
 
-struct PaperBackground: View {
+struct PaperSurface: View {
     var body: some View {
         ZStack {
             InkPalette.paper
@@ -24,6 +24,12 @@ struct PaperBackground: View {
                 endPoint: .bottomTrailing
             )
         }
+    }
+}
+
+struct PaperBackground: View {
+    var body: some View {
+        PaperSurface()
         .ignoresSafeArea()
     }
 }
@@ -137,30 +143,44 @@ struct RootView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            TabView(selection: $selection) {
-                RoutineListView()
-                    .tag(AppTab.train)
+        GeometryReader { proxy in
+            ZStack {
+                PaperBackground()
 
-                HistoryView()
-                    .tag(AppTab.history)
+                NavigationStack(path: $navigationPath) {
+                    TabView(selection: $selection) {
+                        RoutineListView()
+                            .tag(AppTab.train)
+
+                        HistoryView()
+                            .tag(AppTab.history)
+                    }
+                    .background(Color.clear)
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .navigationDestination(for: RoutineTemplate.self) { routine in
+                        RoutineDetailView(routine: routine)
+                    }
+                    .navigationDestination(for: ExerciseTemplate.self) { exercise in
+                        ExerciseProgressView(exercise: exercise)
+                    }
+                    .navigationDestination(for: WorkoutRecord.self) { workout in
+                        WorkoutHistoryDetail(workout: workout)
+                    }
+                }
+                .background(Color.clear)
+
+                PaperSurface()
+                    .frame(height: proxy.safeAreaInsets.top)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .navigationDestination(for: RoutineTemplate.self) { routine in
-                RoutineDetailView(routine: routine)
-            }
-            .navigationDestination(for: ExerciseTemplate.self) { exercise in
-                ExerciseProgressView(exercise: exercise)
-            }
-            .navigationDestination(for: WorkoutRecord.self) { workout in
-                WorkoutHistoryDetail(workout: workout)
-            }
-        }
-        .tint(InkPalette.ink)
-        .fontDesign(.serif)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isFooterVisible {
-                InkTabBar(selection: $selection)
+            .tint(InkPalette.ink)
+            .fontDesign(.serif)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isFooterVisible {
+                    InkTabBar(selection: $selection)
+                }
             }
         }
     }
