@@ -44,9 +44,6 @@ struct HistoryView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(for: WorkoutRecord.self) { workout in
-            WorkoutHistoryDetail(workout: workout)
-        }
     }
 
     private func delete(_ workout: WorkoutRecord) {
@@ -134,7 +131,7 @@ private struct HistoryCard: View {
     }
 }
 
-private struct WorkoutHistoryDetail: View {
+struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
     @Environment(\.dismiss) private var dismiss
 

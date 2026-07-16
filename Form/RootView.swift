@@ -126,54 +126,36 @@ private enum AppTab: CaseIterable, Hashable {
         }
     }
 
-    var index: Int {
-        switch self {
-        case .train: 0
-        case .history: 1
-        }
-    }
 }
 
 struct RootView: View {
     @State private var selection: AppTab = .train
-    @State private var trainPath = NavigationPath()
-    @State private var historyPath: [WorkoutRecord] = []
-    @GestureState private var pageTranslation: CGFloat = 0
+    @State private var navigationPath = NavigationPath()
 
     private var isFooterVisible: Bool {
-        switch selection {
-        case .train: trainPath.isEmpty
-        case .history: historyPath.isEmpty
-        }
+        navigationPath.isEmpty
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            HStack(spacing: 0) {
-                NavigationStack(path: $trainPath) {
-                    RoutineListView()
-                }
-                .frame(width: proxy.size.width)
-                .allowsHitTesting(selection == .train)
-                .accessibilityHidden(selection != .train)
+        NavigationStack(path: $navigationPath) {
+            TabView(selection: $selection) {
+                RoutineListView()
+                    .tag(AppTab.train)
 
-                NavigationStack(path: $historyPath) {
-                    HistoryView()
-                }
-                .frame(width: proxy.size.width)
-                .allowsHitTesting(selection == .history)
-                .accessibilityHidden(selection != .history)
+                HistoryView()
+                    .tag(AppTab.history)
             }
-            .frame(width: proxy.size.width * 2, alignment: .leading)
-            .offset(
-                x: -CGFloat(selection.index) * proxy.size.width
-                    + constrainedPageTranslation
-            )
-            .contentShape(Rectangle())
-            .simultaneousGesture(pageGesture)
-            .animation(.easeOut(duration: 0.24), value: selection)
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .navigationDestination(for: RoutineTemplate.self) { routine in
+                RoutineDetailView(routine: routine)
+            }
+            .navigationDestination(for: ExerciseTemplate.self) { exercise in
+                ExerciseProgressView(exercise: exercise)
+            }
+            .navigationDestination(for: WorkoutRecord.self) { workout in
+                WorkoutHistoryDetail(workout: workout)
+            }
         }
-        .clipped()
         .tint(InkPalette.ink)
         .fontDesign(.serif)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -183,37 +165,6 @@ struct RootView: View {
         }
     }
 
-    private var constrainedPageTranslation: CGFloat {
-        guard isFooterVisible else { return 0 }
-        switch selection {
-        case .train:
-            return min(0, pageTranslation)
-        case .history:
-            return max(0, pageTranslation)
-        }
-    }
-
-    private var pageGesture: some Gesture {
-        DragGesture(minimumDistance: 18)
-            .updating($pageTranslation) { value, state, _ in
-                guard isFooterVisible,
-                      abs(value.translation.width) > abs(value.translation.height) else { return }
-                state = value.translation.width
-            }
-            .onEnded { value in
-                guard isFooterVisible,
-                      abs(value.translation.width) > abs(value.translation.height) * 1.25 else { return }
-
-                let projected = value.predictedEndTranslation.width
-                withAnimation(.easeOut(duration: 0.24)) {
-                    if selection == .train, projected < -90 {
-                        selection = .history
-                    } else if selection == .history, projected > 90 {
-                        selection = .train
-                    }
-                }
-            }
-    }
 }
 
 private struct InkTabBar: View {
@@ -223,7 +174,9 @@ private struct InkTabBar: View {
         HStack(spacing: 56) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 Button {
-                    selection = tab
+                    withAnimation(.easeOut(duration: 0.24)) {
+                        selection = tab
+                    }
                 } label: {
                     VStack(spacing: 4) {
                         HStack(spacing: 7) {
@@ -283,9 +236,6 @@ private struct RoutineListView: View {
                 .padding(.bottom, 30)
             }
         }
-        .navigationDestination(for: RoutineTemplate.self) { routine in
-            RoutineDetailView(routine: routine)
-        }
         .toolbar(.hidden, for: .navigationBar)
     }
 }
@@ -337,7 +287,7 @@ private struct RoutineCard: View {
     }
 }
 
-private struct RoutineDetailView: View {
+struct RoutineDetailView: View {
     let routine: RoutineTemplate
     @Environment(\.dismiss) private var dismiss
     @State private var showingWorkout = false
@@ -360,9 +310,6 @@ private struct RoutineDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(for: ExerciseTemplate.self) { exercise in
-            ExerciseProgressView(exercise: exercise)
-        }
         .safeAreaInset(edge: .top, spacing: 0) {
             RoutineDetailHeader(routine: routine) {
                 dismiss()
@@ -494,7 +441,7 @@ private struct SwipeToGoBackModifier: ViewModifier {
     let action: () -> Void
 
     func body(content: Content) -> some View {
-        content.simultaneousGesture(
+        content.highPriorityGesture(
             DragGesture(minimumDistance: 24)
                 .onEnded { value in
                     let horizontalDistance = value.translation.width
