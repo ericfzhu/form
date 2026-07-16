@@ -136,7 +136,7 @@ private enum AppTab: CaseIterable, Hashable {
 
 struct RootView: View {
     @State private var selection: AppTab = .train
-    @State private var trainPath: [RoutineTemplate] = []
+    @State private var trainPath = NavigationPath()
     @State private var historyPath: [WorkoutRecord] = []
     @GestureState private var pageTranslation: CGFloat = 0
 
@@ -348,7 +348,10 @@ private struct RoutineDetailView: View {
             ScrollView {
                 LazyVStack(spacing: 14) {
                     ForEach(Array(routine.exercises.enumerated()), id: \.element.id) { index, exercise in
-                        ExercisePreviewRow(index: index + 1, exercise: exercise)
+                        NavigationLink(value: exercise) {
+                            ExercisePreviewRow(index: index + 1, exercise: exercise)
+                        }
+                        .buttonStyle(PressableButtonStyle())
                     }
                 }
                 .padding(.horizontal, 20)
@@ -357,6 +360,9 @@ private struct RoutineDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: ExerciseTemplate.self) { exercise in
+            ExerciseProgressView(exercise: exercise)
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             RoutineDetailHeader(routine: routine) {
                 dismiss()

@@ -44,7 +44,13 @@ struct ActiveWorkoutView: View {
             ScrollView {
                 LazyVStack(spacing: 18) {
                     ForEach($drafts) { $draft in
-                        ExerciseLoggingCard(draft: $draft) {
+                        ExerciseLoggingCard(
+                            draft: $draft,
+                            previous: ProgressionEngine.latestCompleted(
+                                for: draft.template.name,
+                                in: history
+                            )
+                        ) {
                             restEnd = Date().addingTimeInterval(90)
                         }
                     }
@@ -88,11 +94,12 @@ struct ActiveWorkoutView: View {
 
     private func prefillFromHistory() {
         for draftIndex in drafts.indices {
-            guard let previous = history
-                .flatMap(\.exercises)
-                .first(where: { $0.name == drafts[draftIndex].template.name }) else { continue }
+            guard let previous = ProgressionEngine.latestCompleted(
+                for: drafts[draftIndex].template.name,
+                in: history
+            ) else { continue }
 
-            let previousSets = previous.sets.sorted { $0.order < $1.order }
+            let previousSets = previous.sets
             for setIndex in drafts[draftIndex].sets.indices where setIndex < previousSets.count {
                 drafts[draftIndex].sets[setIndex].weight = previousSets[setIndex].weight
                 drafts[draftIndex].sets[setIndex].repetitions = previousSets[setIndex].repetitions
@@ -160,6 +167,7 @@ private struct ActiveWorkoutHeader: View {
 
 private struct ExerciseLoggingCard: View {
     @Binding var draft: ExerciseDraft
+    let previous: ExercisePerformance?
     let didCompleteSet: () -> Void
 
     var body: some View {
@@ -179,6 +187,15 @@ private struct ExerciseLoggingCard: View {
                 Spacer()
             }
             .padding(11)
+
+            if let previous {
+                LastPerformanceSummary(
+                    template: draft.template,
+                    performance: previous
+                )
+                .padding(.horizontal, 14)
+                .padding(.bottom, 8)
+            }
 
             InkDivider()
                 .padding(.horizontal, 14)
@@ -232,6 +249,58 @@ private struct ExerciseLoggingCard: View {
             .padding(.bottom, 9)
         }
         .inkCard()
+    }
+}
+
+private struct LastPerformanceSummary: View {
+    let template: ExerciseTemplate
+    let performance: ExercisePerformance
+
+    private var recommendedLoad: Double? {
+        ProgressionEngine.recommendedLoad(for: template, after: performance)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("LAST · \(performance.date.formatted(.dateTime.day().month(.abbreviated)).uppercased())")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(InkPalette.softInk)
+                Spacer()
+                if let recommendedLoad {
+                    Text("TRY \(weightText(recommendedLoad)) KG")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.1)
+                        .foregroundStyle(InkPalette.cinnabar)
+                }
+            }
+
+            Text(setSummary)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(InkPalette.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var setSummary: String {
+        performance.sets.map { set in
+            switch template.measurement {
+            case .weighted:
+                "\(weightText(set.weight)) × \(set.repetitions)"
+            case .bodyweight:
+                "\(set.repetitions) reps"
+            case .timed:
+                "\(set.repetitions) sec"
+            }
+        }
+        .joined(separator: "  ·  ")
+    }
+
+    private func weightText(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(value.rounded() == value ? 0 : 1)))
     }
 }
 

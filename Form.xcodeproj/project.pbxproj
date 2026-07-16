@@ -13,6 +13,7 @@
 		A004 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B004 /* RootView.swift */; };
 		A005 /* ActiveWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B005 /* ActiveWorkoutView.swift */; };
 		A006 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B006 /* HistoryView.swift */; };
+		A008 /* ExerciseProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B009 /* ExerciseProgressView.swift */; };
 		A007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B007 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -25,6 +26,7 @@
 		B006 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		B007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B008 /* Form.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Form.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B009 /* ExerciseProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseProgressView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +57,7 @@
 				B004 /* RootView.swift */,
 				B005 /* ActiveWorkoutView.swift */,
 				B006 /* HistoryView.swift */,
+				B009 /* ExerciseProgressView.swift */,
 				B007 /* Assets.xcassets */,
 			);
 			path = Form;
@@ -143,6 +146,7 @@
 				A004 /* RootView.swift in Sources */,
 				A005 /* ActiveWorkoutView.swift in Sources */,
 				A006 /* HistoryView.swift in Sources */,
+				A008 /* ExerciseProgressView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
