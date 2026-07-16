@@ -133,6 +133,7 @@ private struct HistoryCard: View {
 
 struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
+    @Binding var swipeBackEnabled: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -168,7 +169,7 @@ struct WorkoutHistoryDetail: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .swipeToGoBack {
+        .swipeToGoBack(isEnabled: swipeBackEnabled) {
             dismiss()
         }
     }

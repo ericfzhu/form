@@ -158,13 +158,22 @@ struct RootView: View {
                     .background(Color.clear)
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .navigationDestination(for: RoutineTemplate.self) { routine in
-                        RoutineDetailView(routine: routine)
+                        RoutineDetailView(
+                            routine: routine,
+                            swipeBackEnabled: backSwipeEnabled(at: 1)
+                        )
                     }
                     .navigationDestination(for: ExerciseTemplate.self) { exercise in
-                        ExerciseProgressView(exercise: exercise)
+                        ExerciseProgressView(
+                            exercise: exercise,
+                            swipeBackEnabled: backSwipeEnabled(at: 2)
+                        )
                     }
                     .navigationDestination(for: WorkoutRecord.self) { workout in
-                        WorkoutHistoryDetail(workout: workout)
+                        WorkoutHistoryDetail(
+                            workout: workout,
+                            swipeBackEnabled: backSwipeEnabled(at: 1)
+                        )
                     }
                 }
                 .background(Color.clear)
@@ -183,6 +192,13 @@ struct RootView: View {
                 }
             }
         }
+    }
+
+    private func backSwipeEnabled(at depth: Int) -> Binding<Bool> {
+        Binding(
+            get: { navigationPath.count == depth },
+            set: { _ in }
+        )
     }
 
 }
@@ -309,6 +325,7 @@ private struct RoutineCard: View {
 
 struct RoutineDetailView: View {
     let routine: RoutineTemplate
+    @Binding var swipeBackEnabled: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var showingWorkout = false
 
@@ -343,7 +360,7 @@ struct RoutineDetailView: View {
             .padding(.vertical, 10)
             .background(InkPalette.paper.opacity(0.94))
         }
-        .swipeToGoBack {
+        .swipeToGoBack(isEnabled: swipeBackEnabled) {
             dismiss()
         }
         .fullScreenCover(isPresented: $showingWorkout) {
@@ -458,25 +475,36 @@ struct PressableButtonStyle: ButtonStyle {
 }
 
 private struct SwipeToGoBackModifier: ViewModifier {
+    let isEnabled: Bool
     let action: () -> Void
 
     func body(content: Content) -> some View {
-        content.highPriorityGesture(
-            DragGesture(minimumDistance: 24)
-                .onEnded { value in
-                    let horizontalDistance = value.translation.width
-                    let projectedDistance = value.predictedEndTranslation.width
-                    guard horizontalDistance > 55,
-                          projectedDistance > 110,
-                          horizontalDistance > abs(value.translation.height) * 1.4 else { return }
-                    action()
-                }
-        )
+        content.overlay(alignment: .leading) {
+            Color.clear
+                .frame(width: 36)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 14)
+                        .onEnded { value in
+                            let horizontalDistance = value.translation.width
+                            let projectedDistance = value.predictedEndTranslation.width
+                            guard horizontalDistance > 45,
+                                  projectedDistance > 90,
+                                  horizontalDistance > abs(value.translation.height) * 1.4 else { return }
+                            action()
+                        }
+                )
+                .allowsHitTesting(isEnabled)
+                .accessibilityHidden(true)
+        }
     }
 }
 
 extension View {
-    func swipeToGoBack(action: @escaping () -> Void) -> some View {
-        modifier(SwipeToGoBackModifier(action: action))
+    func swipeToGoBack(
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
+    ) -> some View {
+        modifier(SwipeToGoBackModifier(isEnabled: isEnabled, action: action))
     }
 }

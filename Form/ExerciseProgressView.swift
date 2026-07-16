@@ -76,6 +76,7 @@ enum ProgressionEngine {
 
 struct ExerciseProgressView: View {
     let exercise: ExerciseTemplate
+    @Binding var swipeBackEnabled: Bool
 
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
@@ -115,7 +116,7 @@ struct ExerciseProgressView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             progressHeader
         }
-        .swipeToGoBack {
+        .swipeToGoBack(isEnabled: swipeBackEnabled) {
             dismiss()
         }
         .onAppear {
