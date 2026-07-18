@@ -76,7 +76,6 @@ enum ProgressionEngine {
 
 struct ExerciseProgressView: View {
     let exercise: ExerciseTemplate
-    @Binding var swipeBackEnabled: Bool
 
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
@@ -113,11 +112,11 @@ struct ExerciseProgressView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .background {
+            InteractivePopGestureBridge(isEnabled: true)
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             progressHeader
-        }
-        .swipeToGoBack(isEnabled: swipeBackEnabled) {
-            dismiss()
         }
         .onAppear {
             if !availableMetrics.contains(selectedMetric) {

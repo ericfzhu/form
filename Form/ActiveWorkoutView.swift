@@ -86,7 +86,7 @@ struct ActiveWorkoutView: View {
             Button("Discard workout", role: .destructive) { dismiss() }
             Button("Keep training", role: .cancel) {}
         }
-        .swipeToGoBack {
+        .leadingEdgeSwipe {
             showingCancelConfirmation = true
         }
         .onAppear(perform: prefillFromHistory)

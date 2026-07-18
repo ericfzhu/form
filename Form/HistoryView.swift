@@ -133,8 +133,6 @@ private struct HistoryCard: View {
 
 struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
-    @Binding var swipeBackEnabled: Bool
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
@@ -166,12 +164,12 @@ struct WorkoutHistoryDetail: View {
             }
         }
         .navigationTitle(workout.routineName)
+        .background {
+            InteractivePopGestureBridge(isEnabled: true)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .swipeToGoBack(isEnabled: swipeBackEnabled) {
-            dismiss()
-        }
     }
 }
 

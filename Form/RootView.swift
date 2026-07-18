@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 enum InkPalette {
     static let ink = Color(red: 0.08, green: 0.075, blue: 0.065)
@@ -158,22 +159,13 @@ struct RootView: View {
                     .background(Color.clear)
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .navigationDestination(for: RoutineTemplate.self) { routine in
-                        RoutineDetailView(
-                            routine: routine,
-                            swipeBackEnabled: backSwipeEnabled(at: 1)
-                        )
+                        RoutineDetailView(routine: routine)
                     }
                     .navigationDestination(for: ExerciseTemplate.self) { exercise in
-                        ExerciseProgressView(
-                            exercise: exercise,
-                            swipeBackEnabled: backSwipeEnabled(at: 2)
-                        )
+                        ExerciseProgressView(exercise: exercise)
                     }
                     .navigationDestination(for: WorkoutRecord.self) { workout in
-                        WorkoutHistoryDetail(
-                            workout: workout,
-                            swipeBackEnabled: backSwipeEnabled(at: 1)
-                        )
+                        WorkoutHistoryDetail(workout: workout)
                     }
                 }
                 .background(Color.clear)
@@ -192,13 +184,6 @@ struct RootView: View {
                 }
             }
         }
-    }
-
-    private func backSwipeEnabled(at depth: Int) -> Binding<Bool> {
-        Binding(
-            get: { navigationPath.count == depth },
-            set: { _ in }
-        )
     }
 
 }
@@ -325,7 +310,6 @@ private struct RoutineCard: View {
 
 struct RoutineDetailView: View {
     let routine: RoutineTemplate
-    @Binding var swipeBackEnabled: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var showingWorkout = false
 
@@ -347,6 +331,9 @@ struct RoutineDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .background {
+            InteractivePopGestureBridge(isEnabled: true)
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             RoutineDetailHeader(routine: routine) {
                 dismiss()
@@ -359,9 +346,6 @@ struct RoutineDetailView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .background(InkPalette.paper.opacity(0.94))
-        }
-        .swipeToGoBack(isEnabled: swipeBackEnabled) {
-            dismiss()
         }
         .fullScreenCover(isPresented: $showingWorkout) {
             NavigationStack {
@@ -474,8 +458,7 @@ struct PressableButtonStyle: ButtonStyle {
     }
 }
 
-private struct SwipeToGoBackModifier: ViewModifier {
-    let isEnabled: Bool
+private struct LeadingEdgeSwipeModifier: ViewModifier {
     let action: () -> Void
 
     func body(content: Content) -> some View {
@@ -494,17 +477,135 @@ private struct SwipeToGoBackModifier: ViewModifier {
                             action()
                         }
                 )
-                .allowsHitTesting(isEnabled)
                 .accessibilityHidden(true)
         }
     }
 }
 
 extension View {
-    func swipeToGoBack(
-        isEnabled: Bool = true,
-        action: @escaping () -> Void
-    ) -> some View {
-        modifier(SwipeToGoBackModifier(isEnabled: isEnabled, action: action))
+    func leadingEdgeSwipe(action: @escaping () -> Void) -> some View {
+        modifier(LeadingEdgeSwipeModifier(action: action))
+    }
+}
+
+struct InteractivePopGestureBridge: UIViewRepresentable {
+    let isEnabled: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> NavigationResolverView {
+        let view = NavigationResolverView()
+        view.onResolve = { [weak coordinator = context.coordinator] navigationController in
+            coordinator?.configure(navigationController)
+        }
+        return view
+    }
+
+    func updateUIView(
+        _ view: NavigationResolverView,
+        context: Context
+    ) {
+        context.coordinator.isEnabled = isEnabled
+        view.resolveNavigationController()
+    }
+
+    static func dismantleUIView(
+        _ view: NavigationResolverView,
+        coordinator: Coordinator
+    ) {
+        coordinator.restore()
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var isEnabled = false
+
+        private weak var navigationController: UINavigationController?
+        private weak var gestureRecognizer: UIGestureRecognizer?
+        private var previousDelegate: UIGestureRecognizerDelegate?
+
+        func configure(_ navigationController: UINavigationController) {
+            guard let gestureRecognizer = navigationController.interactivePopGestureRecognizer else {
+                return
+            }
+
+            if self.navigationController !== navigationController {
+                restore()
+                self.navigationController = navigationController
+                self.gestureRecognizer = gestureRecognizer
+                previousDelegate = gestureRecognizer.delegate
+            }
+
+            gestureRecognizer.delegate = self
+            gestureRecognizer.isEnabled = isEnabled
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard isEnabled,
+                  let navigationController,
+                  navigationController.viewControllers.count > 1,
+                  navigationController.transitionCoordinator == nil,
+                  let panGesture = gestureRecognizer as? UIPanGestureRecognizer else {
+                return false
+            }
+
+            let velocity = panGesture.velocity(in: panGesture.view)
+            return velocity.x > 0 && velocity.x > abs(velocity.y)
+        }
+
+        func restore() {
+            guard let gestureRecognizer else { return }
+            if gestureRecognizer.delegate === self {
+                gestureRecognizer.delegate = previousDelegate
+            }
+            self.gestureRecognizer = nil
+            navigationController = nil
+            previousDelegate = nil
+        }
+    }
+}
+
+final class NavigationResolverView: UIView {
+    var onResolve: ((UINavigationController) -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        backgroundColor = .clear
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        resolveNavigationController()
+    }
+
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        resolveNavigationController()
+    }
+
+    func resolveNavigationController() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            var responder: UIResponder? = self
+            while let current = responder {
+                if let navigationController = current as? UINavigationController {
+                    self.onResolve?(navigationController)
+                    return
+                }
+                if let viewController = current as? UIViewController,
+                   let navigationController = viewController.navigationController {
+                    self.onResolve?(navigationController)
+                    return
+                }
+                responder = current.next
+            }
+        }
     }
 }
