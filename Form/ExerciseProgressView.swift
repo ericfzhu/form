@@ -28,6 +28,31 @@ struct ExercisePerformance: Identifiable, Hashable {
     var totalVolume: Double {
         sets.reduce(0) { $0 + $1.weight * Double($1.repetitions) }
     }
+
+    var estimatedOneRepMax: Double {
+        sets
+            .filter { $0.weight > 0 && $0.repetitions > 0 }
+            .map { $0.weight * (1 + Double($0.repetitions) / 30) }
+            .max() ?? 0
+    }
+}
+
+enum ProgressRecord: String, Identifiable {
+    case load
+    case estimatedOneRepMax
+    case volume
+    case repetitions
+
+    var id: String { rawValue }
+
+    var shortTitle: String {
+        switch self {
+        case .load: "LOAD PR"
+        case .estimatedOneRepMax: "1RM PR"
+        case .volume: "VOLUME PR"
+        case .repetitions: "REP PR"
+        }
+    }
 }
 
 enum ProgressionEngine {
@@ -72,6 +97,35 @@ enum ProgressionEngine {
 
         return currentLoad + loadIncrement
     }
+
+    static func personalRecords(
+        for performance: ExercisePerformance,
+        measurement: ExerciseTemplate.Measurement,
+        among performances: [ExercisePerformance]
+    ) -> [ProgressRecord] {
+        let previous = performances.filter { $0.date < performance.date }
+        guard !previous.isEmpty else { return [] }
+
+        switch measurement {
+        case .weighted:
+            var records: [ProgressRecord] = []
+            let previousLoad = previous.compactMap { $0.topSet?.weight }.max() ?? 0
+            let currentLoad = performance.topSet?.weight ?? 0
+            if currentLoad > previousLoad {
+                records.append(.load)
+            }
+            if performance.estimatedOneRepMax > (previous.map(\.estimatedOneRepMax).max() ?? 0) {
+                records.append(.estimatedOneRepMax)
+            }
+            if performance.totalVolume > (previous.map(\.totalVolume).max() ?? 0) {
+                records.append(.volume)
+            }
+            return records
+        case .bodyweight, .timed:
+            let previousBest = previous.map(\.bestRepetitions).max() ?? 0
+            return performance.bestRepetitions > previousBest ? [.repetitions] : []
+        }
+    }
 }
 
 struct ExerciseProgressView: View {
@@ -87,7 +141,7 @@ struct ExerciseProgressView: View {
 
     private var availableMetrics: [TrendMetric] {
         switch exercise.measurement {
-        case .weighted: [.load, .repetitions, .volume]
+        case .weighted: [.load, .estimatedOneRepMax, .repetitions, .volume]
         case .bodyweight, .timed: [.repetitions]
         }
     }
@@ -163,8 +217,12 @@ struct ExerciseProgressView: View {
     private var summary: some View {
         HStack(spacing: 0) {
             summaryItem(label: "SESSIONS", value: "\(performances.count)")
-            summaryItem(label: "LATEST", value: shortDate(performances[0].date))
             summaryItem(label: "BEST", value: bestSummary)
+            if exercise.measurement == .weighted {
+                summaryItem(label: "EST. 1RM", value: bestOneRepMax)
+            } else {
+                summaryItem(label: "LATEST", value: shortDate(performances[0].date))
+            }
         }
         .padding(.vertical, 14)
         .background(InkPalette.raisedPaper.opacity(0.72))
@@ -265,6 +323,13 @@ struct ExerciseProgressView: View {
                         .minimumScaleFactor(0.75)
 
                     Spacer(minLength: 0)
+
+                    if !records(for: performance).isEmpty {
+                        Text("PR")
+                            .font(.caption2.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(InkPalette.cinnabar)
+                    }
                 }
                 .frame(minHeight: 48)
 
@@ -291,6 +356,19 @@ struct ExerciseProgressView: View {
         }
     }
 
+    private var bestOneRepMax: String {
+        let value = performances.map(\.estimatedOneRepMax).max() ?? 0
+        return "\(weightText(value)) kg"
+    }
+
+    private func records(for performance: ExercisePerformance) -> [ProgressRecord] {
+        ProgressionEngine.personalRecords(
+            for: performance,
+            measurement: exercise.measurement,
+            among: performances
+        )
+    }
+
     private func sessionSummary(_ performance: ExercisePerformance) -> String {
         switch exercise.measurement {
         case .weighted:
@@ -314,12 +392,14 @@ struct ExerciseProgressView: View {
 
 private enum TrendMetric: Hashable {
     case load
+    case estimatedOneRepMax
     case repetitions
     case volume
 
     func title(for measurement: ExerciseTemplate.Measurement) -> String {
         switch self {
         case .load: "Load"
+        case .estimatedOneRepMax: "1RM"
         case .repetitions: measurement == .timed ? "Time" : "Reps"
         case .volume: "Volume"
         }
@@ -328,6 +408,7 @@ private enum TrendMetric: Hashable {
     func axisLabel(for measurement: ExerciseTemplate.Measurement) -> String {
         switch self {
         case .load: "Kilograms"
+        case .estimatedOneRepMax: "Estimated 1RM"
         case .repetitions: measurement == .timed ? "Seconds" : "Repetitions"
         case .volume: "Kilograms"
         }
@@ -336,6 +417,7 @@ private enum TrendMetric: Hashable {
     func value(for performance: ExercisePerformance) -> Double {
         switch self {
         case .load: performance.topSet?.weight ?? 0
+        case .estimatedOneRepMax: performance.estimatedOneRepMax
         case .repetitions: Double(performance.bestRepetitions)
         case .volume: performance.totalVolume
         }

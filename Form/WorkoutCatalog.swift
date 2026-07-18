@@ -75,6 +75,12 @@ enum WorkoutCatalog {
         )
     ]
 
+    static func exercise(named name: String) -> ExerciseTemplate? {
+        routines
+            .flatMap(\.exercises)
+            .first { $0.name == name }
+    }
+
     private static func exercise(_ asset: String, _ name: String, _ sets: Int, _ minimum: Int, _ maximum: Int) -> ExerciseTemplate {
         ExerciseTemplate(id: asset, name: name, assetName: asset, sets: sets, minimumRepetitions: minimum, maximumRepetitions: maximum, measurement: .weighted)
     }

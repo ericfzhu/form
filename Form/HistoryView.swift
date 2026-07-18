@@ -106,9 +106,11 @@ private struct HistoryCard: View {
                 Text(workout.routineName)
                     .font(.system(.title3, design: .serif, weight: .semibold))
                     .foregroundStyle(InkPalette.ink)
-                Text("\(durationText(workout.duration)) · \(completedMovementCount) movements")
+                Text(detailText)
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(InkPalette.softInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
             }
 
             Spacer()
@@ -129,10 +131,24 @@ private struct HistoryCard: View {
     private var completedMovementCount: Int {
         workout.exercises.filter { !$0.sets.isEmpty }.count
     }
+
+    private var detailText: String {
+        var parts = [
+            durationText(workout.duration),
+            "\(completedMovementCount) movements"
+        ]
+        let cardioMinutes = Int(workout.cardioEntries.reduce(0) { $0 + $1.durationMinutes })
+        if cardioMinutes > 0 {
+            parts.append("\(cardioMinutes)m cardio")
+        }
+        return parts.joined(separator: " · ")
+    }
 }
 
 struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
+    @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+    @State private var showingEditor = false
 
     var body: some View {
         ZStack {
@@ -155,7 +171,14 @@ struct WorkoutHistoryDetail: View {
                     .padding(.bottom, 6)
 
                     ForEach(workout.exercises.sorted { $0.order < $1.order }) { exercise in
-                        HistoryExerciseCard(exercise: exercise)
+                        HistoryExerciseCard(
+                            exercise: exercise,
+                            records: records(for: exercise)
+                        )
+                    }
+
+                    if !workout.cardioEntries.isEmpty {
+                        cardioHistory
                     }
                 }
                 .padding(.horizontal, 20)
@@ -170,20 +193,77 @@ struct WorkoutHistoryDetail: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") {
+                    showingEditor = true
+                }
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+                .frame(minWidth: 44, minHeight: 44)
+            }
+        }
+        .fullScreenCover(isPresented: $showingEditor) {
+            WorkoutEditorView(workout: workout)
+        }
+    }
+
+    private var cardioHistory: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("CARDIO")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.8)
+                .foregroundStyle(InkPalette.softInk)
+
+            ForEach(workout.cardioEntries.sorted { $0.order < $1.order }) { entry in
+                CardioHistoryCard(entry: entry)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func records(for exercise: ExerciseRecord) -> [ProgressRecord] {
+        let performances = ProgressionEngine.performances(
+            for: exercise.name,
+            in: workouts
+        )
+        guard let performance = performances.first(where: { $0.id == workout.persistentModelID }) else {
+            return []
+        }
+        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+            ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
+        return ProgressionEngine.personalRecords(
+            for: performance,
+            measurement: measurement,
+            among: performances
+        )
     }
 }
 
 private struct HistoryExerciseCard: View {
     let exercise: ExerciseRecord
+    let records: [ProgressRecord]
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
                 DemonstrationImage(assetName: exercise.assetName)
                     .frame(width: 86, height: 86)
-                Text(exercise.name)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
-                    .foregroundStyle(InkPalette.ink)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(exercise.name)
+                        .font(.system(.headline, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                    if !records.isEmpty {
+                        HStack(spacing: 8) {
+                            ForEach(records.prefix(2)) { record in
+                                Text(record.shortTitle)
+                                    .font(.caption2.weight(.bold))
+                                    .tracking(0.8)
+                                    .foregroundStyle(InkPalette.cinnabar)
+                            }
+                        }
+                    }
+                }
                 Spacer()
             }
             .padding(11)
@@ -222,5 +302,342 @@ private struct HistoryExerciseCard: View {
             return "\(set.weight.formatted(.number.precision(.fractionLength(0...1)))) kg × \(set.repetitions)"
         }
         return "\(set.repetitions) reps"
+    }
+}
+
+private struct CardioHistoryCard: View {
+    let entry: CardioRecord
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(entry.kind.title)
+                .font(.system(.headline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 112), alignment: .leading)],
+                alignment: .leading,
+                spacing: 12
+            ) {
+                metric("\(number(entry.durationMinutes)) min", label: "TIME")
+                if entry.distanceKilometers > 0 {
+                    metric("\(number(entry.distanceKilometers)) km", label: "DISTANCE")
+                }
+                if entry.averageSpeed > 0 {
+                    metric("\(number(entry.averageSpeed)) km/h", label: "SPEED")
+                }
+                if entry.kind.supportsIncline && entry.incline > 0 {
+                    metric("\(number(entry.incline))%", label: "INCLINE")
+                }
+            }
+        }
+        .padding(16)
+        .inkCard()
+    }
+
+    private func metric(_ value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .tracking(0.9)
+                .foregroundStyle(InkPalette.softInk)
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .foregroundStyle(InkPalette.ink)
+        }
+    }
+
+    private func number(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...2)))
+    }
+}
+
+private struct EditableSetDraft: Identifiable {
+    let id = UUID()
+    var weight: Double
+    var repetitions: Int
+}
+
+private struct EditableExerciseDraft: Identifiable {
+    let id = UUID()
+    let record: ExerciseRecord
+    let measurement: ExerciseTemplate.Measurement
+    var sets: [EditableSetDraft]
+}
+
+private struct WorkoutEditorView: View {
+    let workout: WorkoutRecord
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var date: Date
+    @State private var durationMinutes: Double
+    @State private var exercises: [EditableExerciseDraft]
+    @State private var cardioEntries: [CardioDraft]
+
+    init(workout: WorkoutRecord) {
+        self.workout = workout
+        _date = State(initialValue: workout.date)
+        _durationMinutes = State(initialValue: max(1, workout.duration / 60))
+        _exercises = State(initialValue: workout.exercises
+            .sorted { $0.order < $1.order }
+            .map { exercise in
+                EditableExerciseDraft(
+                    record: exercise,
+                    measurement: WorkoutCatalog.exercise(named: exercise.name)?.measurement
+                        ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight),
+                    sets: exercise.sets
+                        .sorted { $0.order < $1.order }
+                        .map {
+                            EditableSetDraft(
+                                weight: $0.weight,
+                                repetitions: $0.repetitions
+                            )
+                        }
+                )
+            })
+        _cardioEntries = State(initialValue: workout.cardioEntries
+            .sorted { $0.order < $1.order }
+            .map(CardioDraft.init(record:)))
+    }
+
+    var body: some View {
+        ZStack {
+            PaperBackground()
+
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    sessionDetails
+
+                    ForEach($exercises) { $exercise in
+                        EditableExerciseCard(exercise: $exercise)
+                    }
+
+                    CardioLoggingSection(entries: $cardioEntries)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+                .padding(.bottom, 36)
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            editorHeader
+        }
+        .interactiveDismissDisabled()
+    }
+
+    private var editorHeader: some View {
+        VStack(spacing: 2) {
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .font(.system(.subheadline, design: .serif, weight: .medium))
+                .foregroundStyle(InkPalette.ink)
+                .frame(minWidth: 58, minHeight: 44, alignment: .leading)
+                .buttonStyle(PressableButtonStyle())
+
+                Spacer()
+
+                Text("EDIT SESSION")
+                    .font(.caption.weight(.semibold))
+                    .tracking(2)
+                    .foregroundStyle(InkPalette.softInk)
+
+                Spacer()
+
+                Button("Save", action: save)
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.cinnabar)
+                    .frame(minWidth: 58, minHeight: 44, alignment: .trailing)
+                    .buttonStyle(PressableButtonStyle())
+            }
+
+            InkDivider()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .background(InkPalette.paper.opacity(0.97))
+    }
+
+    private var sessionDetails: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("SESSION")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.8)
+                .foregroundStyle(InkPalette.softInk)
+
+            DatePicker(
+                "Date and time",
+                selection: $date,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .font(.system(.body, design: .serif))
+            .tint(InkPalette.cinnabar)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("DURATION · MINUTES")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1)
+                    .foregroundStyle(InkPalette.softInk)
+                TextField(
+                    "60",
+                    value: $durationMinutes,
+                    format: .number.precision(.fractionLength(0...1))
+                )
+                .keyboardType(.decimalPad)
+                .inkInput()
+            }
+        }
+        .padding(16)
+        .inkCard()
+    }
+
+    private func save() {
+        workout.date = date
+        workout.duration = max(60, durationMinutes * 60)
+
+        for exerciseDraft in exercises {
+            let oldSets = exerciseDraft.record.sets
+            exerciseDraft.record.sets = []
+            oldSets.forEach(modelContext.delete)
+            exerciseDraft.record.sets = exerciseDraft.sets.enumerated().map { index, set in
+                SetRecord(
+                    order: index,
+                    weight: exerciseDraft.measurement == .weighted ? max(0, set.weight) : 0,
+                    repetitions: max(0, set.repetitions)
+                )
+            }
+        }
+
+        let oldCardioEntries = workout.cardioEntries
+        workout.cardioEntries = []
+        oldCardioEntries.forEach(modelContext.delete)
+        workout.cardioEntries = cardioEntries.enumerated().compactMap { index, entry in
+            guard entry.durationMinutes > 0 else { return nil }
+            return CardioRecord(
+                kind: entry.kind,
+                order: index,
+                durationMinutes: entry.durationMinutes,
+                distanceKilometers: max(0, entry.distanceKilometers),
+                averageSpeed: max(0, entry.averageSpeed),
+                incline: entry.kind.supportsIncline ? max(0, entry.incline) : 0
+            )
+        }
+
+        try? modelContext.save()
+        dismiss()
+    }
+}
+
+private struct EditableExerciseCard: View {
+    @Binding var exercise: EditableExerciseDraft
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                DemonstrationImage(assetName: exercise.record.assetName)
+                    .frame(width: 72, height: 72)
+                Text(exercise.record.name)
+                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
+                Spacer()
+            }
+            .padding(11)
+
+            InkDivider()
+                .padding(.horizontal, 14)
+                .padding(.vertical, 4)
+
+            ForEach($exercise.sets) { $set in
+                HStack(spacing: 10) {
+                    Text("\((exercise.sets.firstIndex { $0.id == set.id } ?? 0) + 1)")
+                        .font(.body.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(InkPalette.softInk)
+                        .frame(width: 28, alignment: .leading)
+
+                    if exercise.measurement == .weighted {
+                        editField("KG", value: $set.weight)
+                    }
+
+                    editRepetitionField(
+                        exercise.measurement == .timed ? "SEC" : "REPS",
+                        value: $set.repetitions
+                    )
+
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            exercise.sets.removeAll { $0.id == set.id }
+                        }
+                    } label: {
+                        Image(systemName: "minus")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(InkPalette.cinnabar)
+                            .frame(width: 42, height: 42)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .accessibilityLabel("Delete set")
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+            }
+
+            Button {
+                let last = exercise.sets.last
+                withAnimation(.easeOut(duration: 0.18)) {
+                    exercise.sets.append(
+                        EditableSetDraft(
+                            weight: last?.weight ?? 0,
+                            repetitions: last?.repetitions ?? 8
+                        )
+                    )
+                }
+            } label: {
+                Text("Add set")
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+            }
+            .buttonStyle(PressableButtonStyle())
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+        }
+        .inkCard()
+    }
+
+    private func editField(_ label: String, value: Binding<Double>) -> some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .tracking(1)
+                .foregroundStyle(InkPalette.softInk)
+            TextField(
+                "0",
+                value: value,
+                format: .number.precision(.fractionLength(0...1))
+            )
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .inkInput()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func editRepetitionField(_ label: String, value: Binding<Int>) -> some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .tracking(1)
+                .foregroundStyle(InkPalette.softInk)
+            TextField("0", value: value, format: .number)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.center)
+                .inkInput()
+        }
+        .frame(maxWidth: .infinity)
     }
 }

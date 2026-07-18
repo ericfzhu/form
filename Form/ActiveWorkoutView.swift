@@ -22,6 +22,7 @@ struct ActiveWorkoutView: View {
     let routine: RoutineTemplate
     @State private var startedAt = Date()
     @State private var drafts: [ExerciseDraft]
+    @State private var cardioDrafts: [CardioDraft] = []
     @State private var restEnd: Date?
     @State private var showingCancelConfirmation = false
 
@@ -54,6 +55,8 @@ struct ActiveWorkoutView: View {
                             restEnd = Date().addingTimeInterval(90)
                         }
                     }
+
+                    CardioLoggingSection(entries: $cardioDrafts)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
@@ -127,9 +130,160 @@ struct ActiveWorkoutView: View {
             return exercise
         }
 
+        record.cardioEntries = cardioDrafts.enumerated().compactMap { index, draft in
+            guard draft.durationMinutes > 0 else { return nil }
+            return CardioRecord(
+                kind: draft.kind,
+                order: index,
+                durationMinutes: draft.durationMinutes,
+                distanceKilometers: draft.distanceKilometers,
+                averageSpeed: draft.averageSpeed,
+                incline: draft.kind.supportsIncline ? draft.incline : 0
+            )
+        }
+
         modelContext.insert(record)
         try? modelContext.save()
         dismiss()
+    }
+}
+
+struct CardioLoggingSection: View {
+    @Binding var entries: [CardioDraft]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("CARDIO")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.8)
+                    .foregroundStyle(InkPalette.softInk)
+                Spacer()
+                if !entries.isEmpty {
+                    Text("\(Int(entries.reduce(0) { $0 + $1.durationMinutes })) MIN")
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(InkPalette.softInk)
+                }
+            }
+
+            ForEach($entries) { $entry in
+                CardioEntryEditor(entry: $entry) {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        entries.removeAll { $0.id == entry.id }
+                    }
+                }
+            }
+
+            Button {
+                withAnimation(.easeOut(duration: 0.18)) {
+                    entries.append(CardioDraft())
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                    Text(entries.isEmpty ? "Add cardio" : "Add another cardio entry")
+                }
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(InkPalette.raisedPaper.opacity(0.72))
+                )
+            }
+            .buttonStyle(PressableButtonStyle())
+        }
+    }
+}
+
+struct CardioEntryEditor: View {
+    @Binding var entry: CardioDraft
+    let delete: () -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Picker("Cardio type", selection: $entry.kind) {
+                    ForEach(CardioKind.allCases) { kind in
+                        Text(kind.title).tag(kind)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(InkPalette.ink)
+                .font(.system(.headline, design: .serif, weight: .semibold))
+
+                Spacer()
+
+                Button(action: delete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(InkPalette.cinnabar)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityLabel("Delete cardio entry")
+            }
+
+            HStack(spacing: 14) {
+                cardioField(
+                    "MINUTES",
+                    value: $entry.durationMinutes,
+                    placeholder: "30"
+                )
+                cardioField(
+                    "DISTANCE · KM",
+                    value: $entry.distanceKilometers,
+                    placeholder: "0"
+                )
+            }
+
+            HStack(spacing: 14) {
+                cardioField(
+                    "SPEED · KM/H",
+                    value: $entry.averageSpeed,
+                    placeholder: "0"
+                )
+
+                if entry.kind.supportsIncline {
+                    cardioField(
+                        "INCLINE · %",
+                        value: $entry.incline,
+                        placeholder: "0"
+                    )
+                    .transition(.opacity)
+                }
+            }
+        }
+        .padding(14)
+        .inkCard()
+        .animation(.easeOut(duration: 0.18), value: entry.kind)
+    }
+
+    private func cardioField(
+        _ label: String,
+        value: Binding<Double>,
+        placeholder: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .tracking(1)
+                .foregroundStyle(InkPalette.softInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            TextField(
+                placeholder,
+                value: value,
+                format: .number.precision(.fractionLength(0...2))
+            )
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.leading)
+            .inkInput()
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -369,7 +523,7 @@ private struct SetLoggingRow: View {
     }
 }
 
-private struct InkInput: ViewModifier {
+struct InkInput: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.body.monospacedDigit().weight(.medium))
@@ -384,7 +538,7 @@ private struct InkInput: ViewModifier {
     }
 }
 
-private extension View {
+extension View {
     func inkInput() -> some View {
         modifier(InkInput())
     }

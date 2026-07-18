@@ -10,11 +10,21 @@ final class WorkoutRecord {
     @Relationship(deleteRule: .cascade, inverse: \ExerciseRecord.workout)
     var exercises: [ExerciseRecord]
 
-    init(date: Date, routineName: String, duration: TimeInterval, exercises: [ExerciseRecord] = []) {
+    @Relationship(deleteRule: .cascade, inverse: \CardioRecord.workout)
+    var cardioEntries: [CardioRecord]
+
+    init(
+        date: Date,
+        routineName: String,
+        duration: TimeInterval,
+        exercises: [ExerciseRecord] = [],
+        cardioEntries: [CardioRecord] = []
+    ) {
         self.date = date
         self.routineName = routineName
         self.duration = duration
         self.exercises = exercises
+        self.cardioEntries = cardioEntries
     }
 }
 
@@ -47,5 +57,97 @@ final class SetRecord {
         self.order = order
         self.weight = weight
         self.repetitions = repetitions
+    }
+}
+
+enum CardioKind: String, CaseIterable, Identifiable {
+    case treadmillWalk
+    case treadmillRun
+    case cycling
+    case elliptical
+    case rowing
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .treadmillWalk: "Treadmill walk"
+        case .treadmillRun: "Treadmill run"
+        case .cycling: "Cycling"
+        case .elliptical: "Elliptical"
+        case .rowing: "Rowing"
+        case .other: "Other cardio"
+        }
+    }
+
+    var supportsIncline: Bool {
+        self == .treadmillWalk || self == .treadmillRun
+    }
+}
+
+struct CardioDraft: Identifiable {
+    let id: UUID
+    var kind: CardioKind
+    var durationMinutes: Double
+    var distanceKilometers: Double
+    var averageSpeed: Double
+    var incline: Double
+
+    init(
+        id: UUID = UUID(),
+        kind: CardioKind = .treadmillWalk,
+        durationMinutes: Double = 30,
+        distanceKilometers: Double = 0,
+        averageSpeed: Double = 5,
+        incline: Double = 7.5
+    ) {
+        self.id = id
+        self.kind = kind
+        self.durationMinutes = durationMinutes
+        self.distanceKilometers = distanceKilometers
+        self.averageSpeed = averageSpeed
+        self.incline = incline
+    }
+
+    init(record: CardioRecord) {
+        id = UUID()
+        kind = record.kind
+        durationMinutes = record.durationMinutes
+        distanceKilometers = record.distanceKilometers
+        averageSpeed = record.averageSpeed
+        incline = record.incline
+    }
+}
+
+@Model
+final class CardioRecord {
+    var kindRawValue: String
+    var order: Int
+    var durationMinutes: Double
+    var distanceKilometers: Double
+    var averageSpeed: Double
+    var incline: Double
+    var workout: WorkoutRecord?
+
+    var kind: CardioKind {
+        get { CardioKind(rawValue: kindRawValue) ?? .other }
+        set { kindRawValue = newValue.rawValue }
+    }
+
+    init(
+        kind: CardioKind,
+        order: Int,
+        durationMinutes: Double,
+        distanceKilometers: Double = 0,
+        averageSpeed: Double = 0,
+        incline: Double = 0
+    ) {
+        kindRawValue = kind.rawValue
+        self.order = order
+        self.durationMinutes = durationMinutes
+        self.distanceKilometers = distanceKilometers
+        self.averageSpeed = averageSpeed
+        self.incline = incline
     }
 }

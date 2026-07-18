@@ -8,6 +8,6 @@ struct FormApp: App {
             RootView()
                 .preferredColorScheme(.light)
         }
-        .modelContainer(for: [WorkoutRecord.self, ExerciseRecord.self, SetRecord.self])
+        .modelContainer(for: [WorkoutRecord.self, ExerciseRecord.self, SetRecord.self, CardioRecord.self])
     }
 }
