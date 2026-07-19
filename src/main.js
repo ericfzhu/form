@@ -5,25 +5,25 @@ const routines = {
     focus: "Squat · press · pull",
     title: "Workout A",
     exercise: "Barbell Back Squat",
-    target: "3 × 6–10",
+    target: "3 × 6-10",
     image: "/assets/barbell-back-squat.png",
-    progress: "Increase to 62.5 kg",
+    progress: "Next: 62.5 kg",
   },
   B: {
     focus: "Hinge · incline · unilateral",
     title: "Workout B",
     exercise: "Conventional Deadlift",
-    target: "3 × 5–6",
+    target: "3 × 5-6",
     image: "/assets/conventional-deadlift.png",
-    progress: "Hold 90 kg · aim for 6",
+    progress: "Repeat 90 kg, aim for 6 reps",
   },
   C: {
     focus: "Squat · shoulders · carry",
     title: "Workout C",
     exercise: "Dumbbell Shoulder Press",
-    target: "3 × 8–12",
+    target: "3 × 8-12",
     image: "/assets/shoulder-press.png",
-    progress: "22 kg / hand",
+    progress: "Last used: 22 kg each",
   },
 };
 
@@ -46,14 +46,14 @@ document.querySelector("#app").innerHTML = `
         <span class="text-[19px] font-semibold tracking-[-0.035em]">Form</span>
         <span class="brand-divider hidden h-4 w-px bg-black/10 sm:block" aria-hidden="true"></span>
         <span class="brand-context hidden text-xs font-normal tracking-normal text-[#6e6e73] sm:block">
-          Workout journal
+          Workout log
         </span>
       </a>
       <a
         class="group flex min-h-11 items-center gap-2 text-[13px] font-medium text-[#1d1d1f] transition-colors duration-150 hover:text-[#a4261d] active:scale-[0.96]"
         href="#workouts"
       >
-        <span>Workouts</span>
+        <span>How it works</span>
       </a>
     </nav>
   </header>
@@ -61,14 +61,15 @@ document.querySelector("#app").innerHTML = `
   <main id="top">
     <section class="hero" data-hero>
       <div class="hero-copy shell">
-        <p class="eyebrow reveal">A workout log for iPhone</p>
-        <h1 class="reveal delay-1">Train with clarity.</h1>
+        <p class="eyebrow reveal">Workout tracking for iPhone</p>
+        <h1 class="reveal delay-1">Pick up where you left off.</h1>
         <p class="hero-lede reveal delay-2">
-          Your routine, your numbers, and the next sensible step — without the noise.
+          Form opens to your next workout, with your previous weights and reps ready when
+          you need them.
         </p>
         <div class="hero-actions reveal delay-3">
           <a class="button button-primary form-cta" href="#workouts">
-            <span>Explore workouts</span>
+            <span>See how it works</span>
             <span class="form-cta-mark" aria-hidden="true">↓</span>
           </a>
         </div>
@@ -95,11 +96,11 @@ document.querySelector("#app").innerHTML = `
     <section class="feature feature-routines" id="workouts">
       <div class="shell feature-grid">
         <div class="feature-copy">
-          <p class="eyebrow">Your training, organised</p>
-          <h2>One rotation.<br />Three deliberate sessions.</h2>
+          <p class="eyebrow">A simple A/B/C rotation</p>
+          <h2>Finish one workout.<br />Form queues the next.</h2>
           <p>
-            Move naturally through A, B, and C. Form remembers where you left off and keeps
-            the next workout ready.
+            Form keeps your place in the rotation. Open an exercise to see the weight and
+            reps you logged last time, along with the target for this session.
           </p>
           <div class="routine-tabs" role="tablist" aria-label="Choose a workout">
             ${Object.keys(routines)
