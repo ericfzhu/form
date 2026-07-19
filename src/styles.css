@@ -413,9 +413,9 @@ p {
   color: white;
 }
 
-.routine-canvas {
+.routine-viewport {
   min-height: 610px;
-  padding: 48px;
+  overflow: hidden;
   border-radius: 38px;
   background: #f5f1e9;
   box-shadow:
@@ -424,52 +424,25 @@ p {
     0 36px 80px rgba(60, 43, 25, 0.07);
 }
 
-.routine-part {
-  opacity: 1;
-  filter: blur(0);
-  transition-property: opacity, transform, filter;
-  transition-duration: 300ms;
-  transition-delay: var(--part-delay, 0ms);
-  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+.routine-track {
+  display: flex;
+  transform: translate3d(0, 0, 0);
+  transition-property: transform;
+  transition-duration: var(--slide-duration, 620ms);
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
 }
 
-.routine-meta {
-  --part-delay: 0ms;
+.routine-track.is-resetting {
+  transition-duration: 0ms;
 }
 
-.routine-number {
-  --part-delay: 60ms;
-}
-
-.routine-art {
-  --part-delay: 100ms;
-}
-
-.routine-details {
-  --part-delay: 160ms;
-}
-
-.routine-canvas.changing .routine-part {
-  opacity: 0;
-  filter: blur(4px);
-  transition-delay: 0ms;
-  transition-duration: 160ms;
-}
-
-.routine-canvas.changing .routine-meta {
-  transform: translateY(-6px);
-}
-
-.routine-canvas.changing .routine-number {
-  transform: scale(0.25);
-}
-
-.routine-canvas.changing .routine-art {
-  transform: translateX(-12px) scale(0.98);
-}
-
-.routine-canvas.changing .routine-details {
-  transform: translateY(8px);
+.routine-canvas {
+  min-width: 0;
+  min-height: 610px;
+  flex: 0 0 100%;
+  padding: 48px;
+  background: #f5f1e9;
 }
 
 .routine-header {
@@ -519,8 +492,6 @@ p {
   height: 330px;
   object-fit: contain;
   mix-blend-mode: multiply;
-  transition-property: opacity;
-  transition-duration: 180ms;
 }
 
 .routine-exercise h4 {
@@ -622,10 +593,17 @@ footer {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .routine-viewport,
   .routine-canvas {
     min-height: auto;
-    padding: 28px 22px;
+  }
+
+  .routine-viewport {
     border-radius: 28px;
+  }
+
+  .routine-canvas {
+    padding: 28px 22px;
   }
 
   .routine-header h3 {

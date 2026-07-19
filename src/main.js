@@ -111,6 +111,7 @@ document.querySelector("#app").innerHTML = `
                     type="button"
                     role="tab"
                     aria-selected="${index === 0}"
+                    tabindex="${index === 0 ? "0" : "-1"}"
                     data-routine="${key}"
                   >${key}</button>
                 `,
@@ -119,23 +120,44 @@ document.querySelector("#app").innerHTML = `
           </div>
         </div>
 
-        <div class="routine-canvas" aria-live="polite">
-          <div class="routine-header">
-            <div class="routine-part routine-meta">
-              <span id="routine-focus">${routines.A.focus}</span>
-              <h3 id="routine-title">${routines.A.title}</h3>
-            </div>
-            <span class="routine-number routine-part" id="routine-number">A</span>
-          </div>
-          <div class="routine-exercise">
-            <img class="routine-part routine-art" id="routine-image" src="${routines.A.image}" alt="" />
-            <div class="routine-part routine-details">
-              <span id="routine-target">${routines.A.target}</span>
-              <h4 id="routine-exercise">${routines.A.exercise}</h4>
-              <p id="routine-progress">${routines.A.progress}</p>
-            </div>
+        <div
+          class="routine-viewport"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Workout rotation preview"
+        >
+          <div class="routine-track">
+            ${[...Object.keys(routines), ...Object.keys(routines)]
+              .map((key, index) => {
+                const routine = routines[key];
+                return `
+                  <article
+                    class="routine-canvas"
+                    data-routine-slide="${key}"
+                    aria-hidden="${index === 0 ? "false" : "true"}"
+                  >
+                    <div class="routine-header">
+                      <div>
+                        <span>${routine.focus}</span>
+                        <h3>${routine.title}</h3>
+                      </div>
+                      <span class="routine-number">${key}</span>
+                    </div>
+                    <div class="routine-exercise">
+                      <img src="${routine.image}" alt="" />
+                      <div>
+                        <span>${routine.target}</span>
+                        <h4>${routine.exercise}</h4>
+                        <p>${routine.progress}</p>
+                      </div>
+                    </div>
+                  </article>
+                `;
+              })
+              .join("")}
           </div>
         </div>
+        <p class="sr-only" id="routine-status" aria-live="polite"></p>
       </div>
     </section>
 
@@ -150,43 +172,157 @@ document.querySelector("#app").innerHTML = `
 `;
 
 const tabButtons = document.querySelectorAll(".routine-tab");
-const routineCanvas = document.querySelector(".routine-canvas");
+const routineKeys = Object.keys(routines);
+const routineViewport = document.querySelector(".routine-viewport");
+const routineTrack = document.querySelector(".routine-track");
+const routineSlides = document.querySelectorAll("[data-routine-slide]");
+const routineStatus = document.querySelector("#routine-status");
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let currentRoutine = "A";
-let routineTimer;
+let currentSlideIndex = 0;
+let transitionTimer;
+let carouselTimer;
+let carouselPaused = false;
+let isSliding = false;
+let pendingSelection;
+let announceAfterSlide = false;
 
-function setRoutine(key) {
-  if (key === currentRoutine) return;
+function stopCarousel() {
+  window.clearTimeout(carouselTimer);
+}
 
-  const routine = routines[key];
-  window.clearTimeout(routineTimer);
-  routineCanvas.classList.add("changing");
+function scheduleCarousel() {
+  stopCarousel();
 
-  routineTimer = window.setTimeout(() => {
-    document.querySelector("#routine-focus").textContent = routine.focus;
-    document.querySelector("#routine-title").textContent = routine.title;
-    document.querySelector("#routine-number").textContent = key;
-    document.querySelector("#routine-image").src = routine.image;
-    document.querySelector("#routine-target").textContent = routine.target;
-    document.querySelector("#routine-exercise").textContent = routine.exercise;
-    document.querySelector("#routine-progress").textContent = routine.progress;
-    currentRoutine = key;
-    routineCanvas.classList.remove("changing");
-  }, 180);
+  if (carouselPaused || document.hidden || reducedMotion.matches) return;
 
+  carouselTimer = window.setTimeout(() => {
+    const currentIndex = routineKeys.indexOf(currentRoutine);
+    const nextKey = routineKeys[(currentIndex + 1) % routineKeys.length];
+    setRoutine(nextKey);
+  }, 3000);
+}
+
+function updateRoutineSelection(key) {
   tabButtons.forEach((button) => {
     const selected = button.dataset.routine === key;
     button.classList.toggle("active", selected);
     button.setAttribute("aria-selected", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  });
+
+  routineSlides.forEach((slide, index) => {
+    const isPrimarySelected = index === routineKeys.indexOf(key);
+    slide.setAttribute("aria-hidden", String(!isPrimarySelected));
   });
 }
 
-tabButtons.forEach((button) => {
-  button.addEventListener("click", () => setRoutine(button.dataset.routine));
+function getTrackTransform(index) {
+  return `translate3d(-${index * 100}%, 0, 0)`;
+}
+
+function finishSlide() {
+  if (!isSliding) return;
+
+  window.clearTimeout(transitionTimer);
+
+  if (currentSlideIndex >= routineKeys.length) {
+    routineTrack.classList.add("is-resetting");
+    currentSlideIndex -= routineKeys.length;
+    routineTrack.style.transform = getTrackTransform(currentSlideIndex);
+    routineTrack.getBoundingClientRect();
+    routineTrack.classList.remove("is-resetting");
+  }
+
+  isSliding = false;
+
+  if (announceAfterSlide) {
+    routineStatus.textContent = `Workout ${currentRoutine} selected`;
+    announceAfterSlide = false;
+  }
+
+  if (pendingSelection) {
+    const nextSelection = pendingSelection;
+    pendingSelection = undefined;
+    setRoutine(nextSelection.key, { manual: nextSelection.manual });
+    return;
+  }
+
+  scheduleCarousel();
+}
+
+function setRoutine(key, { manual = false } = {}) {
+  if (!routines[key]) return;
+
+  if (isSliding) {
+    pendingSelection = { key, manual };
+    stopCarousel();
+    return;
+  }
+
+  if (key === currentRoutine) {
+    if (manual) scheduleCarousel();
+    return;
+  }
+
+  stopCarousel();
+  const currentKeyIndex = routineKeys.indexOf(currentRoutine);
+  const targetKeyIndex = routineKeys.indexOf(key);
+  const forwardSteps = (targetKeyIndex - currentKeyIndex + routineKeys.length) % routineKeys.length;
+  const slideDuration = forwardSteps === 1 ? 620 : 820;
+
+  currentSlideIndex += forwardSteps;
+  currentRoutine = key;
+  isSliding = true;
+  announceAfterSlide = manual;
+  updateRoutineSelection(key);
+  routineTrack.style.setProperty("--slide-duration", `${slideDuration}ms`);
+  routineTrack.style.transform = getTrackTransform(currentSlideIndex);
+
+  transitionTimer = window.setTimeout(finishSlide, reducedMotion.matches ? 0 : slideDuration + 60);
+}
+
+routineTrack.addEventListener("transitionend", (event) => {
+  if (event.propertyName === "transform") finishSlide();
 });
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => setRoutine(button.dataset.routine, { manual: true }));
+  button.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+    event.preventDefault();
+    const currentIndex = routineKeys.indexOf(button.dataset.routine);
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = (currentIndex + direction + routineKeys.length) % routineKeys.length;
+    const nextButton = tabButtons[nextIndex];
+    nextButton.focus();
+    setRoutine(nextButton.dataset.routine, { manual: true });
+  });
+});
+
+function pauseCarousel() {
+  carouselPaused = true;
+  stopCarousel();
+}
+
+function resumeCarousel() {
+  carouselPaused = false;
+  scheduleCarousel();
+}
+
+routineViewport.addEventListener("mouseenter", pauseCarousel);
+routineViewport.addEventListener("mouseleave", resumeCarousel);
+
+document.addEventListener("visibilitychange", scheduleCarousel);
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches && isSliding) finishSlide();
+  scheduleCarousel();
+});
+scheduleCarousel();
 
 const hero = document.querySelector("[data-hero]");
 const masthead = document.querySelector(".site-masthead");
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let scrollFrameRequested = false;
 
 function updateScrollStory() {
