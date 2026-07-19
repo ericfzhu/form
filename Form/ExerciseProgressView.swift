@@ -150,19 +150,25 @@ struct ExerciseProgressView: View {
         ZStack {
             PaperBackground()
 
-            if performances.isEmpty {
-                EmptyExerciseProgress(exercise: exercise)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 18) {
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    exerciseOverview
+
+                    if performances.isEmpty {
+                        EmptyExerciseRecord()
+                    } else {
                         summary
-                        trendChart
-                        sessionHistory
+                        if performances.count == 1 {
+                            baseline
+                        } else {
+                            trendChart
+                            sessionHistory
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 30)
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 30)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -185,6 +191,60 @@ struct ExerciseProgressView: View {
             leadingTitle: "Back",
             leadingAction: { dismiss() }
         )
+    }
+
+    private var exerciseOverview: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 16) {
+                DemonstrationImage(assetName: exercise.assetName, outlined: false)
+                    .frame(width: 132, height: 118)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("PRESCRIPTION")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(InkPalette.softInk)
+                    Text(exercise.targetText)
+                        .font(.system(.title3, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                        .monospacedDigit()
+
+                    if let latest = performances.first {
+                        Text("Last · \(sessionSummary(latest))")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(InkPalette.cinnabar)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.76)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !exercise.formCues.isEmpty {
+                InkDivider()
+
+                Text("FORM")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.5)
+                    .foregroundStyle(InkPalette.softInk)
+
+                VStack(alignment: .leading, spacing: 11) {
+                    ForEach(Array(exercise.formCues.enumerated()), id: \.offset) { index, cue in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(String(format: "%02d", index + 1))
+                                .font(.caption2.monospacedDigit().weight(.semibold))
+                                .foregroundStyle(InkPalette.cinnabar)
+                                .frame(width: 20, alignment: .leading)
+                            Text(cue)
+                                .font(.system(.subheadline, design: .serif))
+                                .foregroundStyle(InkPalette.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.bottom, 2)
     }
 
     private var summary: some View {
@@ -271,6 +331,30 @@ struct ExerciseProgressView: View {
             }
             .frame(height: 220)
             .animation(.easeOut(duration: 0.2), value: selectedMetric)
+        }
+    }
+
+    private var baseline: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("BASELINE")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.8)
+                .foregroundStyle(InkPalette.softInk)
+            HStack {
+                Text(shortDate(performances[0].date))
+                    .font(.system(.subheadline, design: .serif))
+                    .foregroundStyle(InkPalette.softInk)
+                Spacer()
+                Text(sessionSummary(performances[0]))
+                    .font(.subheadline.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(InkPalette.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(minHeight: 48)
+            Text("A trend will appear after the next recorded session.")
+                .font(.system(.caption, design: .serif))
+                .foregroundStyle(InkPalette.softInk.opacity(0.78))
         }
     }
 
@@ -397,22 +481,19 @@ private enum TrendMetric: Hashable {
     }
 }
 
-private struct EmptyExerciseProgress: View {
-    let exercise: ExerciseTemplate
-
+private struct EmptyExerciseRecord: View {
     var body: some View {
-        VStack(spacing: 16) {
-            DemonstrationImage(assetName: exercise.assetName, outlined: false)
-                .frame(width: 210, height: 170)
+        VStack(spacing: 12) {
             Text("No completed sets yet")
-                .font(.system(.title2, design: .serif, weight: .semibold))
+                .font(.system(.headline, design: .serif, weight: .semibold))
                 .foregroundStyle(InkPalette.ink)
             Text("Complete this movement in a session to begin its record.")
-                .font(.system(.body, design: .serif))
+                .font(.system(.subheadline, design: .serif))
                 .foregroundStyle(InkPalette.softInk)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 38)
         }
-        .padding(.bottom, 48)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
     }
 }

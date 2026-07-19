@@ -278,26 +278,57 @@ private struct InkTabBar: View {
 }
 
 private struct RoutineListView: View {
+    @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+
+    private var nextRoutine: RoutineTemplate {
+        guard let latestRoutineName = workouts.first?.routineName,
+              let latestIndex = WorkoutCatalog.routines.firstIndex(where: {
+                  $0.name == latestRoutineName
+              }) else {
+            return WorkoutCatalog.routines[0]
+        }
+        return WorkoutCatalog.routines[(latestIndex + 1) % WorkoutCatalog.routines.count]
+    }
+
+    private var remainingRoutines: [RoutineTemplate] {
+        WorkoutCatalog.routines.filter { $0.id != nextRoutine.id }
+    }
+
     var body: some View {
         ZStack {
             PaperBackground()
 
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        Text("A → B → C")
-                            .font(.system(.caption, design: .serif))
-                            .foregroundStyle(InkPalette.softInk.opacity(0.72))
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    Text("NEXT WORKOUT")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.8)
+                        .foregroundStyle(InkPalette.softInk)
+                        .padding(.bottom, 9)
+
+                    NavigationLink(value: nextRoutine) {
+                        RoutineCard(
+                            routine: nextRoutine,
+                            isRecommended: true,
+                            lastCompleted: lastCompleted(nextRoutine)
+                        )
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(PressableButtonStyle())
                     .padding(.bottom, 28)
 
-                    LazyVStack(spacing: 16) {
-                        ForEach(WorkoutCatalog.routines) { routine in
+                    Text("ROTATION")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.8)
+                        .foregroundStyle(InkPalette.softInk)
+                        .padding(.bottom, 9)
+
+                    LazyVStack(spacing: 14) {
+                        ForEach(remainingRoutines) { routine in
                             NavigationLink(value: routine) {
-                                RoutineCard(routine: routine)
+                                RoutineCard(
+                                    routine: routine,
+                                    lastCompleted: lastCompleted(routine)
+                                )
                             }
                             .buttonStyle(PressableButtonStyle())
                         }
@@ -310,14 +341,32 @@ private struct RoutineListView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
     }
+
+    private func lastCompleted(_ routine: RoutineTemplate) -> Date? {
+        workouts.first { $0.routineName == routine.name }?.date
+    }
 }
 
 private struct RoutineCard: View {
     let routine: RoutineTemplate
+    var isRecommended = false
+    var lastCompleted: Date?
 
     var body: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 8) {
+                if isRecommended {
+                    HStack(spacing: 7) {
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(InkPalette.cinnabar)
+                            .frame(width: 8, height: 8)
+                        Text("UP NEXT")
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.6)
+                            .foregroundStyle(InkPalette.cinnabar)
+                    }
+                }
+
                 Text(routine.id)
                     .font(.system(size: 48, weight: .medium, design: .serif))
                     .foregroundStyle(InkPalette.ink)
@@ -327,6 +376,11 @@ private struct RoutineCard: View {
                     .lineSpacing(3)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Text(lastCompletedText)
+                    .font(.system(.caption, design: .serif))
+                    .foregroundStyle(InkPalette.softInk.opacity(0.72))
+                    .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .layoutPriority(1)
@@ -357,12 +411,18 @@ private struct RoutineCard: View {
         }
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
+
+    private var lastCompletedText: String {
+        guard let lastCompleted else { return "Not completed yet" }
+        return "Last · \(lastCompleted.formatted(.dateTime.day().month(.abbreviated)))"
+    }
 }
 
 struct RoutineDetailView: View {
     let routine: RoutineTemplate
     @Environment(\.dismiss) private var dismiss
     @State private var showingWorkout = false
+    @State private var shouldReturnToTrain = false
 
     var body: some View {
         ZStack {
@@ -400,9 +460,13 @@ struct RoutineDetailView: View {
             .padding(.vertical, 10)
             .background(InkPalette.paper.opacity(0.94))
         }
-        .fullScreenCover(isPresented: $showingWorkout) {
-            NavigationStack {
-                ActiveWorkoutView(routine: routine)
+        .fullScreenCover(isPresented: $showingWorkout, onDismiss: {
+            if shouldReturnToTrain {
+                dismiss()
+            }
+        }) {
+            ActiveWorkoutView(routine: routine) {
+                shouldReturnToTrain = true
             }
         }
     }
@@ -411,6 +475,11 @@ struct RoutineDetailView: View {
 private struct ExercisePreviewRow: View {
     let index: Int
     let exercise: ExerciseTemplate
+    @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+
+    private var previous: ExercisePerformance? {
+        ProgressionEngine.latestCompleted(for: exercise.name, in: workouts)
+    }
 
     var body: some View {
         HStack(spacing: 16) {
@@ -428,11 +497,37 @@ private struct ExercisePreviewRow: View {
                 Text(exercise.targetText)
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(InkPalette.softInk)
+                if let previous {
+                    Text("Last · \(performanceText(previous))")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(InkPalette.cinnabar)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                } else {
+                    Text("Form and performance")
+                        .font(.system(.caption, design: .serif))
+                        .foregroundStyle(InkPalette.softInk.opacity(0.72))
+                }
             }
             Spacer(minLength: 0)
         }
         .padding(10)
         .inkCard()
+    }
+
+    private func performanceText(_ performance: ExercisePerformance) -> String {
+        switch exercise.measurement {
+        case .weighted:
+            guard let topSet = performance.topSet else { return "No completed sets" }
+            let weight = topSet.weight.formatted(
+                .number.precision(.fractionLength(topSet.weight.rounded() == topSet.weight ? 0 : 1))
+            )
+            return "\(weight) kg × \(topSet.repetitions)"
+        case .bodyweight:
+            return "\(performance.bestRepetitions) reps"
+        case .timed:
+            return "\(performance.bestRepetitions) sec"
+        }
     }
 }
 

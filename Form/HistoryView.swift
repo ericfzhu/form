@@ -172,10 +172,20 @@ struct WorkoutHistoryDetail: View {
                     .padding(.bottom, 6)
 
                     ForEach(workout.exercises.sorted { $0.order < $1.order }) { exercise in
-                        HistoryExerciseCard(
-                            exercise: exercise,
-                            records: records(for: exercise)
-                        )
+                        if let template = WorkoutCatalog.exercise(named: exercise.name) {
+                            NavigationLink(value: template) {
+                                HistoryExerciseCard(
+                                    exercise: exercise,
+                                    records: records(for: exercise)
+                                )
+                            }
+                            .buttonStyle(PressableButtonStyle())
+                        } else {
+                            HistoryExerciseCard(
+                                exercise: exercise,
+                                records: records(for: exercise)
+                            )
+                        }
                     }
 
                     if !workout.cardioEntries.isEmpty {

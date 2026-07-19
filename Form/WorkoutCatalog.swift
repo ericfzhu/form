@@ -23,6 +23,10 @@ struct ExerciseTemplate: Identifiable, Hashable {
             return "\(sets) × \(minimumRepetitions)–\(maximumRepetitions)"
         }
     }
+
+    var formCues: [String] {
+        WorkoutCatalog.formCues[id] ?? []
+    }
 }
 
 struct RoutineTemplate: Identifiable, Hashable {
@@ -33,6 +37,99 @@ struct RoutineTemplate: Identifiable, Hashable {
 }
 
 enum WorkoutCatalog {
+    static let formCues: [String: [String]] = [
+        "barbell-back-squat": [
+            "Set the bar across your upper back and brace before leaving the rack.",
+            "Keep your whole foot planted as your knees track over your toes.",
+            "Descend under control, then drive the floor away."
+        ],
+        "chest-press": [
+            "Set your shoulder blades gently back against the bench.",
+            "Lower the dumbbells beside your chest with your wrists stacked.",
+            "Press upward without letting your shoulders roll forward."
+        ],
+        "seated-row": [
+            "Sit tall with a quiet torso and begin with your shoulders relaxed.",
+            "Pull your elbows toward your hips without leaning backward.",
+            "Return the handle under control and let your shoulder blades move."
+        ],
+        "romanian-deadlift": [
+            "Soften your knees, brace, and keep the weights close to your legs.",
+            "Send your hips backward until your hamstrings limit the movement.",
+            "Stand by driving your hips forward without leaning back."
+        ],
+        "lat-pulldown": [
+            "Secure your thighs and begin with your ribs stacked over your pelvis.",
+            "Draw your elbows down toward your sides, bringing the bar to upper chest height.",
+            "Control the return without shrugging at the top."
+        ],
+        "plank": [
+            "Place your elbows below your shoulders and press the floor away.",
+            "Keep ribs and pelvis stacked while squeezing glutes and thighs.",
+            "End the set when you can no longer hold a straight, braced position."
+        ],
+        "conventional-deadlift": [
+            "Stand with the bar over mid-foot and take your grip outside your legs.",
+            "Brace, pull the slack from the bar, and keep it close to your body.",
+            "Push the floor away and finish tall without leaning backward."
+        ],
+        "incline-press": [
+            "Use a modest bench incline and keep your feet firmly planted.",
+            "Lower the dumbbells with forearms vertical and shoulders supported.",
+            "Press up and slightly inward without clashing the dumbbells."
+        ],
+        "underhand-lat-pulldown": [
+            "Take a comfortable underhand grip and secure your thighs.",
+            "Keep your chest quiet as your elbows travel down beside your torso.",
+            "Use a controlled full reach without losing your shoulder position."
+        ],
+        "split-squat": [
+            "Choose a stance long enough for both feet to remain stable.",
+            "Lower mostly straight down while the front knee tracks over the toes.",
+            "Drive through the front foot and keep the pelvis level."
+        ],
+        "chest-supported-row": [
+            "Set the bench so your chest remains supported throughout the set.",
+            "Begin with long arms, then draw your elbows back without shrugging.",
+            "Pause briefly before lowering the weights under control."
+        ],
+        "side-plank": [
+            "Place your elbow below your shoulder and stack or stagger your feet.",
+            "Lift your hips until shoulder, hip, and ankle form one line.",
+            "Keep your torso facing forward and stop before your hips sag."
+        ],
+        "goblet-squat": [
+            "Hold the dumbbell close to your chest and brace before descending.",
+            "Sit between your hips while keeping your whole foot planted.",
+            "Drive upward with knees tracking in line with your toes."
+        ],
+        "shoulder-press": [
+            "Start with the dumbbells over your forearms and ribs stacked.",
+            "Press overhead without arching your lower back.",
+            "Finish with the weights balanced over your shoulders."
+        ],
+        "cable-row": [
+            "Set a stable seated position with a tall, braced torso.",
+            "Pull toward your lower ribs while keeping your shoulders away from your ears.",
+            "Reach forward under control without rounding aggressively."
+        ],
+        "leg-curl": [
+            "Align your knees with the machine pivot and secure the pad above your heels.",
+            "Curl through the largest comfortable range without lifting your hips.",
+            "Lower the weight slowly rather than letting the stack drop."
+        ],
+        "pushup": [
+            "Place your hands slightly wider than shoulder width and brace your trunk.",
+            "Lower your chest between your hands with elbows angled comfortably back.",
+            "Press the floor away while keeping your body moving as one unit."
+        ],
+        "farmer-carry": [
+            "Stand tall with the weights at your sides and shoulders relaxed.",
+            "Take short, controlled steps while keeping your ribs stacked.",
+            "Turn carefully and stop before your grip changes your posture."
+        ]
+    ]
+
     static let routines: [RoutineTemplate] = [
         RoutineTemplate(
             id: "A",

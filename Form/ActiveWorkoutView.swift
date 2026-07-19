@@ -20,14 +20,19 @@ struct ActiveWorkoutView: View {
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var history: [WorkoutRecord]
 
     let routine: RoutineTemplate
+    let onDone: () -> Void
     @State private var startedAt = Date()
     @State private var drafts: [ExerciseDraft]
     @State private var cardioDrafts: [CardioDraft] = []
     @State private var restEnd: Date?
     @State private var showingCancelConfirmation = false
+    @State private var showingEmptyFinishConfirmation = false
+    @State private var expandedExerciseID: String?
+    @State private var completedRecord: WorkoutRecord?
 
-    init(routine: RoutineTemplate) {
+    init(routine: RoutineTemplate, onDone: @escaping () -> Void = {}) {
         self.routine = routine
+        self.onDone = onDone
         _drafts = State(initialValue: routine.exercises.map { exercise in
             ExerciseDraft(
                 id: exercise.id,
@@ -37,35 +42,81 @@ struct ActiveWorkoutView: View {
                 }
             )
         })
+        _expandedExerciseID = State(initialValue: routine.exercises.first?.id)
     }
 
     var body: some View {
+        Group {
+            if let completedRecord {
+                WorkoutCompletionView(record: completedRecord) {
+                    onDone()
+                    dismiss()
+                }
+            } else {
+                workoutLogger
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
+            Button("Discard workout", role: .destructive) { dismiss() }
+            Button("Keep training", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Finish without recording anything?",
+            isPresented: $showingEmptyFinishConfirmation
+        ) {
+            Button("Finish empty session", role: .destructive, action: finishWorkout)
+            Button("Keep training", role: .cancel) {}
+        } message: {
+            Text("No completed sets or cardio entries will be saved.")
+        }
+        .leadingEdgeSwipe {
+            if completedRecord == nil {
+                showingCancelConfirmation = true
+            }
+        }
+        .onAppear(perform: prefillFromHistory)
+    }
+
+    private var workoutLogger: some View {
         ZStack {
             PaperBackground()
             ScrollView {
-                LazyVStack(spacing: 18) {
+                LazyVStack(spacing: 12) {
                     ForEach($drafts) { $draft in
                         ExerciseLoggingCard(
                             draft: $draft,
                             previous: ProgressionEngine.latestCompleted(
                                 for: draft.template.name,
                                 in: history
-                            )
-                        ) {
-                            restEnd = Date().addingTimeInterval(90)
-                        }
+                            ),
+                            isExpanded: expandedExerciseID == draft.id,
+                            toggleExpanded: {
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    expandedExerciseID = expandedExerciseID == draft.id
+                                        ? nil
+                                        : draft.id
+                                }
+                            },
+                            didUpdateSet: { completed in
+                                didUpdateSet(for: draft.id, completed: completed)
+                            }
+                        )
+                        .id(draft.id)
                     }
 
                     CardioLoggingSection(entries: $cardioDrafts)
+                        .padding(.top, 8)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 14)
                 .padding(.bottom, restEnd == nil ? 96 : 158)
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) {
-            ActiveWorkoutHeader {
+            ActiveWorkoutHeader(
+                progress: "\(completedMovementCount) of \(drafts.count) movements"
+            ) {
                 showingCancelConfirmation = true
             }
         }
@@ -78,21 +129,52 @@ struct ActiveWorkoutView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                InkPrimaryButton(title: "Finish session", action: finishWorkout)
+                InkPrimaryButton(title: "Finish session", action: requestFinish)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .background(InkPalette.paper.opacity(0.95))
             .animation(.easeOut(duration: 0.2), value: restEnd)
         }
-        .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
-            Button("Discard workout", role: .destructive) { dismiss() }
-            Button("Keep training", role: .cancel) {}
+    }
+
+    private var completedMovementCount: Int {
+        drafts.filter(isExerciseComplete).count
+    }
+
+    private var hasRecordedWork: Bool {
+        drafts.contains { $0.sets.contains(where: \.completed) }
+            || cardioDrafts.contains { $0.durationMinutes > 0 }
+    }
+
+    private func requestFinish() {
+        if hasRecordedWork {
+            finishWorkout()
+        } else {
+            showingEmptyFinishConfirmation = true
         }
-        .leadingEdgeSwipe {
-            showingCancelConfirmation = true
+    }
+
+    private func isExerciseComplete(_ draft: ExerciseDraft) -> Bool {
+        draft.sets.filter(\.completed).count >= draft.template.sets
+    }
+
+    private func didUpdateSet(for exerciseID: String, completed: Bool) {
+        guard completed else { return }
+        restEnd = Date().addingTimeInterval(90)
+
+        DispatchQueue.main.async {
+            guard let index = drafts.firstIndex(where: { $0.id == exerciseID }),
+                  isExerciseComplete(drafts[index]) else { return }
+
+            let following = drafts.dropFirst(index + 1).first(where: {
+                !isExerciseComplete($0)
+            }) ?? drafts.first(where: { !isExerciseComplete($0) })
+
+            withAnimation(.easeOut(duration: 0.22)) {
+                expandedExerciseID = following?.id
+            }
         }
-        .onAppear(perform: prefillFromHistory)
     }
 
     private func prefillFromHistory() {
@@ -144,7 +226,219 @@ struct ActiveWorkoutView: View {
 
         modelContext.insert(record)
         try? modelContext.save()
-        dismiss()
+        restEnd = nil
+        withAnimation(.easeOut(duration: 0.22)) {
+            completedRecord = record
+        }
+    }
+}
+
+private struct WorkoutCompletionView: View {
+    let record: WorkoutRecord
+    let done: () -> Void
+    @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+
+    init(record: WorkoutRecord, done: @escaping () -> Void) {
+        self.record = record
+        self.done = done
+    }
+
+    private var completedExercises: [ExerciseRecord] {
+        record.exercises
+            .filter { !$0.sets.isEmpty }
+            .sorted { $0.order < $1.order }
+    }
+
+    private var completedSetCount: Int {
+        completedExercises.reduce(0) { $0 + $1.sets.count }
+    }
+
+    private var cardioMinutes: Int {
+        Int(record.cardioEntries.reduce(0) { $0 + $1.durationMinutes })
+    }
+
+    var body: some View {
+        ZStack {
+            PaperBackground()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    Text(record.date.formatted(date: .long, time: .shortened).uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(1.5)
+                        .foregroundStyle(InkPalette.softInk)
+
+                    HStack(spacing: 0) {
+                        summaryMetric(
+                            "\(max(1, Int(record.duration / 60)))",
+                            label: "MINUTES"
+                        )
+                        summaryMetric(
+                            "\(completedExercises.count)",
+                            label: "MOVEMENTS"
+                        )
+                        summaryMetric(
+                            "\(completedSetCount)",
+                            label: "SETS"
+                        )
+                    }
+                    .padding(.vertical, 15)
+                    .background(InkPalette.raisedPaper.opacity(0.72))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    if completedExercises.isEmpty {
+                        Text("No completed movements")
+                            .font(.system(.body, design: .serif))
+                            .foregroundStyle(InkPalette.softInk)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 30)
+                    } else {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("MOVEMENTS")
+                                .font(.caption2.weight(.semibold))
+                                .tracking(1.8)
+                                .foregroundStyle(InkPalette.softInk)
+                                .padding(.bottom, 8)
+
+                            ForEach(completedExercises) { exercise in
+                                completionRow(exercise)
+                                if exercise.persistentModelID != completedExercises.last?.persistentModelID {
+                                    InkDivider()
+                                }
+                            }
+                        }
+                    }
+
+                    if cardioMinutes > 0 {
+                        HStack {
+                            Text("CARDIO")
+                                .font(.caption2.weight(.semibold))
+                                .tracking(1.8)
+                                .foregroundStyle(InkPalette.softInk)
+                            Spacer()
+                            Text("\(cardioMinutes) min")
+                                .font(.subheadline.monospacedDigit().weight(.semibold))
+                                .foregroundStyle(InkPalette.ink)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 104)
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            CompletionHeader()
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            InkPrimaryButton(title: "Done", action: done)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(InkPalette.paper.opacity(0.95))
+        }
+    }
+
+    private func summaryMetric(_ value: String, label: String) -> some View {
+        VStack(spacing: 5) {
+            Text(value)
+                .font(.system(.title2, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+                .monospacedDigit()
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .tracking(1.2)
+                .foregroundStyle(InkPalette.softInk)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func completionRow(_ exercise: ExerciseRecord) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(exercise.name)
+                    .font(.system(.body, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
+                Text(setSummary(exercise))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(InkPalette.softInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Spacer(minLength: 8)
+
+            let records = personalRecords(for: exercise)
+            if !records.isEmpty {
+                VStack(alignment: .trailing, spacing: 3) {
+                    ForEach(records.prefix(2)) { record in
+                        Text(record.shortTitle)
+                            .font(.caption2.weight(.bold))
+                            .tracking(0.7)
+                            .foregroundStyle(InkPalette.cinnabar)
+                    }
+                }
+            }
+        }
+        .frame(minHeight: 58)
+    }
+
+    private func setSummary(_ exercise: ExerciseRecord) -> String {
+        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+            ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
+        return exercise.sets.sorted { $0.order < $1.order }.map { set in
+            switch measurement {
+            case .weighted:
+                let weight = set.weight.formatted(
+                    .number.precision(.fractionLength(set.weight.rounded() == set.weight ? 0 : 1))
+                )
+                return "\(weight) × \(set.repetitions)"
+            case .bodyweight:
+                return "\(set.repetitions) reps"
+            case .timed:
+                return "\(set.repetitions) sec"
+            }
+        }
+        .joined(separator: " · ")
+    }
+
+    private func personalRecords(for exercise: ExerciseRecord) -> [ProgressRecord] {
+        let performances = ProgressionEngine.performances(for: exercise.name, in: workouts)
+        guard let performance = performances.first(where: {
+            $0.id == record.persistentModelID
+        }) else { return [] }
+        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+            ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
+        return ProgressionEngine.personalRecords(
+            for: performance,
+            measurement: measurement,
+            among: performances
+        )
+    }
+}
+
+private struct CompletionHeader: View {
+    var body: some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(InkPalette.cinnabar)
+                    .frame(width: 9, height: 9)
+                Text("SESSION COMPLETE")
+                    .font(.caption.weight(.semibold))
+                    .tracking(2.4)
+                    .foregroundStyle(InkPalette.softInk)
+                Spacer()
+            }
+            .frame(minHeight: 44)
+
+            InkDivider()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .background {
+            PaperSurface()
+        }
     }
 }
 
@@ -288,6 +582,7 @@ struct CardioEntryEditor: View {
 }
 
 private struct ActiveWorkoutHeader: View {
+    let progress: String
     let close: () -> Void
 
     var body: some View {
@@ -296,10 +591,16 @@ private struct ActiveWorkoutHeader: View {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(InkPalette.cinnabar)
                     .frame(width: 9, height: 9)
-                Text("IN PROGRESS")
-                    .font(.caption.weight(.semibold))
-                    .tracking(2.6)
-                    .foregroundStyle(InkPalette.softInk)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("IN PROGRESS")
+                        .font(.caption.weight(.semibold))
+                        .tracking(2.6)
+                        .foregroundStyle(InkPalette.softInk)
+                    Text(progress)
+                        .font(.system(.caption2, design: .serif))
+                        .foregroundStyle(InkPalette.softInk.opacity(0.76))
+                        .monospacedDigit()
+                }
 
                 Spacer()
 
@@ -322,87 +623,128 @@ private struct ActiveWorkoutHeader: View {
 private struct ExerciseLoggingCard: View {
     @Binding var draft: ExerciseDraft
     let previous: ExercisePerformance?
-    let didCompleteSet: () -> Void
+    let isExpanded: Bool
+    let toggleExpanded: () -> Void
+    let didUpdateSet: (Bool) -> Void
+
+    private var completedSetCount: Int {
+        draft.sets.filter(\.completed).count
+    }
+
+    private var isComplete: Bool {
+        completedSetCount >= draft.template.sets
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 15) {
-                DemonstrationImage(assetName: draft.template.assetName)
-                    .frame(width: 94, height: 94)
+            Button(action: toggleExpanded) {
+                HStack(spacing: 14) {
+                    DemonstrationImage(assetName: draft.template.assetName)
+                        .frame(
+                            width: isExpanded ? 86 : 64,
+                            height: isExpanded ? 86 : 64
+                        )
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(draft.template.name)
-                        .font(.system(.headline, design: .serif, weight: .semibold))
-                        .foregroundStyle(InkPalette.ink)
-                    Text(draft.template.targetText)
-                        .font(.subheadline.monospacedDigit())
-                        .foregroundStyle(InkPalette.softInk)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(draft.template.name)
+                            .font(.system(.headline, design: .serif, weight: .semibold))
+                            .foregroundStyle(InkPalette.ink)
+                            .multilineTextAlignment(.leading)
+                        Text(draft.template.targetText)
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(InkPalette.softInk)
+                        Text(statusText)
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1)
+                            .foregroundStyle(isComplete ? InkPalette.cinnabar : InkPalette.softInk)
+                            .monospacedDigit()
+                    }
+                    Spacer(minLength: 0)
+
+                    Text(isExpanded ? "CLOSE" : "VIEW")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.1)
+                        .foregroundStyle(InkPalette.softInk.opacity(0.72))
+                        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
                 }
-                Spacer()
-            }
-            .padding(11)
-
-            if let previous {
-                LastPerformanceSummary(
-                    template: draft.template,
-                    performance: previous
-                )
-                .padding(.horizontal, 14)
-                .padding(.bottom, 8)
-            }
-
-            InkDivider()
-                .padding(.horizontal, 14)
-                .padding(.vertical, 5)
-
-            HStack {
-                Text("SET")
-                    .frame(width: 36, alignment: .leading)
-                Text(draft.template.measurement == .weighted ? "KG" : "LOAD")
-                    .frame(maxWidth: .infinity)
-                Text(draft.template.measurement == .timed ? "SEC" : "REPS")
-                    .frame(maxWidth: .infinity)
-                Color.clear.frame(width: 44, height: 1)
-            }
-            .font(.caption2.weight(.semibold))
-            .tracking(1.2)
-            .foregroundStyle(InkPalette.softInk)
-            .padding(.horizontal, 14)
-            .padding(.top, 6)
-
-            ForEach(Array(draft.sets.indices), id: \.self) { index in
-                SetLoggingRow(
-                    index: index + 1,
-                    measurement: draft.template.measurement,
-                    set: $draft.sets[index]
-                ) {
-                    didCompleteSet()
-                }
-            }
-            .padding(.horizontal, 10)
-
-            Button {
-                draft.sets.append(
-                    SetDraft(
-                        weight: draft.sets.last?.weight ?? 0,
-                        repetitions: draft.sets.last?.repetitions ?? draft.template.minimumRepetitions
-                    )
-                )
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                    Text("Add another set")
-                }
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
-                .foregroundStyle(InkPalette.ink)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
+                .padding(isExpanded ? 11 : 8)
+                .contentShape(Rectangle())
             }
             .buttonStyle(PressableButtonStyle())
-            .padding(.horizontal, 10)
-            .padding(.bottom, 9)
+            .animation(.easeOut(duration: 0.2), value: isExpanded)
+
+            if isExpanded {
+                Group {
+                    if let previous {
+                        LastPerformanceSummary(
+                            template: draft.template,
+                            performance: previous
+                        )
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 8)
+                    }
+
+                    InkDivider()
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 5)
+
+                    HStack {
+                        Text("SET")
+                            .frame(width: 36, alignment: .leading)
+                        Text(draft.template.measurement == .weighted ? "KG" : "LOAD")
+                            .frame(maxWidth: .infinity)
+                        Text(draft.template.measurement == .timed ? "SEC" : "REPS")
+                            .frame(maxWidth: .infinity)
+                        Color.clear.frame(width: 44, height: 1)
+                    }
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(InkPalette.softInk)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 6)
+
+                    ForEach(Array(draft.sets.indices), id: \.self) { index in
+                        SetLoggingRow(
+                            index: index + 1,
+                            measurement: draft.template.measurement,
+                            set: $draft.sets[index],
+                            didToggleCompletion: didUpdateSet
+                        )
+                    }
+                    .padding(.horizontal, 10)
+
+                    Button {
+                        draft.sets.append(
+                            SetDraft(
+                                weight: draft.sets.last?.weight ?? 0,
+                                repetitions: draft.sets.last?.repetitions ?? draft.template.minimumRepetitions
+                            )
+                        )
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus")
+                            Text("Add another set")
+                        }
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 9)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .inkCard()
+    }
+
+    private var statusText: String {
+        if isComplete {
+            return "DONE · \(completedSetCount) SETS"
+        }
+        return "\(completedSetCount)/\(draft.template.sets) SETS"
     }
 }
 
@@ -462,7 +804,7 @@ private struct SetLoggingRow: View {
     let index: Int
     let measurement: ExerciseTemplate.Measurement
     @Binding var set: SetDraft
-    let didComplete: () -> Void
+    let didToggleCompletion: (Bool) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -499,7 +841,7 @@ private struct SetLoggingRow: View {
 
             Button {
                 set.completed.toggle()
-                if set.completed { didComplete() }
+                didToggleCompletion(set.completed)
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 2)
