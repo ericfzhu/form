@@ -17,3 +17,20 @@ Form is a minimal, offline-first iPhone workout log built with SwiftUI and Swift
 6. Press Run. If prompted, enable Developer Mode on the iPhone under **Settings → Privacy & Security → Developer Mode**.
 
 Workout history is stored locally on-device with SwiftData. No account or network connection is required.
+
+## Marketing site
+
+The static product site lives at the repository root and uses Vite with Tailwind CSS.
+
+```bash
+yarn
+yarn dev
+```
+
+Create a production build with `yarn build`. Cloudflare Pages should use:
+
+- Build command: `yarn build`
+- Build output directory: `dist`
+- Node version: `22`
+
+For a direct upload after authenticating Wrangler, run `yarn deploy`.
