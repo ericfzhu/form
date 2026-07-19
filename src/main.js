@@ -28,9 +28,9 @@ const routines = {
 };
 
 document.querySelector("#app").innerHTML = `
-  <header class="absolute inset-x-0 top-0 z-20">
+  <header class="site-masthead fixed inset-x-0 top-0 z-30">
     <nav
-      class="mx-auto flex h-20 w-[min(1180px,calc(100%-48px))] items-center justify-between md:h-24"
+      class="masthead-nav mx-auto flex items-center justify-between"
       aria-label="Primary navigation"
     >
       <a
@@ -39,13 +39,13 @@ document.querySelector("#app").innerHTML = `
         aria-label="Form home"
       >
         <img
-          class="size-9 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_5px_14px_rgba(0,0,0,0.08)] outline outline-1 -outline-offset-1 outline-black/10 transition-transform duration-200 ease-out group-hover:-rotate-2 group-active:scale-[0.96]"
+          class="brand-icon size-9 rounded-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_5px_14px_rgba(0,0,0,0.08)] outline outline-1 -outline-offset-1 outline-black/10 transition-transform duration-200 ease-out group-hover:-rotate-2 group-active:scale-[0.96]"
           src="/form-icon.png"
           alt=""
         />
         <span class="text-[19px] font-semibold tracking-[-0.035em]">Form</span>
-        <span class="hidden h-4 w-px bg-black/10 sm:block" aria-hidden="true"></span>
-        <span class="hidden text-xs font-normal tracking-normal text-[#6e6e73] sm:block">
+        <span class="brand-divider hidden h-4 w-px bg-black/10 sm:block" aria-hidden="true"></span>
+        <span class="brand-context hidden text-xs font-normal tracking-normal text-[#6e6e73] sm:block">
           Workout journal
         </span>
       </a>
@@ -55,7 +55,7 @@ document.querySelector("#app").innerHTML = `
       >
         <span>Workouts</span>
         <span
-          class="grid size-6 place-items-center rounded-full bg-black/[0.05] text-[14px] transition-[background-color,transform] duration-200 ease-out group-hover:translate-y-0.5 group-hover:bg-[#a4261d]/10"
+          class="nav-arrow grid size-6 place-items-center rounded-full bg-black/[0.05] text-[14px] transition-[background-color,transform] duration-200 ease-out group-hover:translate-y-0.5 group-hover:bg-[#a4261d]/10"
           aria-hidden="true"
         >↓</span>
       </a>
@@ -63,7 +63,7 @@ document.querySelector("#app").innerHTML = `
   </header>
 
   <main id="top">
-    <section class="hero">
+    <section class="hero" data-hero>
       <div class="hero-copy shell">
         <p class="eyebrow reveal">A workout log for iPhone</p>
         <h1 class="reveal delay-1">Train with clarity.</h1>
@@ -71,37 +71,25 @@ document.querySelector("#app").innerHTML = `
           Your routine, your numbers, and the next sensible step — without the noise.
         </p>
         <div class="hero-actions reveal delay-3">
-          <a class="button button-primary" href="#workouts">Explore workouts</a>
+          <a class="button button-primary form-cta" href="#workouts">
+            <span>Explore workouts</span>
+            <span class="form-cta-mark" aria-hidden="true">↓</span>
+          </a>
         </div>
       </div>
 
       <div class="hero-stage reveal delay-3" aria-label="Form app workout preview">
         <div class="halo"></div>
-        <div class="phone phone-hero">
-          <div class="phone-screen">
-            <div class="status-bar">
-              <span>9:41</span>
-              <span class="status-icons">● ᯤ ▰</span>
-            </div>
-            <div class="app-view">
-              <div class="app-topline">
-                <span class="red-mark"></span>
-                <span>Workout A</span>
-                <button type="button" aria-label="Close workout">Close</button>
-              </div>
-              <div class="exercise-heading">
-                <span>01 / 06</span>
-                <h2>Barbell<br />Back Squat</h2>
-                <p>3 × 6–10</p>
-              </div>
-              <img class="exercise-art" src="/assets/barbell-back-squat.png" alt="" />
-              <div class="set-grid">
-                <span>SET</span><span>KG</span><span>REPS</span>
-                <strong>1</strong><strong>60</strong><strong>8</strong>
-                <strong>2</strong><strong>60</strong><strong>8</strong>
-                <strong>3</strong><strong>60</strong><strong>7</strong>
-              </div>
-              <button class="finish-button" type="button">Finish workout</button>
+        <div class="device-wrap">
+          <div class="phone phone-hero">
+            <div class="phone-screen">
+              <img
+                class="app-screenshot"
+                src="/app-train.webp"
+                alt="Form Train screen showing the next workout and workout rotation"
+                loading="eager"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
@@ -136,15 +124,15 @@ document.querySelector("#app").innerHTML = `
 
         <div class="routine-canvas" aria-live="polite">
           <div class="routine-header">
-            <div>
+            <div class="routine-part routine-meta">
               <span id="routine-focus">${routines.A.focus}</span>
               <h3 id="routine-title">${routines.A.title}</h3>
             </div>
-            <span class="routine-number" id="routine-number">A</span>
+            <span class="routine-number routine-part" id="routine-number">A</span>
           </div>
           <div class="routine-exercise">
-            <img id="routine-image" src="${routines.A.image}" alt="" />
-            <div>
+            <img class="routine-part routine-art" id="routine-image" src="${routines.A.image}" alt="" />
+            <div class="routine-part routine-details">
               <span id="routine-target">${routines.A.target}</span>
               <h4 id="routine-exercise">${routines.A.exercise}</h4>
               <p id="routine-progress">${routines.A.progress}</p>
@@ -166,12 +154,17 @@ document.querySelector("#app").innerHTML = `
 
 const tabButtons = document.querySelectorAll(".routine-tab");
 const routineCanvas = document.querySelector(".routine-canvas");
+let currentRoutine = "A";
+let routineTimer;
 
 function setRoutine(key) {
+  if (key === currentRoutine) return;
+
   const routine = routines[key];
+  window.clearTimeout(routineTimer);
   routineCanvas.classList.add("changing");
 
-  window.setTimeout(() => {
+  routineTimer = window.setTimeout(() => {
     document.querySelector("#routine-focus").textContent = routine.focus;
     document.querySelector("#routine-title").textContent = routine.title;
     document.querySelector("#routine-number").textContent = key;
@@ -179,8 +172,9 @@ function setRoutine(key) {
     document.querySelector("#routine-target").textContent = routine.target;
     document.querySelector("#routine-exercise").textContent = routine.exercise;
     document.querySelector("#routine-progress").textContent = routine.progress;
+    currentRoutine = key;
     routineCanvas.classList.remove("changing");
-  }, 140);
+  }, 180);
 
   tabButtons.forEach((button) => {
     const selected = button.dataset.routine === key;
@@ -192,5 +186,31 @@ function setRoutine(key) {
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => setRoutine(button.dataset.routine));
 });
+
+const hero = document.querySelector("[data-hero]");
+const masthead = document.querySelector(".site-masthead");
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let scrollFrameRequested = false;
+
+function updateScrollStory() {
+  scrollFrameRequested = false;
+  const heroBounds = hero.getBoundingClientRect();
+  const travel = Math.max(hero.offsetHeight - window.innerHeight, 1);
+  const progress = Math.min(Math.max(-heroBounds.top / travel, 0), 1);
+
+  hero.style.setProperty("--hero-progress", reducedMotion.matches ? "0" : progress.toFixed(3));
+  masthead.classList.toggle("compact", window.scrollY > 48);
+}
+
+function requestScrollUpdate() {
+  if (scrollFrameRequested) return;
+  scrollFrameRequested = true;
+  window.requestAnimationFrame(updateScrollStory);
+}
+
+window.addEventListener("scroll", requestScrollUpdate, { passive: true });
+window.addEventListener("resize", requestScrollUpdate);
+reducedMotion.addEventListener("change", requestScrollUpdate);
+updateScrollStory();
 
 document.querySelector("#year").textContent = new Date().getFullYear();
