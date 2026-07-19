@@ -56,6 +56,57 @@ struct InkDivider: View {
     }
 }
 
+struct InkTextHeader: View {
+    let title: String
+    let leadingTitle: String
+    let leadingAction: () -> Void
+    var trailingTitle: String?
+    var trailingAction: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 2) {
+            HStack {
+                Button(leadingTitle, action: leadingAction)
+                    .font(.system(.subheadline, design: .serif, weight: .medium))
+                    .foregroundStyle(InkPalette.ink)
+                    .frame(minWidth: 58, minHeight: 44, alignment: .leading)
+                    .buttonStyle(PressableButtonStyle())
+
+                Spacer()
+
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .tracking(2)
+                    .foregroundStyle(InkPalette.softInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+
+                Spacer()
+
+                if let trailingTitle, let trailingAction {
+                    Button(trailingTitle, action: trailingAction)
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.cinnabar)
+                        .frame(minWidth: 58, minHeight: 44, alignment: .trailing)
+                        .buttonStyle(PressableButtonStyle())
+                } else {
+                    Color.clear
+                        .frame(width: 58, height: 44)
+                        .accessibilityHidden(true)
+                }
+            }
+
+            InkDivider()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 2)
+        .padding(.bottom, 6)
+        .background {
+            PaperSurface()
+        }
+    }
+}
+
 private struct InkCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -335,9 +386,11 @@ struct RoutineDetailView: View {
             InteractivePopGestureBridge(isEnabled: true)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            RoutineDetailHeader(routine: routine) {
-                dismiss()
-            }
+            InkTextHeader(
+                title: routine.name.uppercased(),
+                leadingTitle: "Back",
+                leadingAction: { dismiss() }
+            )
         }
         .safeAreaInset(edge: .bottom) {
             InkPrimaryButton(title: "Begin \(routine.name)") {
@@ -352,44 +405,6 @@ struct RoutineDetailView: View {
                 ActiveWorkoutView(routine: routine)
             }
         }
-    }
-}
-
-private struct RoutineDetailHeader: View {
-    let routine: RoutineTemplate
-    let back: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 0) {
-                Button(action: back) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(InkPalette.ink)
-                        .frame(width: 40, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityLabel("Back")
-
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(InkPalette.cinnabar)
-                        .frame(width: 9, height: 9)
-                    Text(routine.focus.uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(2.2)
-                        .foregroundStyle(InkPalette.softInk)
-                        .lineLimit(1)
-                }
-            }
-
-            InkDivider()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, 6)
-        .background(InkPalette.paper.opacity(0.96))
     }
 }
 

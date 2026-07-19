@@ -147,6 +147,7 @@ private struct HistoryCard: View {
 
 struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
+    @Environment(\.dismiss) private var dismiss
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var showingEditor = false
 
@@ -186,22 +187,18 @@ struct WorkoutHistoryDetail: View {
                 .padding(.bottom, 30)
             }
         }
-        .navigationTitle(workout.routineName)
+        .toolbar(.hidden, for: .navigationBar)
         .background {
             InteractivePopGestureBridge(isEnabled: true)
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(InkPalette.paper.opacity(0.95), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") {
-                    showingEditor = true
-                }
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
-                .foregroundStyle(InkPalette.ink)
-                .frame(minWidth: 44, minHeight: 44)
-            }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            InkTextHeader(
+                title: workout.routineName.uppercased(),
+                leadingTitle: "Back",
+                leadingAction: { dismiss() },
+                trailingTitle: "Edit",
+                trailingAction: { showingEditor = true }
+            )
         }
         .fullScreenCover(isPresented: $showingEditor) {
             WorkoutEditorView(workout: workout)
@@ -429,38 +426,13 @@ private struct WorkoutEditorView: View {
     }
 
     private var editorHeader: some View {
-        VStack(spacing: 2) {
-            HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .font(.system(.subheadline, design: .serif, weight: .medium))
-                .foregroundStyle(InkPalette.ink)
-                .frame(minWidth: 58, minHeight: 44, alignment: .leading)
-                .buttonStyle(PressableButtonStyle())
-
-                Spacer()
-
-                Text("EDIT SESSION")
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(InkPalette.softInk)
-
-                Spacer()
-
-                Button("Save", action: save)
-                    .font(.system(.subheadline, design: .serif, weight: .semibold))
-                    .foregroundStyle(InkPalette.cinnabar)
-                    .frame(minWidth: 58, minHeight: 44, alignment: .trailing)
-                    .buttonStyle(PressableButtonStyle())
-            }
-
-            InkDivider()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, 6)
-        .background(InkPalette.paper.opacity(0.97))
+        InkTextHeader(
+            title: "EDIT SESSION",
+            leadingTitle: "Cancel",
+            leadingAction: { dismiss() },
+            trailingTitle: "Save",
+            trailingAction: save
+        )
     }
 
     private var sessionDetails: some View {
