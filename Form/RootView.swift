@@ -113,6 +113,16 @@ private struct InkCardModifier: ViewModifier {
     }
 }
 
+@MainActor
+func dismissKeyboard() {
+    UIApplication.shared.sendAction(
+        #selector(UIResponder.resignFirstResponder),
+        to: nil,
+        from: nil,
+        for: nil
+    )
+}
+
 extension View {
     func inkCard() -> some View {
         modifier(InkCardModifier())
@@ -123,12 +133,7 @@ extension View {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") {
-                    UIApplication.shared.sendAction(
-                        #selector(UIResponder.resignFirstResponder),
-                        to: nil,
-                        from: nil,
-                        for: nil
-                    )
+                    dismissKeyboard()
                 }
                 .font(.system(.body, design: .serif, weight: .semibold))
                 .tint(InkPalette.cinnabar)

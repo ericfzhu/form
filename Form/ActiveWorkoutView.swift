@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 private struct SetDraft: Identifiable {
     let id = UUID()
@@ -31,6 +32,7 @@ struct ActiveWorkoutView: View {
     @State private var expandedExerciseID: String?
     @State private var completedRecord: WorkoutRecord?
     @State private var saveErrorMessage: String?
+    @State private var isKeyboardVisible = false
 
     init(
         routine: RoutineTemplate,
@@ -86,7 +88,6 @@ struct ActiveWorkoutView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .keyboardDismissToolbar()
         .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
             Button("Discard workout", role: .destructive, action: discardWorkout)
             Button("Keep training", role: .cancel) {}
@@ -122,13 +123,23 @@ struct ActiveWorkoutView: View {
         .onChange(of: currentSnapshot) { _, _ in
             persistDraft()
         }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+        ) { _ in
+            isKeyboardVisible = false
+        }
     }
 
     private var workoutLogger: some View {
         ZStack {
             PaperBackground()
             ScrollView {
-                LazyVStack(spacing: 12) {
+                VStack(spacing: 12) {
                     ForEach($drafts) { $draft in
                         ExerciseLoggingCard(
                             draft: $draft,
@@ -174,19 +185,37 @@ struct ActiveWorkoutView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 9) {
-                if let restEnd {
-                    RestTimer(end: restEnd) {
-                        self.restEnd = nil
+            Group {
+                if isKeyboardVisible {
+                    HStack {
+                        Spacer()
+                        Button("Done") {
+                            dismissKeyboard()
+                        }
+                        .font(.system(.body, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.cinnabar)
+                        .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 4)
+                    .background(PaperSurface())
+                } else {
+                    VStack(spacing: 9) {
+                        if let restEnd {
+                            RestTimer(end: restEnd) {
+                                self.restEnd = nil
+                            }
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
 
-                InkPrimaryButton(title: "Finish session", action: requestFinish)
+                        InkPrimaryButton(title: "Finish session", action: requestFinish)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(InkPalette.paper.opacity(0.95))
+                }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(InkPalette.paper.opacity(0.95))
+            .animation(.easeOut(duration: 0.16), value: isKeyboardVisible)
             .animation(.easeOut(duration: 0.2), value: restEnd)
         }
     }
@@ -818,7 +847,7 @@ private struct ExerciseLoggingCard: View {
                             .frame(maxWidth: .infinity)
                         Text(draft.template.measurement == .timed ? "SEC" : "REPS")
                             .frame(maxWidth: .infinity)
-                        Color.clear.frame(width: 44, height: 1)
+                        Color.clear.frame(width: 52, height: 1)
                     }
                     .font(.caption2.weight(.semibold))
                     .tracking(1.2)
@@ -826,11 +855,11 @@ private struct ExerciseLoggingCard: View {
                     .padding(.horizontal, 14)
                     .padding(.top, 6)
 
-                    ForEach(Array(draft.sets.indices), id: \.self) { index in
+                    ForEach($draft.sets) { $set in
                         SetLoggingRow(
-                            index: index + 1,
+                            index: setNumber(for: set.id),
                             measurement: draft.template.measurement,
-                            set: $draft.sets[index],
+                            set: $set,
                             didToggleCompletion: didUpdateSet
                         )
                     }
@@ -861,6 +890,10 @@ private struct ExerciseLoggingCard: View {
             }
         }
         .inkCard()
+    }
+
+    private func setNumber(for id: UUID) -> Int {
+        (draft.sets.firstIndex { $0.id == id } ?? 0) + 1
     }
 
     private var statusText: String {
@@ -963,7 +996,9 @@ private struct SetLoggingRow: View {
 
             Button {
                 set.completed.toggle()
-                didToggleCompletion(set.completed)
+                let completed = set.completed
+                dismissKeyboard()
+                didToggleCompletion(completed)
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 2)
@@ -979,11 +1014,13 @@ private struct SetLoggingRow: View {
                 }
                 .frame(width: 42, height: 42)
                 .animation(.easeOut(duration: 0.2), value: set.completed)
+                .frame(width: 52, height: 52)
+                .contentShape(Rectangle())
             }
             .buttonStyle(PressableButtonStyle())
             .accessibilityLabel(set.completed ? "Mark incomplete" : "Mark complete")
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 2)
     }
 }
 
