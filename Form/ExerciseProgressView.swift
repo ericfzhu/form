@@ -180,38 +180,11 @@ struct ExerciseProgressView: View {
     }
 
     private var progressHeader: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 0) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(InkPalette.ink)
-                        .frame(width: 40, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityLabel("Back")
-
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(InkPalette.cinnabar)
-                        .frame(width: 9, height: 9)
-                    Text(exercise.name.uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(1.8)
-                        .foregroundStyle(InkPalette.softInk)
-                        .lineLimit(1)
-                }
-            }
-
-            InkDivider()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, 6)
-        .background(InkPalette.paper.opacity(0.96))
+        InkTextHeader(
+            title: exercise.name.uppercased(),
+            leadingTitle: "Back",
+            leadingAction: { dismiss() }
+        )
     }
 
     private var summary: some View {
