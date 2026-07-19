@@ -21,6 +21,7 @@ struct ActiveWorkoutView: View {
 
     let routine: RoutineTemplate
     let onDone: () -> Void
+    let resumedFromSnapshot: Bool
     @State private var startedAt = Date()
     @State private var drafts: [ExerciseDraft]
     @State private var cardioDrafts: [CardioDraft] = []
@@ -29,20 +30,48 @@ struct ActiveWorkoutView: View {
     @State private var showingEmptyFinishConfirmation = false
     @State private var expandedExerciseID: String?
     @State private var completedRecord: WorkoutRecord?
+    @State private var saveErrorMessage: String?
 
-    init(routine: RoutineTemplate, onDone: @escaping () -> Void = {}) {
+    init(
+        routine: RoutineTemplate,
+        snapshot: ActiveWorkoutSnapshot? = nil,
+        onDone: @escaping () -> Void = {}
+    ) {
         self.routine = routine
         self.onDone = onDone
+        let validSnapshot = snapshot?.routineID == routine.id ? snapshot : nil
+        resumedFromSnapshot = validSnapshot != nil
+        _startedAt = State(initialValue: validSnapshot?.startedAt ?? Date())
         _drafts = State(initialValue: routine.exercises.map { exercise in
-            ExerciseDraft(
+            let savedSets = validSnapshot?.exercises
+                .first { $0.exerciseID == exercise.id }?.sets
+            return ExerciseDraft(
                 id: exercise.id,
                 template: exercise,
-                sets: (0..<exercise.sets).map { _ in
+                sets: savedSets?.map {
+                    SetDraft(
+                        weight: $0.weight,
+                        repetitions: $0.repetitions,
+                        completed: $0.completed
+                    )
+                } ?? (0..<exercise.sets).map { _ in
                     SetDraft(weight: 0, repetitions: exercise.minimumRepetitions)
                 }
             )
         })
-        _expandedExerciseID = State(initialValue: routine.exercises.first?.id)
+        _cardioDrafts = State(initialValue: validSnapshot?.cardio.map {
+            CardioDraft(
+                id: $0.id,
+                kind: $0.kind,
+                durationMinutes: $0.durationMinutes,
+                distanceKilometers: $0.distanceKilometers,
+                averageSpeed: $0.averageSpeed,
+                incline: $0.incline
+            )
+        } ?? [])
+        _expandedExerciseID = State(
+            initialValue: validSnapshot?.expandedExerciseID ?? routine.exercises.first?.id
+        )
     }
 
     var body: some View {
@@ -58,7 +87,7 @@ struct ActiveWorkoutView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
-            Button("Discard workout", role: .destructive) { dismiss() }
+            Button("Discard workout", role: .destructive, action: discardWorkout)
             Button("Keep training", role: .cancel) {}
         }
         .confirmationDialog(
@@ -75,7 +104,23 @@ struct ActiveWorkoutView: View {
                 showingCancelConfirmation = true
             }
         }
-        .onAppear(perform: prefillFromHistory)
+        .alert("Couldn’t save workout", isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+        .onAppear {
+            if !resumedFromSnapshot {
+                prefillFromHistory()
+            }
+            persistDraft()
+        }
+        .onChange(of: currentSnapshot) { _, _ in
+            persistDraft()
+        }
     }
 
     private var workoutLogger: some View {
@@ -89,6 +134,13 @@ struct ActiveWorkoutView: View {
                             previous: ProgressionEngine.latestCompleted(
                                 for: draft.template.name,
                                 in: history
+                            ),
+                            recommendation: ProgressionEngine.recommendation(
+                                for: draft.template,
+                                performances: ProgressionEngine.performances(
+                                    for: draft.template.name,
+                                    in: history
+                                )
                             ),
                             isExpanded: expandedExerciseID == draft.id,
                             toggleExpanded: {
@@ -153,6 +205,49 @@ struct ActiveWorkoutView: View {
         } else {
             showingEmptyFinishConfirmation = true
         }
+    }
+
+    private var currentSnapshot: ActiveWorkoutSnapshot {
+        ActiveWorkoutSnapshot(
+            routineID: routine.id,
+            startedAt: startedAt,
+            exercises: drafts.map { draft in
+                ActiveExerciseSnapshot(
+                    exerciseID: draft.id,
+                    sets: draft.sets.map {
+                        ActiveSetSnapshot(
+                            weight: $0.weight,
+                            repetitions: $0.repetitions,
+                            completed: $0.completed
+                        )
+                    }
+                )
+            },
+            cardio: cardioDrafts.map {
+                ActiveCardioSnapshot(
+                    id: $0.id,
+                    kind: $0.kind,
+                    durationMinutes: $0.durationMinutes,
+                    distanceKilometers: $0.distanceKilometers,
+                    averageSpeed: $0.averageSpeed,
+                    incline: $0.incline
+                )
+            },
+            expandedExerciseID: expandedExerciseID
+        )
+    }
+
+    private func persistDraft() {
+        do {
+            try ActiveWorkoutStore.save(currentSnapshot)
+        } catch {
+            saveErrorMessage = "Your active workout could not be preserved. \(error.localizedDescription)"
+        }
+    }
+
+    private func discardWorkout() {
+        ActiveWorkoutStore.clear()
+        dismiss()
     }
 
     private func isExerciseComplete(_ draft: ExerciseDraft) -> Bool {
@@ -225,10 +320,16 @@ struct ActiveWorkoutView: View {
         }
 
         modelContext.insert(record)
-        try? modelContext.save()
-        restEnd = nil
-        withAnimation(.easeOut(duration: 0.22)) {
-            completedRecord = record
+        do {
+            try modelContext.save()
+            ActiveWorkoutStore.clear()
+            restEnd = nil
+            withAnimation(.easeOut(duration: 0.22)) {
+                completedRecord = record
+            }
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = "Nothing was lost from this active session. Try saving again."
         }
     }
 }
@@ -363,6 +464,11 @@ private struct WorkoutCompletionView: View {
                     .foregroundStyle(InkPalette.softInk)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
+                if let comparison = comparison(for: exercise) {
+                    Text(comparison)
+                        .font(.system(.caption2, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.cinnabar)
+                }
             }
 
             Spacer(minLength: 8)
@@ -409,6 +515,20 @@ private struct WorkoutCompletionView: View {
         let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
             ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
         return ProgressionEngine.personalRecords(
+            for: performance,
+            measurement: measurement,
+            among: performances
+        )
+    }
+
+    private func comparison(for exercise: ExerciseRecord) -> String? {
+        let performances = ProgressionEngine.performances(for: exercise.name, in: workouts)
+        guard let performance = performances.first(where: {
+            $0.id == record.persistentModelID
+        }) else { return nil }
+        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+            ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
+        return ProgressionEngine.comparison(
             for: performance,
             measurement: measurement,
             among: performances
@@ -623,6 +743,7 @@ private struct ActiveWorkoutHeader: View {
 private struct ExerciseLoggingCard: View {
     @Binding var draft: ExerciseDraft
     let previous: ExercisePerformance?
+    let recommendation: ProgressionRecommendation?
     let isExpanded: Bool
     let toggleExpanded: () -> Void
     let didUpdateSet: (Bool) -> Void
@@ -678,7 +799,8 @@ private struct ExerciseLoggingCard: View {
                     if let previous {
                         LastPerformanceSummary(
                             template: draft.template,
-                            performance: previous
+                            performance: previous,
+                            recommendation: recommendation
                         )
                         .padding(.horizontal, 14)
                         .padding(.bottom, 8)
@@ -691,7 +813,7 @@ private struct ExerciseLoggingCard: View {
                     HStack {
                         Text("SET")
                             .frame(width: 36, alignment: .leading)
-                        Text(draft.template.measurement == .weighted ? "KG" : "LOAD")
+                        Text(draft.template.measurement == .weighted ? draft.template.loadLabel : "LOAD")
                             .frame(maxWidth: .infinity)
                         Text(draft.template.measurement == .timed ? "SEC" : "REPS")
                             .frame(maxWidth: .infinity)
@@ -751,10 +873,7 @@ private struct ExerciseLoggingCard: View {
 private struct LastPerformanceSummary: View {
     let template: ExerciseTemplate
     let performance: ExercisePerformance
-
-    private var recommendedLoad: Double? {
-        ProgressionEngine.recommendedLoad(for: template, after: performance)
-    }
+    let recommendation: ProgressionRecommendation?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -764,11 +883,13 @@ private struct LastPerformanceSummary: View {
                     .tracking(1.2)
                     .foregroundStyle(InkPalette.softInk)
                 Spacer()
-                if let recommendedLoad {
-                    Text("TRY \(weightText(recommendedLoad)) KG")
+                if let recommendation {
+                    Text(recommendation.title.uppercased())
                         .font(.caption2.weight(.semibold))
                         .tracking(1.1)
                         .foregroundStyle(InkPalette.cinnabar)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
                 }
             }
 

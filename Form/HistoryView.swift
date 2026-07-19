@@ -4,6 +4,7 @@ import SwiftData
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+    @State private var saveErrorMessage: String?
 
     var body: some View {
         ZStack {
@@ -13,6 +14,13 @@ struct HistoryView: View {
                 EmptyHistoryView()
             } else {
                 List {
+                    HistoryWeeklySummary(workouts: workouts)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(
+                            EdgeInsets(top: 10, leading: 20, bottom: 14, trailing: 20)
+                        )
+
                     ForEach(workouts) { workout in
                         NavigationLink(value: workout) {
                             HistoryCard(workout: workout)
@@ -44,11 +52,25 @@ struct HistoryView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .alert("Couldn’t delete workout", isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
     }
 
     private func delete(_ workout: WorkoutRecord) {
         withAnimation(.easeOut(duration: 0.2)) {
             modelContext.delete(workout)
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = "The workout remains in History. Try again."
         }
     }
 }
@@ -115,10 +137,6 @@ private struct HistoryCard: View {
 
             Spacer()
 
-            Image(systemName: "arrow.up.right")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(InkPalette.softInk)
-                .frame(width: 40, height: 40)
         }
         .padding(16)
         .inkCard()
@@ -145,11 +163,106 @@ private struct HistoryCard: View {
     }
 }
 
+private struct HistoryWeeklySummary: View {
+    let workouts: [WorkoutRecord]
+
+    private var weeklyWorkouts: [WorkoutRecord] {
+        workouts.filter { Calendar.current.isDate($0.date, equalTo: Date(), toGranularity: .weekOfYear) }
+    }
+
+    private var minutes: Int {
+        weeklyWorkouts.reduce(0) { $0 + max(1, Int($1.duration / 60)) }
+    }
+
+    private var sets: Int {
+        weeklyWorkouts.reduce(0) { result, workout in
+            result + workout.exercises.reduce(0) { $0 + $1.sets.count }
+        }
+    }
+
+    private var nextRoutineID: String {
+        guard let latestName = workouts.first?.routineName,
+              let index = WorkoutCatalog.routines.firstIndex(where: { $0.name == latestName }) else {
+            return WorkoutCatalog.routines[0].id
+        }
+        return WorkoutCatalog.routines[(index + 1) % WorkoutCatalog.routines.count].id
+    }
+
+    private var prCount: Int {
+        weeklyWorkouts.reduce(0) { total, workout in
+            total + workout.exercises.reduce(0) { exerciseTotal, exercise in
+                let performances = ProgressionEngine.performances(for: exercise.name, in: workouts)
+                guard let performance = performances.first(where: {
+                    $0.id == workout.persistentModelID
+                }) else { return exerciseTotal }
+                let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+                    ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
+                return exerciseTotal + ProgressionEngine.personalRecords(
+                    for: performance,
+                    measurement: measurement,
+                    among: performances
+                ).count
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("THIS WEEK")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.8)
+                .foregroundStyle(InkPalette.softInk)
+
+            HStack(spacing: 0) {
+                metric("\(weeklyWorkouts.count)", "SESSIONS")
+                metric("\(minutes)", "MINUTES")
+                metric("\(sets)", "SETS")
+            }
+
+            HStack {
+                Text("Next · \(nextRoutineID)")
+                Spacer()
+                Text("\(prCount) PR\(prCount == 1 ? "" : "s")")
+            }
+            .font(.system(.caption, design: .serif, weight: .semibold))
+            .foregroundStyle(InkPalette.cinnabar)
+            .monospacedDigit()
+        }
+        .padding(15)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(InkPalette.raisedPaper.opacity(0.76))
+        )
+    }
+
+    private func metric(_ value: String, _ label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+                .monospacedDigit()
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .tracking(1)
+                .foregroundStyle(InkPalette.softInk)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var showingEditor = false
+
+    private var completedExercises: [ExerciseRecord] {
+        workout.exercises.filter { !$0.sets.isEmpty }.sorted { $0.order < $1.order }
+    }
+
+    private var skippedExerciseCount: Int {
+        workout.exercises.filter(\.sets.isEmpty).count
+    }
 
     var body: some View {
         ZStack {
@@ -171,7 +284,7 @@ struct WorkoutHistoryDetail: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 6)
 
-                    ForEach(workout.exercises.sorted { $0.order < $1.order }) { exercise in
+                    ForEach(completedExercises) { exercise in
                         if let template = WorkoutCatalog.exercise(named: exercise.name) {
                             NavigationLink(value: template) {
                                 HistoryExerciseCard(
@@ -186,6 +299,21 @@ struct WorkoutHistoryDetail: View {
                                 records: records(for: exercise)
                             )
                         }
+                    }
+
+                    if skippedExerciseCount > 0 {
+                        HStack {
+                            Text("SKIPPED")
+                                .font(.caption2.weight(.semibold))
+                                .tracking(1.5)
+                                .foregroundStyle(InkPalette.softInk)
+                            Spacer()
+                            Text("\(skippedExerciseCount) movement\(skippedExerciseCount == 1 ? "" : "s")")
+                                .font(.system(.subheadline, design: .serif))
+                                .foregroundStyle(InkPalette.softInk)
+                                .monospacedDigit()
+                        }
+                        .frame(minHeight: 48)
                     }
 
                     if !workout.cardioEntries.isEmpty {
@@ -367,8 +495,8 @@ private struct EditableSetDraft: Identifiable {
 
 private struct EditableExerciseDraft: Identifiable {
     let id = UUID()
-    let record: ExerciseRecord
-    let measurement: ExerciseTemplate.Measurement
+    let record: ExerciseRecord?
+    let template: ExerciseTemplate
     var sets: [EditableSetDraft]
 }
 
@@ -379,21 +507,32 @@ private struct WorkoutEditorView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var date: Date
+    @State private var routineName: String
     @State private var durationMinutes: Double
     @State private var exercises: [EditableExerciseDraft]
     @State private var cardioEntries: [CardioDraft]
+    @State private var saveErrorMessage: String?
 
     init(workout: WorkoutRecord) {
         self.workout = workout
         _date = State(initialValue: workout.date)
+        _routineName = State(initialValue: workout.routineName)
         _durationMinutes = State(initialValue: max(1, workout.duration / 60))
         _exercises = State(initialValue: workout.exercises
             .sorted { $0.order < $1.order }
             .map { exercise in
                 EditableExerciseDraft(
                     record: exercise,
-                    measurement: WorkoutCatalog.exercise(named: exercise.name)?.measurement
-                        ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight),
+                    template: WorkoutCatalog.exercise(named: exercise.name)
+                        ?? ExerciseTemplate(
+                            id: exercise.assetName,
+                            name: exercise.name,
+                            assetName: exercise.assetName,
+                            sets: max(1, exercise.sets.count),
+                            minimumRepetitions: 1,
+                            maximumRepetitions: 20,
+                            measurement: exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight
+                        ),
                     sets: exercise.sets
                         .sorted { $0.order < $1.order }
                         .map {
@@ -418,8 +557,22 @@ private struct WorkoutEditorView: View {
                     sessionDetails
 
                     ForEach($exercises) { $exercise in
-                        EditableExerciseCard(exercise: $exercise)
+                        EditableExerciseCard(
+                            exercise: $exercise,
+                            canMoveEarlier: index(of: exercise.id) > 0,
+                            canMoveLater: index(of: exercise.id) < exercises.count - 1,
+                            moveEarlier: { moveExercise(exercise.id, offset: -1) },
+                            moveLater: { moveExercise(exercise.id, offset: 1) },
+                            markSkipped: { markSkipped(exercise.id) },
+                            remove: {
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    exercises.removeAll { $0.id == exercise.id }
+                                }
+                            }
+                        )
                     }
+
+                    addExerciseMenu
 
                     CardioLoggingSection(entries: $cardioEntries)
                 }
@@ -433,6 +586,14 @@ private struct WorkoutEditorView: View {
             editorHeader
         }
         .interactiveDismissDisabled()
+        .alert("Couldn’t save changes", isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
     }
 
     private var editorHeader: some View {
@@ -451,6 +612,15 @@ private struct WorkoutEditorView: View {
                 .font(.caption2.weight(.semibold))
                 .tracking(1.8)
                 .foregroundStyle(InkPalette.softInk)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("SESSION NAME")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1)
+                    .foregroundStyle(InkPalette.softInk)
+                TextField("Workout", text: $routineName)
+                    .inkInput()
+            }
 
             DatePicker(
                 "Date and time",
@@ -478,22 +648,98 @@ private struct WorkoutEditorView: View {
         .inkCard()
     }
 
+    private var addExerciseMenu: some View {
+        Menu {
+            ForEach(availableExercises) { template in
+                Button(template.name) {
+                    exercises.append(
+                        EditableExerciseDraft(
+                            record: nil,
+                            template: template,
+                            sets: (0..<template.sets).map { _ in
+                                EditableSetDraft(
+                                    weight: 0,
+                                    repetitions: template.minimumRepetitions
+                                )
+                            }
+                        )
+                    )
+                }
+            }
+        } label: {
+            Text("Add exercise")
+                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(InkPalette.raisedPaper.opacity(0.72))
+                )
+        }
+    }
+
+    private var availableExercises: [ExerciseTemplate] {
+        WorkoutCatalog.routines
+            .flatMap(\.exercises)
+            .uniquedByName()
+            .filter { template in
+                !exercises.contains { $0.template.name == template.name }
+            }
+    }
+
+    private func index(of id: UUID) -> Int {
+        exercises.firstIndex { $0.id == id } ?? 0
+    }
+
+    private func moveExercise(_ id: UUID, offset: Int) {
+        let source = index(of: id)
+        let destination = source + offset
+        guard exercises.indices.contains(source), exercises.indices.contains(destination) else { return }
+        withAnimation(.easeOut(duration: 0.18)) {
+            exercises.swapAt(source, destination)
+        }
+    }
+
+    private func markSkipped(_ id: UUID) {
+        guard let index = exercises.firstIndex(where: { $0.id == id }) else { return }
+        exercises[index].sets = []
+    }
+
     private func save() {
         workout.date = date
+        workout.routineName = routineName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "Workout"
+            : routineName.trimmingCharacters(in: .whitespacesAndNewlines)
         workout.duration = max(60, durationMinutes * 60)
 
-        for exerciseDraft in exercises {
-            let oldSets = exerciseDraft.record.sets
-            exerciseDraft.record.sets = []
+        let retainedRecords = Set(exercises.compactMap { $0.record?.persistentModelID })
+        for existing in workout.exercises where !retainedRecords.contains(existing.persistentModelID) {
+            modelContext.delete(existing)
+        }
+
+        var savedExercises: [ExerciseRecord] = []
+        for (exerciseIndex, exerciseDraft) in exercises.enumerated() {
+            if exerciseDraft.record == nil && exerciseDraft.sets.isEmpty { continue }
+            let record = exerciseDraft.record ?? ExerciseRecord(
+                name: exerciseDraft.template.name,
+                assetName: exerciseDraft.template.assetName,
+                order: exerciseIndex
+            )
+            record.order = exerciseIndex
+            let oldSets = record.sets
+            record.sets = []
             oldSets.forEach(modelContext.delete)
-            exerciseDraft.record.sets = exerciseDraft.sets.enumerated().map { index, set in
+            record.sets = exerciseDraft.sets.enumerated().map { index, set in
                 SetRecord(
                     order: index,
-                    weight: exerciseDraft.measurement == .weighted ? max(0, set.weight) : 0,
+                    weight: exerciseDraft.template.measurement == .weighted ? max(0, set.weight) : 0,
                     repetitions: max(0, set.repetitions)
                 )
             }
+            savedExercises.append(record)
         }
+        workout.exercises = savedExercises
 
         let oldCardioEntries = workout.cardioEntries
         workout.cardioEntries = []
@@ -510,23 +756,55 @@ private struct WorkoutEditorView: View {
             )
         }
 
-        try? modelContext.save()
-        dismiss()
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = "Your edits are still on this screen. Try saving again."
+        }
     }
 }
 
 private struct EditableExerciseCard: View {
     @Binding var exercise: EditableExerciseDraft
+    let canMoveEarlier: Bool
+    let canMoveLater: Bool
+    let moveEarlier: () -> Void
+    let moveLater: () -> Void
+    let markSkipped: () -> Void
+    let remove: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                DemonstrationImage(assetName: exercise.record.assetName)
+                DemonstrationImage(assetName: exercise.template.assetName)
                     .frame(width: 72, height: 72)
-                Text(exercise.record.name)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
-                    .foregroundStyle(InkPalette.ink)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(exercise.template.name)
+                        .font(.system(.headline, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                    if exercise.sets.isEmpty {
+                        Text("SKIPPED")
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.2)
+                            .foregroundStyle(InkPalette.cinnabar)
+                    }
+                }
                 Spacer()
+
+                Menu("Manage") {
+                    Button("Move earlier", action: moveEarlier)
+                        .disabled(!canMoveEarlier)
+                    Button("Move later", action: moveLater)
+                        .disabled(!canMoveLater)
+                    Button("Mark as skipped", action: markSkipped)
+                        .disabled(exercise.sets.isEmpty)
+                    Button("Remove exercise", role: .destructive, action: remove)
+                }
+                .font(.system(.caption, design: .serif, weight: .semibold))
+                .tint(InkPalette.softInk)
+                .frame(minWidth: 58, minHeight: 44)
             }
             .padding(11)
 
@@ -541,12 +819,12 @@ private struct EditableExerciseCard: View {
                         .foregroundStyle(InkPalette.softInk)
                         .frame(width: 28, alignment: .leading)
 
-                    if exercise.measurement == .weighted {
-                        editField("KG", value: $set.weight)
+                    if exercise.template.measurement == .weighted {
+                        editField(exercise.template.loadLabel, value: $set.weight)
                     }
 
                     editRepetitionField(
-                        exercise.measurement == .timed ? "SEC" : "REPS",
+                        exercise.template.measurement == .timed ? "SEC" : "REPS",
                         value: $set.repetitions
                     )
 
@@ -621,5 +899,12 @@ private struct EditableExerciseCard: View {
                 .inkInput()
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private extension Array where Element == ExerciseTemplate {
+    func uniquedByName() -> [ExerciseTemplate] {
+        var seen = Set<String>()
+        return filter { seen.insert($0.name).inserted }
     }
 }

@@ -27,6 +27,17 @@ struct ExerciseTemplate: Identifiable, Hashable {
     var formCues: [String] {
         WorkoutCatalog.formCues[id] ?? []
     }
+
+    var usesPerHandLoad: Bool {
+        [
+            "chest-press", "romanian-deadlift", "incline-press",
+            "split-squat", "chest-supported-row", "shoulder-press"
+        ].contains(id)
+    }
+
+    var loadLabel: String {
+        usesPerHandLoad ? "KG / HAND" : "KG"
+    }
 }
 
 struct RoutineTemplate: Identifiable, Hashable {

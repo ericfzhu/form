@@ -279,6 +279,9 @@ private struct InkTabBar: View {
 
 private struct RoutineListView: View {
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+    @AppStorage("progression-load-increment") private var loadIncrement = 2.5
+    @State private var resumeSnapshot: ActiveWorkoutSnapshot?
+    @State private var showingResume = false
 
     private var nextRoutine: RoutineTemplate {
         guard let latestRoutineName = workouts.first?.routineName,
@@ -300,6 +303,41 @@ private struct RoutineListView: View {
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
+                    if let resumeRoutine {
+                        Button {
+                            showingResume = true
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("ACTIVE SESSION")
+                                        .font(.caption2.weight(.semibold))
+                                        .tracking(1.5)
+                                        .foregroundStyle(InkPalette.cinnabar)
+                                    Text("Resume \(resumeRoutine.name)")
+                                        .font(.system(.title3, design: .serif, weight: .semibold))
+                                        .foregroundStyle(InkPalette.ink)
+                                    Text(resumeDetail)
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(InkPalette.softInk)
+                                }
+                                Spacer()
+                                Text("RESUME")
+                                    .font(.caption2.weight(.semibold))
+                                    .tracking(1.1)
+                                    .foregroundStyle(InkPalette.ink)
+                                    .frame(minWidth: 54, minHeight: 44)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(InkPalette.raisedPaper.opacity(0.88))
+                            )
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                        .padding(.bottom, 24)
+                    }
+
                     Text("NEXT WORKOUT")
                         .font(.caption2.weight(.semibold))
                         .tracking(1.8)
@@ -333,6 +371,24 @@ private struct RoutineListView: View {
                             .buttonStyle(PressableButtonStyle())
                         }
                     }
+
+                    HStack {
+                        Text("LOAD INCREMENT")
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.4)
+                            .foregroundStyle(InkPalette.softInk)
+                        Spacer()
+                        Picker("Load increment", selection: $loadIncrement) {
+                            ForEach([1.0, 1.25, 2.0, 2.5, 5.0], id: \.self) { value in
+                                Text("\(value.formatted(.number.precision(.fractionLength(0...2)))) kg")
+                                    .tag(value)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(InkPalette.ink)
+                    }
+                    .frame(minHeight: 52)
+                    .padding(.top, 14)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
@@ -340,6 +396,31 @@ private struct RoutineListView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            resumeSnapshot = ActiveWorkoutStore.load()
+        }
+        .fullScreenCover(isPresented: $showingResume, onDismiss: {
+            resumeSnapshot = ActiveWorkoutStore.load()
+        }) {
+            if let resumeSnapshot, let resumeRoutine {
+                ActiveWorkoutView(routine: resumeRoutine, snapshot: resumeSnapshot) {
+                    self.resumeSnapshot = nil
+                }
+            }
+        }
+    }
+
+    private var resumeRoutine: RoutineTemplate? {
+        guard let resumeSnapshot else { return nil }
+        return WorkoutCatalog.routines.first { $0.id == resumeSnapshot.routineID }
+    }
+
+    private var resumeDetail: String {
+        guard let resumeSnapshot else { return "" }
+        let completedSets = resumeSnapshot.exercises.reduce(0) {
+            $0 + $1.sets.filter(\.completed).count
+        }
+        return "Started \(resumeSnapshot.startedAt.formatted(date: .omitted, time: .shortened)) · \(completedSets) sets"
     }
 
     private func lastCompleted(_ routine: RoutineTemplate) -> Date? {

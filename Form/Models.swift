@@ -60,7 +60,7 @@ final class SetRecord {
     }
 }
 
-enum CardioKind: String, CaseIterable, Identifiable {
+enum CardioKind: String, CaseIterable, Identifiable, Codable {
     case treadmillWalk
     case treadmillRun
     case cycling
@@ -83,6 +83,52 @@ enum CardioKind: String, CaseIterable, Identifiable {
 
     var supportsIncline: Bool {
         self == .treadmillWalk || self == .treadmillRun
+    }
+}
+
+struct ActiveSetSnapshot: Codable, Equatable {
+    var weight: Double
+    var repetitions: Int
+    var completed: Bool
+}
+
+struct ActiveExerciseSnapshot: Codable, Equatable {
+    var exerciseID: String
+    var sets: [ActiveSetSnapshot]
+}
+
+struct ActiveCardioSnapshot: Codable, Equatable {
+    var id: UUID
+    var kind: CardioKind
+    var durationMinutes: Double
+    var distanceKilometers: Double
+    var averageSpeed: Double
+    var incline: Double
+}
+
+struct ActiveWorkoutSnapshot: Codable, Equatable {
+    var routineID: String
+    var startedAt: Date
+    var exercises: [ActiveExerciseSnapshot]
+    var cardio: [ActiveCardioSnapshot]
+    var expandedExerciseID: String?
+}
+
+enum ActiveWorkoutStore {
+    private static let key = "active-workout-snapshot-v1"
+
+    static func load() -> ActiveWorkoutSnapshot? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(ActiveWorkoutSnapshot.self, from: data)
+    }
+
+    static func save(_ snapshot: ActiveWorkoutSnapshot) throws {
+        let data = try JSONEncoder().encode(snapshot)
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 

@@ -55,8 +55,16 @@ enum ProgressRecord: String, Identifiable {
     }
 }
 
+struct ProgressionRecommendation {
+    let title: String
+    let detail: String
+}
+
 enum ProgressionEngine {
-    static let loadIncrement = 2.5
+    static var loadIncrement: Double {
+        let stored = UserDefaults.standard.double(forKey: "progression-load-increment")
+        return stored > 0 ? stored : 2.5
+    }
 
     static func performances(
         for exerciseName: String,
@@ -96,6 +104,93 @@ enum ProgressionEngine {
         }), let currentLoad = prescribedSets.map(\.weight).max() else { return nil }
 
         return currentLoad + loadIncrement
+    }
+
+    static func recommendation(
+        for template: ExerciseTemplate,
+        performances: [ExercisePerformance]
+    ) -> ProgressionRecommendation? {
+        guard let latest = performances.first else { return nil }
+
+        switch template.measurement {
+        case .weighted:
+            let prescribed = Array(latest.sets.prefix(template.sets))
+            guard !prescribed.isEmpty else { return nil }
+            let currentLoad = prescribed.map(\.weight).max() ?? 0
+            let load = currentLoad.formatted(.number.precision(.fractionLength(0...2)))
+
+            if prescribed.count >= template.sets,
+               prescribed.allSatisfy({ $0.repetitions >= template.maximumRepetitions }) {
+                let next = (currentLoad + loadIncrement)
+                    .formatted(.number.precision(.fractionLength(0...2)))
+                return ProgressionRecommendation(
+                    title: "Increase to \(next) kg\(template.usesPerHandLoad ? " / hand" : "")",
+                    detail: "You reached the top of the target range across every prescribed set."
+                )
+            }
+
+            let repeatedShortfall = performances.prefix(2).count == 2
+                && performances.prefix(2).allSatisfy { performance in
+                    let sets = Array(performance.sets.prefix(template.sets))
+                    return sets.count < template.sets
+                        || sets.contains { $0.repetitions < template.minimumRepetitions }
+                }
+
+            if repeatedShortfall, currentLoad > 0 {
+                let reduced = max(0, currentLoad - loadIncrement)
+                    .formatted(.number.precision(.fractionLength(0...2)))
+                return ProgressionRecommendation(
+                    title: "Consider \(reduced) kg\(template.usesPerHandLoad ? " / hand" : "")",
+                    detail: "The minimum target was missed in two consecutive sessions."
+                )
+            }
+
+            return ProgressionRecommendation(
+                title: "Keep \(load) kg\(template.usesPerHandLoad ? " / hand" : "")",
+                detail: "Aim to add one repetition while staying inside the target range."
+            )
+        case .bodyweight:
+            return ProgressionRecommendation(
+                title: "Add one repetition",
+                detail: "Keep the same movement quality and build toward \(template.maximumRepetitions) reps."
+            )
+        case .timed:
+            return ProgressionRecommendation(
+                title: "Add a few seconds",
+                detail: "Keep the same position and build toward \(template.maximumRepetitions) seconds."
+            )
+        }
+    }
+
+    static func comparison(
+        for current: ExercisePerformance,
+        measurement: ExerciseTemplate.Measurement,
+        among performances: [ExercisePerformance]
+    ) -> String? {
+        guard let previous = performances
+            .filter({ $0.date < current.date })
+            .max(by: { $0.date < $1.date }) else { return nil }
+
+        switch measurement {
+        case .weighted:
+            let loadDelta = (current.topSet?.weight ?? 0) - (previous.topSet?.weight ?? 0)
+            if loadDelta != 0 {
+                return "\(loadDelta > 0 ? "+" : "")\(loadDelta.formatted(.number.precision(.fractionLength(0...2)))) kg"
+            }
+            let volumeDelta = current.totalVolume - previous.totalVolume
+            if volumeDelta != 0 {
+                return "\(volumeDelta > 0 ? "+" : "")\(Int(volumeDelta)) kg volume"
+            }
+            let repDelta = current.bestRepetitions - previous.bestRepetitions
+            if repDelta != 0 {
+                return "\(repDelta > 0 ? "+" : "")\(repDelta) reps"
+            }
+            return "Matched previous"
+        case .bodyweight, .timed:
+            let delta = current.bestRepetitions - previous.bestRepetitions
+            if delta == 0 { return "Matched previous" }
+            return "\(delta > 0 ? "+" : "")\(delta) \(measurement == .timed ? "sec" : "reps")"
+        }
     }
 
     static func personalRecords(
@@ -154,6 +249,22 @@ struct ExerciseProgressView: View {
                 LazyVStack(spacing: 18) {
                     exerciseOverview
 
+                    if let recommendation {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("NEXT SESSION")
+                                .font(.caption2.weight(.semibold))
+                                .tracking(1.6)
+                                .foregroundStyle(InkPalette.softInk)
+                            Text(recommendation.title)
+                                .font(.system(.headline, design: .serif, weight: .semibold))
+                                .foregroundStyle(InkPalette.cinnabar)
+                            Text(recommendation.detail)
+                                .font(.system(.caption, design: .serif))
+                                .foregroundStyle(InkPalette.softInk)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
                     if performances.isEmpty {
                         EmptyExerciseRecord()
                     } else {
@@ -183,6 +294,10 @@ struct ExerciseProgressView: View {
                 selectedMetric = .repetitions
             }
         }
+    }
+
+    private var recommendation: ProgressionRecommendation? {
+        ProgressionEngine.recommendation(for: exercise, performances: performances)
     }
 
     private var progressHeader: some View {
