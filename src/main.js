@@ -76,7 +76,6 @@ document.querySelector("#app").innerHTML = `
       </div>
 
       <div class="hero-stage reveal delay-3" aria-label="Form app workout preview">
-        <div class="halo"></div>
         <div class="device-wrap">
           <div class="phone phone-hero">
             <div class="phone-screen">
@@ -187,8 +186,21 @@ let isSliding = false;
 let pendingSelection;
 let announceAfterSlide = false;
 
+function stopCountdown() {
+  tabButtons.forEach((button) => button.classList.remove("is-counting"));
+}
+
+function startCountdown() {
+  const activeButton = document.querySelector(".routine-tab.active");
+  if (!activeButton || carouselPaused || document.hidden || reducedMotion.matches) return;
+
+  activeButton.getBoundingClientRect();
+  activeButton.classList.add("is-counting");
+}
+
 function stopCarousel() {
   window.clearTimeout(carouselTimer);
+  stopCountdown();
 }
 
 function scheduleCarousel() {
@@ -196,6 +208,7 @@ function scheduleCarousel() {
 
   if (carouselPaused || document.hidden || reducedMotion.matches) return;
 
+  startCountdown();
   carouselTimer = window.setTimeout(() => {
     const currentIndex = routineKeys.indexOf(currentRoutine);
     const nextKey = routineKeys[(currentIndex + 1) % routineKeys.length];
