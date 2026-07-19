@@ -54,10 +54,6 @@ document.querySelector("#app").innerHTML = `
         href="#workouts"
       >
         <span>Workouts</span>
-        <span
-          class="nav-arrow grid size-6 place-items-center rounded-full bg-black/[0.05] text-[14px] transition-[background-color,transform] duration-200 ease-out group-hover:translate-y-0.5 group-hover:bg-[#a4261d]/10"
-          aria-hidden="true"
-        >↓</span>
       </a>
     </nav>
   </header>
