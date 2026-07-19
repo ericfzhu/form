@@ -117,6 +117,24 @@ extension View {
     func inkCard() -> some View {
         modifier(InkCardModifier())
     }
+
+    func keyboardDismissToolbar() -> some View {
+        toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                }
+                .font(.system(.body, design: .serif, weight: .semibold))
+                .tint(InkPalette.cinnabar)
+            }
+        }
+    }
 }
 
 struct InkPrimaryButton: View {
@@ -584,10 +602,6 @@ private struct ExercisePreviewRow: View {
                         .foregroundStyle(InkPalette.cinnabar)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
-                } else {
-                    Text("Form and performance")
-                        .font(.system(.caption, design: .serif))
-                        .foregroundStyle(InkPalette.softInk.opacity(0.72))
                 }
             }
             Spacer(minLength: 0)

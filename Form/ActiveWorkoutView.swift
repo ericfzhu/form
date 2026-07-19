@@ -86,6 +86,7 @@ struct ActiveWorkoutView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .keyboardDismissToolbar()
         .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
             Button("Discard workout", role: .destructive, action: discardWorkout)
             Button("Keep training", role: .cancel) {}

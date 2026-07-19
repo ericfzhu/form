@@ -582,6 +582,7 @@ private struct WorkoutEditorView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .keyboardDismissToolbar()
         .safeAreaInset(edge: .top, spacing: 0) {
             editorHeader
         }
