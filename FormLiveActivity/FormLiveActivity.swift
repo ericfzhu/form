@@ -27,11 +27,11 @@ struct FormWorkoutLiveActivity: Widget {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(context.attributes.routineName.uppercased())
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .tracking(1)
+                                .font(.system(size: 9, weight: .semibold, design: .serif))
+                                .tracking(1.4)
                                 .foregroundStyle(.secondary)
                             Text(context.state.currentExercise)
-                                .font(.subheadline.weight(.black))
+                                .font(.system(.subheadline, design: .serif, weight: .semibold))
                                 .lineLimit(1)
                         }
                         Spacer(minLength: 12)
@@ -59,11 +59,11 @@ struct FormWorkoutLiveActivity: Widget {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(context.attributes.routineName.uppercased())
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .tracking(1)
+                    .font(.system(size: 9, weight: .semibold, design: .serif))
+                    .tracking(1.4)
                     .foregroundStyle(softInk)
                 Text(context.state.currentExercise)
-                    .font(.system(.headline, design: .default, weight: .black))
+                    .font(.system(.headline, design: .serif, weight: .semibold))
                     .foregroundStyle(ink)
                     .lineLimit(1)
                 progressText(context.state)
@@ -76,7 +76,7 @@ struct FormWorkoutLiveActivity: Widget {
         }
         .padding(.trailing, 16)
         .overlay(alignment: .bottom) {
-            Rectangle().fill(ink).frame(height: 1)
+            Rectangle().fill(bronze).frame(height: 1)
         }
     }
 
@@ -134,16 +134,16 @@ struct FormWorkoutLiveActivity: Widget {
         ZStack {
             Rectangle().fill(cinnabar)
             Text("F")
-                .font(.system(size: 11, weight: .black, design: .monospaced))
-                .foregroundStyle(acid)
+                .font(.system(size: 12, weight: .semibold, design: .serif))
+                .foregroundStyle(paper)
         }
         .frame(width: 22, height: 22)
         .accessibilityHidden(true)
     }
 
-    private var ink: Color { Color(red: 0.067, green: 0.067, blue: 0.059) }
-    private var softInk: Color { Color(red: 0.29, green: 0.28, blue: 0.25) }
-    private var paper: Color { Color(red: 0.914, green: 0.886, blue: 0.835) }
-    private var cinnabar: Color { Color(red: 0.835, green: 0.169, blue: 0.118) }
-    private var acid: Color { Color(red: 0.91, green: 1.0, blue: 0.21) }
+    private var ink: Color { Color(red: 0.114, green: 0.102, blue: 0.082) }
+    private var softInk: Color { Color(red: 0.35, green: 0.32, blue: 0.27) }
+    private var paper: Color { Color(red: 0.925, green: 0.906, blue: 0.855) }
+    private var cinnabar: Color { Color(red: 0.43, green: 0.16, blue: 0.13) }
+    private var bronze: Color { Color(red: 0.50, green: 0.42, blue: 0.27) }
 }

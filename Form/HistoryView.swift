@@ -241,7 +241,8 @@ private struct HistoryConsistencyView: View {
         .padding(.horizontal, 15)
         .padding(.vertical, 16)
         .background(InkPalette.raisedPaper)
-        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+        .shadow(color: InkPalette.ink.opacity(0.05), radius: 7, y: 3)
     }
 
     private var calendarHeader: some View {
@@ -308,11 +309,11 @@ private struct HistoryConsistencyView: View {
         .frame(height: 38)
         .background(sessionCount > 0 ? InkPalette.cinnabar : Color.clear)
         .foregroundStyle(sessionCount > 0 ? InkPalette.raisedPaper : InkPalette.ink)
-        .overlay { Rectangle().stroke(InkPalette.ink.opacity(0.28), lineWidth: 0.5) }
+        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.36), lineWidth: 0.5) }
         .background {
             if isToday {
                 Rectangle()
-                    .stroke(InkPalette.ink, lineWidth: 2)
+                    .stroke(InkPalette.bronze, lineWidth: 1.5)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -459,7 +460,8 @@ private struct HistoryWeeklySummary: View {
         }
         .padding(15)
         .background(InkPalette.raisedPaper)
-        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+        .shadow(color: InkPalette.ink.opacity(0.05), radius: 7, y: 3)
     }
 
     private func metric(_ value: String, _ label: String) -> some View {
@@ -911,7 +913,7 @@ private struct WorkoutEditorView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
                 .background(InkPalette.raisedPaper)
-                .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
         }
     }
 

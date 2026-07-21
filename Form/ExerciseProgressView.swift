@@ -381,7 +381,7 @@ struct ExerciseProgressView: View {
         }
         .padding(.vertical, 14)
         .background(InkPalette.raisedPaper)
-        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
     }
 
     private func summaryItem(label: String, value: String) -> some View {
@@ -414,11 +414,11 @@ struct ExerciseProgressView: View {
                             .background {
                                 if selectedMetric == metric {
                                     Rectangle()
-                                        .fill(InkPalette.ink)
+                                        .fill(InkPalette.cinnabar)
                                 }
                             }
                             .foregroundStyle(selectedMetric == metric ? InkPalette.raisedPaper : InkPalette.softInk)
-                            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
                     }
                     .buttonStyle(PressableButtonStyle())
                 }
@@ -436,7 +436,7 @@ struct ExerciseProgressView: View {
                     x: .value("Date", performance.date),
                     y: .value(selectedMetric.axisLabel(for: exercise.measurement), selectedMetric.value(for: performance))
                 )
-                .foregroundStyle(InkPalette.acid)
+                .foregroundStyle(InkPalette.bronze)
                 .symbolSize(42)
             }
             .chartXAxis {

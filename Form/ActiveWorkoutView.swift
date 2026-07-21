@@ -665,19 +665,19 @@ private struct CompletionHeader: View {
     var body: some View {
         HStack(spacing: 10) {
                 Text("✓")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(InkPalette.acid)
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .foregroundStyle(InkPalette.raisedPaper)
                     .frame(width: 52, height: 52)
-                    .background(InkPalette.ink)
+                    .background(InkPalette.cinnabar)
                 Text("SESSION COMPLETE")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .tracking(1.3)
+                    .font(.system(size: 11, weight: .semibold, design: .serif))
+                    .tracking(1.6)
                     .foregroundStyle(InkPalette.ink)
                 Spacer()
         }
         .padding(.trailing, 16)
         .background { PaperSurface() }
-        .overlay(alignment: .bottom) { InkDivider() }
+        .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }
 
@@ -724,7 +724,7 @@ struct CardioLoggingSection: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
                 .background(InkPalette.raisedPaper)
-                .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -827,14 +827,13 @@ private struct ActiveWorkoutHeader: View {
     var body: some View {
         HStack(spacing: 0) {
                 Text("00")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(InkPalette.raisedPaper)
+                    .font(.system(size: 18, weight: .regular, design: .serif))
+                    .foregroundStyle(InkPalette.cinnabar)
                     .frame(width: 52, height: 56)
-                    .background(InkPalette.cinnabar)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("IN PROGRESS")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .tracking(1.2)
+                        .font(.system(size: 10, weight: .semibold, design: .serif))
+                        .tracking(1.5)
                         .foregroundStyle(InkPalette.ink)
                     Text(progress)
                         .font(.system(size: 9, design: .monospaced))
@@ -846,17 +845,14 @@ private struct ActiveWorkoutHeader: View {
                 Spacer()
 
                 Button("Close", action: close)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .textCase(.uppercase)
+                    .font(.system(size: 13, weight: .regular, design: .serif))
                     .foregroundStyle(InkPalette.ink)
                     .frame(width: 72, height: 56)
-                    .overlay(alignment: .leading) {
-                        Rectangle().fill(InkPalette.ink).frame(width: 1)
-                    }
                     .buttonStyle(PressableButtonStyle())
         }
         .background(InkPalette.paper)
-        .overlay(alignment: .bottom) { InkDivider() }
+        .overlay(alignment: .top) { InkDivider() }
+        .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }
 
@@ -888,7 +884,7 @@ private struct ExerciseLoggingCard: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(draft.template.name)
-                            .font(.system(.headline, design: .default, weight: .black))
+                            .font(.system(.headline, design: .serif, weight: .semibold))
                             .foregroundStyle(InkPalette.ink)
                             .multilineTextAlignment(.leading)
                         Text(draft.template.targetText)
@@ -903,8 +899,8 @@ private struct ExerciseLoggingCard: View {
                     Spacer(minLength: 0)
 
                     Text(isExpanded ? "CLOSE" : "VIEW")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(1.1)
+                        .font(.system(size: 9, weight: .semibold, design: .serif))
+                        .tracking(1.4)
                         .foregroundStyle(InkPalette.softInk.opacity(0.72))
                         .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
                 }
@@ -974,7 +970,7 @@ private struct ExerciseLoggingCard: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
                         .background(InkPalette.raisedPaper)
-                        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -1098,11 +1094,11 @@ private struct SetLoggingRow: View {
                 }
             } label: {
                 Text(set.kind == .warmup ? set.kind.shortTitle : "\(index)")
-                    .font(.system(.body, design: .monospaced, weight: .bold))
-                    .foregroundStyle(InkPalette.ink)
+                    .font(.system(.body, design: .serif, weight: .semibold))
+                    .foregroundStyle(set.kind == .warmup ? InkPalette.raisedPaper : InkPalette.cinnabar)
                     .frame(width: 36, height: 44)
-                    .background(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.acid)
-                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                    .background(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.raisedPaper)
+                    .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
                     .contentShape(Rectangle())
             }
             .tint(InkPalette.ink)
@@ -1121,7 +1117,7 @@ private struct SetLoggingRow: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
                     .background(InkPalette.raisedPaper)
-                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                    .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
             }
 
             TextField("0", value: $set.repetitions, format: .number)
@@ -1170,7 +1166,7 @@ struct InkInput: ViewModifier {
             .foregroundStyle(InkPalette.ink)
             .frame(height: 42)
             .background(InkPalette.raisedPaper)
-            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
     }
 }
 
@@ -1205,8 +1201,9 @@ private struct RestTimer: View {
             }
             .padding(.horizontal, 16)
             .frame(height: 64)
-            .background(InkPalette.acid)
-            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+            .background(InkPalette.raisedPaper)
+            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+            .overlay(alignment: .top) { Rectangle().fill(InkPalette.cinnabar).frame(height: 2) }
             .onChange(of: remaining) { _, value in
                 if value == 0 { cancel() }
             }

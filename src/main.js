@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./roman.css";
 
 const routines = {
   A: {
@@ -50,16 +51,16 @@ document.querySelector("#app").innerHTML = `
 
   <main id="top">
     <section class="hero" data-hero>
-      <div class="hero-index" aria-hidden="true">FORM—01</div>
+      <div class="hero-index" aria-hidden="true">FORM / IOS</div>
       <div class="hero-copy reveal">
-        <p class="kicker">A WORKOUT LOG / BUILT TO BE USED MID-SET</p>
-        <h1>THE NEXT<br /><span>NUMBER.</span></h1>
+        <p class="kicker">WORKOUT ROTATION / A—B—C</p>
+        <h1>Know what<br /><span>comes next.</span></h1>
         <p class="hero-lede">
           Your next workout. Your last weight. A clear target. Form keeps the record so
           you can keep training.
         </p>
         <a class="raw-button" href="#rotation">
-          <span>SEE THE SYSTEM</span>
+          <span>SEE THE WORKOUTS</span>
           <span aria-hidden="true">↓</span>
         </a>
       </div>
@@ -81,12 +82,11 @@ document.querySelector("#app").innerHTML = `
       </div>
     </section>
 
-    <div class="ticker" aria-hidden="true">
+    <div class="ticker" aria-label="Product summary">
       <div class="ticker-track">
-        <span>START / LOG / REST / REPEAT /</span>
-        <span>START / LOG / REST / REPEAT /</span>
-        <span>START / LOG / REST / REPEAT /</span>
-        <span>START / LOG / REST / REPEAT /</span>
+        <span><b>I</b> ROTATION / A—B—C</span>
+        <span><b>II</b> PREVIOUS LOAD / READY</span>
+        <span><b>III</b> REST TIMER / LIVE</span>
       </div>
     </div>
 
@@ -99,7 +99,7 @@ document.querySelector("#app").innerHTML = `
       <div class="feature-grid">
         <div class="feature-copy">
           <p class="kicker">ONE DECISION REMOVED</p>
-          <h2>FINISH ONE.<br />THE NEXT IS READY.</h2>
+          <h2>Finish one.<br />The next is ready.</h2>
           <p>
             Form holds your place across A, B, and C. Open the app and train what is next.
           </p>
@@ -169,7 +169,7 @@ document.querySelector("#app").innerHTML = `
       <div class="log-grid">
         <div class="log-copy">
           <p class="kicker">NO MEMORY TEST</p>
-          <h2>LAST TIME<br />IS ALREADY<br />THERE.</h2>
+          <h2>Last time<br />is already<br />there.</h2>
           <p>
             Weight and reps carry into the next session. Warm-up sets stay separate from
             the work that counts.
@@ -225,7 +225,7 @@ document.querySelector("#app").innerHTML = `
         </div>
         <div class="timer-copy">
           <p class="kicker">PUT THE PHONE DOWN</p>
-          <h2>THE TIMER<br />DOES NOT<br />DISAPPEAR.</h2>
+          <h2>Rest time<br />stays visible.</h2>
           <p>
             Keep the session awake while logging. Lock the screen and rest time stays
             visible in Live Activities and the Dynamic Island.
@@ -242,7 +242,7 @@ document.querySelector("#app").innerHTML = `
       </div>
       <div class="progress-heading">
         <p class="kicker">THE RECORD HAS A JOB</p>
-        <h2>SEE THE WORK.<br />SET THE NEXT NUMBER.</h2>
+        <h2>See the work.<br />Set the next number.</h2>
         <p>
           Review every session, scan training consistency, and see whether weight, reps,
           and volume are moving.
@@ -280,7 +280,7 @@ document.querySelector("#app").innerHTML = `
     </section>
 
     <section class="end-mark">
-      <p>FORM / YOUR TRAINING, CONTINUED.</p>
+      <p>FORM</p>
       <a class="raw-button inverted" href="#top"><span>BACK TO TOP</span><span aria-hidden="true">↑</span></a>
     </section>
   </main>

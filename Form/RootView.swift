@@ -3,13 +3,15 @@ import SwiftData
 import UIKit
 
 enum InkPalette {
-    static let ink = Color(red: 0.067, green: 0.067, blue: 0.059)
-    static let softInk = Color(red: 0.29, green: 0.28, blue: 0.25)
-    static let paper = Color(red: 0.914, green: 0.886, blue: 0.835)
-    static let raisedPaper = Color(red: 0.957, green: 0.937, blue: 0.898)
-    static let washedInk = Color(red: 0.69, green: 0.66, blue: 0.60)
-    static let cinnabar = Color(red: 0.835, green: 0.169, blue: 0.118)
-    static let acid = Color(red: 0.91, green: 1.0, blue: 0.21)
+    static let ink = Color(red: 0.114, green: 0.102, blue: 0.082)
+    static let softInk = Color(red: 0.35, green: 0.32, blue: 0.27)
+    static let paper = Color(red: 0.925, green: 0.906, blue: 0.855)
+    static let raisedPaper = Color(red: 0.961, green: 0.945, blue: 0.902)
+    static let washedInk = Color(red: 0.68, green: 0.64, blue: 0.55)
+    static let cinnabar = Color(red: 0.43, green: 0.16, blue: 0.13)
+    static let bronze = Color(red: 0.50, green: 0.42, blue: 0.27)
+    // Retained as a compatibility token for existing views; now reads as aged bronze.
+    static let acid = bronze
 }
 
 struct PaperSurface: View {
@@ -20,24 +22,11 @@ struct PaperSurface: View {
 
 struct PaperBackground: View {
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                PaperSurface()
-                HStack(spacing: 0) {
-                    ForEach(0..<4, id: \.self) { column in
-                        Color.clear
-                            .frame(width: proxy.size.width / 4)
-                            .overlay(alignment: .trailing) {
-                                if column < 3 {
-                                    Rectangle()
-                                        .fill(InkPalette.ink.opacity(0.055))
-                                        .frame(width: 1)
-                                }
-                            }
-                    }
-                }
-            }
-        }
+        LinearGradient(
+            colors: [InkPalette.raisedPaper.opacity(0.48), InkPalette.paper],
+            startPoint: .top,
+            endPoint: .bottom
+        )
         .ignoresSafeArea()
     }
 }
@@ -45,8 +34,18 @@ struct PaperBackground: View {
 struct InkDivider: View {
     var body: some View {
         Rectangle()
-            .fill(InkPalette.ink)
+            .fill(InkPalette.bronze.opacity(0.72))
             .frame(height: 1)
+        .accessibilityHidden(true)
+    }
+}
+
+struct ClassicalRule: View {
+    var body: some View {
+        VStack(spacing: 3) {
+            Rectangle().fill(InkPalette.bronze.opacity(0.86)).frame(height: 1)
+            Rectangle().fill(InkPalette.bronze.opacity(0.42)).frame(height: 1)
+        }
         .accessibilityHidden(true)
     }
 }
@@ -57,28 +56,28 @@ struct RawScreenTitle: View {
     var detail: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 15) {
             HStack {
-                Text("FORM—\(index)")
+                Text("FORM  /  \(index)")
                 Spacer()
                 if !detail.isEmpty { Text(detail) }
             }
-            .font(.system(size: 9, weight: .bold, design: .monospaced))
-            .tracking(1.1)
-            .foregroundStyle(InkPalette.softInk)
+            .font(.system(size: 9, weight: .semibold, design: .serif))
+            .tracking(1.8)
+            .foregroundStyle(InkPalette.bronze)
 
-            Text(title.uppercased())
-                .font(.system(size: 64, weight: .black, design: .default))
-                .tracking(-4.8)
+            Text(title)
+                .font(.system(size: 52, weight: .regular, design: .serif))
+                .tracking(-2.2)
                 .foregroundStyle(InkPalette.ink)
                 .minimumScaleFactor(0.62)
                 .lineLimit(1)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 30)
-        .padding(.bottom, 22)
+        .padding(.top, 27)
+        .padding(.bottom, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .bottom) { InkDivider() }
+        .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }
 
@@ -88,23 +87,26 @@ struct RawSectionHeader: View {
     var trailing: String = ""
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(index)
-                .frame(width: 48)
-                .overlay(alignment: .trailing) { Rectangle().fill(InkPalette.ink).frame(width: 1) }
+                .font(.system(size: 22, weight: .regular, design: .serif))
+                .foregroundStyle(InkPalette.cinnabar)
+                .frame(width: 34, alignment: .leading)
             Text(title)
-                .padding(.leading, 12)
+                .font(.system(size: 11, weight: .semibold, design: .serif))
+                .tracking(1.3)
             Spacer()
             if !trailing.isEmpty {
                 Text(trailing)
                     .foregroundStyle(InkPalette.softInk)
-                    .padding(.trailing, 12)
             }
         }
-        .font(.system(size: 9, weight: .bold, design: .monospaced))
-        .tracking(1)
-        .frame(height: 42)
-        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+        .font(.system(size: 9, weight: .semibold, design: .serif))
+        .tracking(1.2)
+        .padding(.horizontal, 2)
+        .frame(height: 46)
+        .overlay(alignment: .top) { ClassicalRule() }
+        .overlay(alignment: .bottom) { InkDivider() }
     }
 }
 
@@ -118,18 +120,14 @@ struct InkTextHeader: View {
     var body: some View {
         HStack(spacing: 0) {
                 Button(leadingTitle, action: leadingAction)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .textCase(.uppercase)
+                    .font(.system(size: 13, weight: .regular, design: .serif))
                     .foregroundStyle(InkPalette.ink)
                     .frame(width: 76, height: 52)
-                    .overlay(alignment: .trailing) {
-                        Rectangle().fill(InkPalette.ink).frame(width: 1)
-                    }
                     .buttonStyle(PressableButtonStyle())
 
                 Text(title)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .tracking(1.2)
+                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .tracking(1.8)
                     .foregroundStyle(InkPalette.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.76)
@@ -137,25 +135,19 @@ struct InkTextHeader: View {
 
                 if let trailingTitle, let trailingAction {
                     Button(trailingTitle, action: trailingAction)
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .textCase(.uppercase)
+                        .font(.system(size: 13, weight: .regular, design: .serif))
                         .foregroundStyle(InkPalette.cinnabar)
                         .frame(width: 76, height: 52)
-                        .overlay(alignment: .leading) {
-                            Rectangle().fill(InkPalette.ink).frame(width: 1)
-                        }
                         .buttonStyle(PressableButtonStyle())
                 } else {
                     Color.clear
                         .frame(width: 76, height: 52)
-                        .overlay(alignment: .leading) {
-                            Rectangle().fill(InkPalette.ink).frame(width: 1)
-                        }
                         .accessibilityHidden(true)
                 }
         }
         .background { PaperSurface() }
-        .overlay(alignment: .bottom) { Rectangle().fill(InkPalette.ink).frame(height: 1) }
+        .overlay(alignment: .top) { InkDivider() }
+        .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }
 
@@ -163,7 +155,8 @@ private struct InkCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(InkPalette.raisedPaper)
-            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.58), lineWidth: 1) }
+            .shadow(color: InkPalette.ink.opacity(0.055), radius: 7, y: 3)
     }
 }
 
@@ -204,9 +197,8 @@ struct InkPrimaryButton: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Text(title)
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .tracking(0.8)
-                    .textCase(.uppercase)
+                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .tracking(1.4)
                 Spacer()
                 Image(systemName: "arrow.right")
                     .font(.system(size: 15, weight: .semibold))
@@ -217,7 +209,8 @@ struct InkPrimaryButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(InkPalette.cinnabar)
-            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1.5) }
+            .overlay { Rectangle().stroke(InkPalette.bronze, lineWidth: 1) }
+            .overlay { Rectangle().inset(by: 4).stroke(InkPalette.paper.opacity(0.32), lineWidth: 1) }
         }
         .buttonStyle(PressableButtonStyle())
     }
@@ -305,7 +298,6 @@ struct RootView: View {
                     .allowsHitTesting(false)
             }
             .tint(InkPalette.ink)
-            .fontDesign(.default)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if isFooterVisible {
                     InkTabBar(selection: $selection)
@@ -328,27 +320,27 @@ private struct InkTabBar: View {
                     }
                 } label: {
                     HStack(spacing: 9) {
-                        Text(tab == .train ? "01" : "02")
-                            .foregroundStyle(selection == tab ? InkPalette.acid : InkPalette.softInk)
+                        Text(tab == .train ? "I" : "II")
+                            .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.bronze)
                         Text(tab.title.uppercased())
                     }
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .tracking(1)
-                    .foregroundStyle(selection == tab ? InkPalette.raisedPaper : InkPalette.ink)
+                    .font(.system(size: 11, weight: .semibold, design: .serif))
+                    .tracking(1.5)
+                    .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.softInk)
                     .frame(maxWidth: .infinity, minHeight: 56)
-                    .background(selection == tab ? InkPalette.ink : InkPalette.paper)
+                    .background(InkPalette.paper)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
-                .overlay(alignment: .trailing) {
-                    if tab == .train { Rectangle().fill(InkPalette.ink).frame(width: 1) }
+                .overlay(alignment: .top) {
+                    if selection == tab { Rectangle().fill(InkPalette.cinnabar).frame(height: 2) }
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .background(InkPalette.paper)
-        .overlay(alignment: .top) { Rectangle().fill(InkPalette.ink).frame(height: 1) }
+        .overlay(alignment: .top) { ClassicalRule() }
         .animation(.easeOut(duration: 0.22), value: selection)
     }
 }
@@ -391,11 +383,11 @@ private struct RoutineListView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text("00 / ACTIVE SESSION")
-                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                        .tracking(1)
+                                        .font(.system(size: 9, weight: .semibold, design: .serif))
+                                        .tracking(1.5)
                                         .foregroundStyle(InkPalette.cinnabar)
                                     Text("Resume \(resumeRoutine.name)")
-                                        .font(.system(.title3, design: .default, weight: .black))
+                                        .font(.system(.title3, design: .serif, weight: .semibold))
                                         .foregroundStyle(InkPalette.ink)
                                     Text(resumeDetail)
                                         .font(.system(.caption, design: .monospaced))
@@ -403,15 +395,16 @@ private struct RoutineListView: View {
                                 }
                                 Spacer()
                                 Text("RESUME")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .tracking(1)
-                                    .foregroundStyle(InkPalette.ink)
+                                    .font(.system(size: 10, weight: .semibold, design: .serif))
+                                    .tracking(1.4)
+                                    .foregroundStyle(InkPalette.cinnabar)
                                     .frame(minWidth: 54, minHeight: 44)
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .background(InkPalette.acid)
-                            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                            .background(InkPalette.raisedPaper)
+                            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+                            .overlay(alignment: .top) { Rectangle().fill(InkPalette.cinnabar).frame(height: 3) }
                         }
                         .buttonStyle(PressableButtonStyle())
                         .padding(.bottom, 24)
@@ -542,9 +535,9 @@ private struct RoutineCard: View {
                 }
 
                 Text(routine.id)
-                    .font(.system(size: 62, weight: .black, design: .default))
-                    .tracking(-4)
-                    .foregroundStyle(InkPalette.ink)
+                    .font(.system(size: 58, weight: .regular, design: .serif))
+                    .tracking(-2)
+                    .foregroundStyle(isRecommended ? InkPalette.cinnabar : InkPalette.ink)
                 Text(routine.focus.replacingOccurrences(of: " · ", with: ", "))
                     .font(.system(size: 15, weight: .medium, design: .serif))
                     .foregroundStyle(InkPalette.softInk.opacity(0.82))
@@ -577,11 +570,12 @@ private struct RoutineCard: View {
         .frame(minHeight: 174)
         .background(InkPalette.raisedPaper)
         .overlay {
-            Rectangle().stroke(InkPalette.ink, lineWidth: isRecommended ? 2 : 1)
+            Rectangle().stroke(InkPalette.bronze.opacity(isRecommended ? 0.9 : 0.52), lineWidth: 1)
         }
         .overlay(alignment: .top) {
-            if isRecommended { Rectangle().fill(InkPalette.cinnabar).frame(height: 5) }
+            if isRecommended { ClassicalRule() }
         }
+        .shadow(color: InkPalette.ink.opacity(0.055), radius: 8, y: 3)
         .contentShape(Rectangle())
     }
 

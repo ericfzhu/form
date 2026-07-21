@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Form — Classical direction studies</title>
+    <style>
+      :root {
+        color: #181611;
+        background: #cbc3b2;
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+        font-synthesis: none;
+      }
+
+      * { box-sizing: border-box; }
+      html { -webkit-font-smoothing: antialiased; }
+      body { margin: 0; min-width: 320px; }
+      button { color: inherit; font: inherit; }
+
+      .comparison-shell {
+        min-height: 100vh;
+        padding: 28px;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255,255,255,.32), transparent 42%),
+          #cbc3b2;
+      }
+
+      .comparison-header {
+        max-width: 1540px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .comparison-title { margin: 0; font: 600 15px/1.2 Georgia, serif; }
+      .comparison-note { margin: 5px 0 0; color: #5c574d; font-size: 12px; }
+      .theme-switch { display: flex; border: 1px solid #38342d; background: #d9d2c4; }
+      .theme-switch button {
+        min-width: 122px;
+        min-height: 44px;
+        padding: 0 18px;
+        border: 0;
+        background: transparent;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .13em;
+        cursor: pointer;
+        transition-property: background-color, color, scale;
+        transition-duration: 150ms;
+      }
+      .theme-switch button + button { border-left: 1px solid #38342d; }
+      .theme-switch button[aria-selected="true"] { background: #1b1915; color: #f1ede4; }
+      .theme-switch button:active { scale: .96; }
+
+      .study {
+        --bone: #eee9dc;
+        --paper: #f5f0e5;
+        --ink: #1b1915;
+        --muted: #71695d;
+        --accent: #762b24;
+        --metal: #806c46;
+        max-width: 1540px;
+        margin: auto;
+        display: grid;
+        grid-template-columns: minmax(720px, 1fr) 390px;
+        align-items: center;
+        gap: 42px;
+      }
+
+      .study[hidden] { display: none; }
+      .artboard-label {
+        margin: 0 0 9px;
+        color: rgba(24,22,17,.65);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+
+      .browser-frame {
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        background: var(--paper);
+        box-shadow: 0 24px 70px rgba(38,31,21,.2), 0 2px 8px rgba(38,31,21,.13);
+      }
+
+      .browser-chrome {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px;
+        border-bottom: 1px solid rgba(27,25,21,.18);
+        background: #e7e0d4;
+      }
+      .browser-chrome i { width: 7px; height: 7px; border-radius: 50%; background: #918a7f; }
+      .browser-address { width: 38%; height: 14px; margin: auto; border: 1px solid rgba(27,25,21,.14); border-radius: 7px; }
+
+      .phone-frame {
+        width: 360px;
+        height: 742px;
+        margin: auto;
+        padding: 7px;
+        border-radius: 50px;
+        background: #171613;
+        box-shadow: 0 28px 70px rgba(38,31,21,.26), 0 4px 12px rgba(38,31,21,.2);
+      }
+      .phone-screen { position: relative; height: 100%; overflow: hidden; border-radius: 43px; background: var(--paper); }
+      .phone-status {
+        height: 47px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 23px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .phone-status .island { width: 92px; height: 25px; border-radius: 15px; background: #111; }
+      .phone-content { height: calc(100% - 47px); }
+
+      /* Roman — architectural rather than archaeological. */
+      .roman {
+        --bone: #e5dfcf;
+        --paper: #eee9dd;
+        --ink: #1d1a15;
+        --muted: #70695e;
+        --accent: #713229;
+        --metal: #8a7447;
+      }
+
+      .roman-site {
+        height: calc(100% - 34px);
+        display: grid;
+        grid-template-rows: 72px 1fr 56px;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, transparent 7.9%, rgba(90,75,49,.12) 8%, transparent 8.1%, transparent 91.9%, rgba(90,75,49,.12) 92%, transparent 92.1%),
+          linear-gradient(180deg, rgba(255,255,255,.2), transparent 25%),
+          var(--paper);
+      }
+      .roman-masthead {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        margin: 0 5.5%;
+        border-bottom: 1px solid var(--metal);
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      .roman-wordmark { font-size: 22px; letter-spacing: .24em; }
+      .roman-masthead nav { display: flex; gap: 30px; color: #4f493f; font-size: 9px; letter-spacing: .13em; }
+      .roman-masthead .availability { justify-self: end; font-size: 9px; letter-spacing: .12em; }
+
+      .roman-hero {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: .93fr 1.07fr;
+        margin: 0 5.5%;
+      }
+      .roman-copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 3% 8% 3% 2%;
+        border-right: 1px solid rgba(128,108,70,.62);
+      }
+      .roman-eyebrow { margin: 0 0 18px; color: var(--accent); font: 700 9px/1 Georgia, serif; letter-spacing: .2em; }
+      .roman-copy h1 {
+        margin: 0;
+        font: 400 clamp(50px, 5vw, 82px)/.82 Georgia, "Times New Roman", serif;
+        letter-spacing: -.065em;
+      }
+      .roman-copy h1 em { color: var(--accent); font-weight: 400; }
+      .roman-copy p {
+        max-width: 430px;
+        margin: 17px 0 19px;
+        color: #4f493f;
+        font: 14px/1.4 Georgia, serif;
+      }
+      .roman-action {
+        width: max-content;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 44px;
+        padding: 0 16px;
+        border: 1px solid var(--metal);
+        color: var(--ink);
+        font: 700 9px/1 Georgia, serif;
+        letter-spacing: .16em;
+      }
+      .roman-figure {
+        position: relative;
+        min-width: 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+      .roman-figure::before {
+        content: "";
+        position: absolute;
+        width: 66%;
+        aspect-ratio: 1;
+        border: 1px solid rgba(128,108,70,.55);
+        border-radius: 50% 50% 4px 4px;
+        box-shadow: inset 0 0 0 13px rgba(128,108,70,.055);
+      }
+      .roman-figure img {
+        position: relative;
+        width: 82%;
+        max-height: 86%;
+        object-fit: contain;
+        filter: grayscale(1) contrast(1.25) sepia(.12);
+        mix-blend-mode: multiply;
+        opacity: .84;
+      }
+      .roman-figure small {
+        position: absolute;
+        right: 3%;
+        bottom: 6%;
+        color: var(--metal);
+        font: 700 9px/1 Georgia, serif;
+        letter-spacing: .18em;
+        writing-mode: vertical-rl;
+      }
+      .roman-site-foot {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin: 0 5.5%;
+        border-top: 1px solid var(--metal);
+      }
+      .roman-site-foot div { display: flex; align-items: center; gap: 10px; padding: 0 18px; border-right: 1px solid rgba(128,108,70,.52); }
+      .roman-site-foot div:last-child { border-right: 0; }
+      .roman-site-foot strong { color: var(--accent); font: 400 20px Georgia, serif; }
+      .roman-site-foot span { font: 700 8px/1.2 Georgia, serif; letter-spacing: .12em; }
+
+      .roman-app .phone-content { display: grid; grid-template-rows: 76px 1fr 72px; }
+      .roman-app-head {
+        display: grid;
+        grid-template-columns: 55px 1fr 55px;
+        align-items: center;
+        margin: 0 18px;
+        border-top: 1px solid var(--metal);
+        border-bottom: 3px double var(--metal);
+        font-family: Georgia, serif;
+      }
+      .roman-app-head button { min-height: 44px; padding: 0; border: 0; background: none; font: 12px Georgia, serif; }
+      .roman-app-head strong { text-align: center; font: 400 15px Georgia, serif; letter-spacing: .15em; }
+      .roman-workout { overflow: hidden; padding: 20px 22px 10px; }
+      .roman-session-meta { display: flex; justify-content: space-between; color: var(--muted); font: 700 9px Georgia, serif; letter-spacing: .16em; }
+      .roman-workout h2 { margin: 15px 0 5px; font: 400 39px/.92 Georgia, serif; letter-spacing: -.05em; }
+      .roman-workout > p { margin: 0 0 19px; color: var(--accent); font: 12px Georgia, serif; }
+      .roman-timer {
+        min-height: 56px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 0 14px;
+        border: 1px solid var(--metal);
+        box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 5px rgba(128,108,70,.24);
+      }
+      .roman-timer span { font: 700 9px Georgia, serif; letter-spacing: .15em; }
+      .roman-timer strong { font: 400 25px Georgia, serif; font-variant-numeric: tabular-nums; }
+      .roman-exercise { border-top: 1px solid var(--metal); border-bottom: 1px solid var(--metal); }
+      .roman-exercise-title { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; min-height: 62px; }
+      .roman-exercise-title b { color: var(--accent); font: 400 26px Georgia, serif; }
+      .roman-exercise-title strong { font: 400 16px Georgia, serif; }
+      .roman-exercise-title small { color: var(--muted); font: 9px Georgia, serif; letter-spacing: .08em; }
+      .roman-set-head, .roman-set {
+        display: grid;
+        grid-template-columns: 38px 1fr 1fr 48px;
+        align-items: center;
+        min-height: 43px;
+        border-top: 1px solid rgba(128,108,70,.4);
+        text-align: center;
+      }
+      .roman-set-head { min-height: 28px; color: var(--muted); font: 700 8px Georgia, serif; letter-spacing: .12em; }
+      .roman-set { font: 15px Georgia, serif; font-variant-numeric: tabular-nums; }
+      .roman-check { width: 24px; height: 24px; margin: auto; border: 1px solid var(--metal); }
+      .roman-check.done { display: grid; place-items: center; background: var(--accent); color: #f4efe5; border-color: var(--accent); font-size: 12px; }
+      .roman-app-nav { display: grid; grid-template-columns: 1fr 1fr; margin: 0 18px; border-top: 3px double var(--metal); }
+      .roman-app-nav span { display: grid; place-items: center; color: var(--muted); font: 700 10px Georgia, serif; letter-spacing: .15em; }
+      .roman-app-nav .active { color: var(--accent); }
+
+      /* Victorian — a serious physical-culture folio, not decorative Victoriana. */
+      .victorian {
+        --paper: #eee7d7;
+        --ink: #211d18;
+        --muted: #6d6459;
+        --accent: #7c201f;
+        --metal: #7d6d58;
+      }
+      .victorian-site {
+        height: calc(100% - 34px);
+        padding: 21px 28px 24px;
+        color: var(--ink);
+        background:
+          repeating-linear-gradient(0deg, rgba(54,45,35,.018) 0, rgba(54,45,35,.018) 1px, transparent 1px, transparent 4px),
+          var(--paper);
+      }
+      .victorian-rule { height: 5px; border-top: 1px solid var(--ink); border-bottom: 2px solid var(--ink); }
+      .victorian-masthead {
+        min-height: 67px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        border-bottom: 1px solid var(--ink);
+      }
+      .victorian-masthead small { font: 700 8px/1.3 "Courier New", monospace; letter-spacing: .11em; }
+      .victorian-masthead strong { font: 700 27px/1 Georgia, serif; letter-spacing: .17em; }
+      .victorian-masthead span { justify-self: end; font: italic 11px Georgia, serif; }
+      .victorian-hero {
+        min-height: calc(100% - 72px);
+        display: grid;
+        grid-template-columns: 1.05fr .95fr;
+        border-bottom: 1px solid var(--ink);
+      }
+      .victorian-copy { padding: 7% 8% 4% 1%; border-right: 1px solid var(--ink); }
+      .victorian-copy .issue { display: flex; justify-content: space-between; margin-bottom: 28px; font: 700 8px "Courier New", monospace; letter-spacing: .12em; }
+      .victorian-copy h1 { max-width: 670px; margin: 0; font: 500 clamp(49px, 5.6vw, 91px)/.86 Georgia, serif; letter-spacing: -.055em; }
+      .victorian-copy h1 em { color: var(--accent); font-weight: 400; }
+      .victorian-deck {
+        max-width: 620px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 27px;
+        margin-top: 26px;
+        padding-top: 17px;
+        border-top: 1px solid var(--ink);
+      }
+      .victorian-deck p { margin: 0; font: 13px/1.45 Georgia, serif; }
+      .victorian-deck a { color: var(--accent); font: 700 9px "Courier New", monospace; letter-spacing: .1em; }
+      .victorian-plate { position: relative; min-width: 0; display: grid; grid-template-rows: 1fr auto; padding: 18px 16px 12px 28px; }
+      .victorian-plate::before { content: "PLATE 01"; position: absolute; top: 12px; right: 11px; color: var(--muted); font: 700 8px "Courier New", monospace; letter-spacing: .13em; }
+      .victorian-plate img { width: 100%; height: 100%; min-height: 0; object-fit: contain; filter: grayscale(1) contrast(1.55); mix-blend-mode: multiply; }
+      .victorian-caption { display: flex; justify-content: space-between; padding-top: 10px; border-top: 3px double var(--ink); font: 700 9px Georgia, serif; letter-spacing: .08em; }
+
+      .victorian-app .phone-content { display: grid; grid-template-rows: 68px 1fr 70px; }
+      .victorian-app-head { margin: 0 17px; border-top: 4px double var(--ink); border-bottom: 1px solid var(--ink); text-align: center; }
+      .victorian-app-head .head-line { min-height: 41px; display: grid; grid-template-columns: 58px 1fr 58px; align-items: center; }
+      .victorian-app-head button { min-height: 40px; border: 0; background: none; font: 11px Georgia, serif; }
+      .victorian-app-head strong { font: 700 15px Georgia, serif; letter-spacing: .12em; }
+      .victorian-app-head small { display: block; padding-bottom: 5px; font: 7px "Courier New", monospace; letter-spacing: .14em; }
+      .victorian-workout { overflow: hidden; padding: 17px 19px 8px; }
+      .victorian-workout .folio-meta { display: flex; justify-content: space-between; font: 700 8px "Courier New", monospace; letter-spacing: .12em; }
+      .victorian-workout h2 { margin: 12px 0 3px; font: 500 31px/.95 Georgia, serif; letter-spacing: -.035em; }
+      .victorian-workout > p { margin: 0 0 14px; color: var(--accent); font: italic 12px Georgia, serif; }
+      .victorian-timer { min-height: 43px; display: flex; align-items: center; justify-content: space-between; padding: 0 9px; border-top: 3px double var(--ink); border-bottom: 1px solid var(--ink); }
+      .victorian-timer span { font: 700 8px "Courier New", monospace; letter-spacing: .12em; }
+      .victorian-timer strong { font: 500 22px Georgia, serif; font-variant-numeric: tabular-nums; }
+      .victorian-exercise { margin-top: 13px; }
+      .victorian-exercise-title { display: grid; grid-template-columns: 35px 1fr auto; align-items: end; padding-bottom: 8px; }
+      .victorian-exercise-title b { font: 500 25px Georgia, serif; }
+      .victorian-exercise-title strong { font: 700 14px Georgia, serif; }
+      .victorian-exercise-title small { color: var(--muted); font: 8px "Courier New", monospace; }
+      .victorian-set-head, .victorian-set { display: grid; grid-template-columns: 42px 1fr 1fr 48px; align-items: center; text-align: center; border-top: 1px solid var(--ink); }
+      .victorian-set-head { min-height: 27px; font: 700 7px "Courier New", monospace; letter-spacing: .1em; }
+      .victorian-set { min-height: 43px; font: 14px Georgia, serif; font-variant-numeric: tabular-nums; }
+      .victorian-set:last-child { border-bottom: 3px double var(--ink); }
+      .victorian-set i { width: 23px; height: 23px; display: grid; place-items: center; margin: auto; border: 1px solid var(--ink); font-style: normal; }
+      .victorian-set i.done { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+      .victorian-app-nav { display: grid; grid-template-columns: 1fr 1fr; margin: 0 17px; border-top: 1px solid var(--ink); }
+      .victorian-app-nav span { display: grid; place-items: center; color: var(--muted); font: 700 9px "Courier New", monospace; letter-spacing: .12em; }
+      .victorian-app-nav .active { color: var(--accent); }
+
+      @media (max-width: 1180px) {
+        .study { grid-template-columns: 1fr; }
+        .phone-frame { width: 360px; }
+      }
+      @media (max-width: 760px) {
+        .comparison-shell { padding: 16px; }
+        .comparison-header { align-items: stretch; flex-direction: column; }
+        .theme-switch button { flex: 1; }
+        .browser-frame { min-width: 720px; }
+        .website-study { overflow-x: auto; padding-bottom: 8px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="comparison-shell">
+      <header class="comparison-header">
+        <div>
+          <h1 class="comparison-title">FORM / DIRECTION STUDIES</h1>
+          <p class="comparison-note">The same product and screen state, expressed through two physical design traditions.</p>
+        </div>
+        <div class="theme-switch" role="tablist" aria-label="Select an aesthetic">
+          <button type="button" role="tab" aria-selected="true" data-theme="roman">ROMAN</button>
+          <button type="button" role="tab" aria-selected="false" data-theme="victorian">VICTORIAN</button>
+        </div>
+      </header>
+
+      <section class="study roman" data-study="roman">
+        <div class="website-study">
+          <p class="artboard-label">Website / landing screen</p>
+          <div class="browser-frame">
+            <div class="browser-chrome"><i></i><i></i><i></i><span class="browser-address"></span></div>
+            <div class="roman-site">
+              <header class="roman-masthead">
+                <strong class="roman-wordmark">FORM</strong>
+                <nav><span>METHOD</span><span>RECORD</span><span>PROGRESS</span></nav>
+                <span class="availability">FOR IPHONE</span>
+              </header>
+              <section class="roman-hero">
+                <div class="roman-copy">
+                  <p class="roman-eyebrow">WORKOUT ROTATION / A—B—C</p>
+                  <h1>Know what<br />comes <em>next.</em></h1>
+                  <p>Three rotating workouts. Previous loads carried forward. Rest timing and long-term progress in one record.</p>
+                  <span class="roman-action">SEE THE WORKOUTS <b>→</b></span>
+                </div>
+                <div class="roman-figure">
+                  <img src="/assets/barbell-back-squat.png" alt="Barbell back squat" />
+                  <small>WORKOUT A / 01</small>
+                </div>
+              </section>
+              <footer class="roman-site-foot">
+                <div><strong>I</strong><span>ROTATING<br />PROGRAMMES</span></div>
+                <div><strong>II</strong><span>SET-BY-SET<br />RECORDING</span></div>
+                <div><strong>III</strong><span>VISIBLE<br />PROGRESSION</span></div>
+              </footer>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-study roman-app">
+          <p class="artboard-label">App / active workout</p>
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span class="island"></span><span>● ◒</span></div>
+              <div class="phone-content">
+                <header class="roman-app-head"><button>Close</button><strong>FORM</strong><button>Finish</button></header>
+                <section class="roman-workout">
+                  <div class="roman-session-meta"><span>WORKOUT A</span><span>01 / 06</span></div>
+                  <h2>Barbell<br />Back Squat</h2>
+                  <p>3 sets · 6–10 repetitions</p>
+                  <div class="roman-timer"><span>REST</span><strong>01:24</strong></div>
+                  <div class="roman-exercise">
+                    <div class="roman-exercise-title"><b>I</b><strong>Working sets</strong><small>LAST 60 × 8</small></div>
+                    <div class="roman-set-head"><span>SET</span><span>KG</span><span>REPS</span><span>DONE</span></div>
+                    <div class="roman-set"><span>1</span><span>62.5</span><span>8</span><span class="roman-check done">✓</span></div>
+                    <div class="roman-set"><span>2</span><span>62.5</span><span>8</span><span class="roman-check"></span></div>
+                    <div class="roman-set"><span>3</span><span>62.5</span><span>—</span><span class="roman-check"></span></div>
+                  </div>
+                </section>
+                <nav class="roman-app-nav"><span class="active">SESSION</span><span>RECORD</span></nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="study victorian" data-study="victorian" hidden>
+        <div class="website-study">
+          <p class="artboard-label">Website / landing screen</p>
+          <div class="browser-frame">
+            <div class="browser-chrome"><i></i><i></i><i></i><span class="browser-address"></span></div>
+            <div class="victorian-site">
+              <div class="victorian-rule"></div>
+              <header class="victorian-masthead">
+                <small>WORKOUT RECORD<br />FOR IPHONE</small>
+                <strong>FORM</strong>
+                <span>Training, clearly recorded.</span>
+              </header>
+              <section class="victorian-hero">
+                <div class="victorian-copy">
+                  <div class="issue"><span>ISSUE NO. 01</span><span>THREE-PART ROTATION</span></div>
+                  <h1>The record for<br />your next <em>session.</em></h1>
+                  <div class="victorian-deck">
+                    <p>Form carries your previous weights and repetitions into the next workout, then keeps the rest timer visible while you train.</p>
+                    <p>Review completed sessions, longer-term consistency and performance without rebuilding the record by hand.<br /><br /><a>EXAMINE THE METHOD →</a></p>
+                  </div>
+                </div>
+                <figure class="victorian-plate">
+                  <img src="/assets/barbell-back-squat.png" alt="Barbell back squat" />
+                  <figcaption class="victorian-caption"><span>BARBELL BACK SQUAT</span><span>3 × 6–10</span></figcaption>
+                </figure>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-study victorian-app">
+          <p class="artboard-label">App / active workout</p>
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-status"><span>9:41</span><span class="island"></span><span>● ◒</span></div>
+              <div class="phone-content">
+                <header class="victorian-app-head">
+                  <div class="head-line"><button>Close</button><strong>FORM</strong><button>Finish</button></div>
+                  <small>WORKOUT A · ENTRY 01 OF 06</small>
+                </header>
+                <section class="victorian-workout">
+                  <div class="folio-meta"><span>TRAINING RECORD</span><span>21 JUL 2026</span></div>
+                  <h2>Barbell Back Squat</h2>
+                  <p>Three working sets · six to ten repetitions</p>
+                  <div class="victorian-timer"><span>REST INTERVAL</span><strong>01:24</strong></div>
+                  <div class="victorian-exercise">
+                    <div class="victorian-exercise-title"><b>01</b><strong>Working sets</strong><small>PREVIOUS / 60 × 8</small></div>
+                    <div class="victorian-set-head"><span>SET</span><span>WEIGHT / KG</span><span>REPETITIONS</span><span>MARK</span></div>
+                    <div class="victorian-set"><span>I</span><span>62.5</span><span>8</span><i class="done">✓</i></div>
+                    <div class="victorian-set"><span>II</span><span>62.5</span><span>8</span><i></i></div>
+                    <div class="victorian-set"><span>III</span><span>62.5</span><span>—</span><i></i></div>
+                  </div>
+                </section>
+                <nav class="victorian-app-nav"><span class="active">SESSION</span><span>ARCHIVE</span></nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const buttons = document.querySelectorAll('[data-theme]');
+      const studies = document.querySelectorAll('[data-study]');
+      const requested = new URLSearchParams(location.search).get('theme');
+
+      function selectTheme(theme) {
+        buttons.forEach((button) => button.setAttribute('aria-selected', String(button.dataset.theme === theme)));
+        studies.forEach((study) => { study.hidden = study.dataset.study !== theme; });
+      }
+
+      buttons.forEach((button) => button.addEventListener('click', () => selectTheme(button.dataset.theme)));
+      if (requested === 'victorian' || requested === 'roman') selectTheme(requested);
+    </script>
+  </body>
+</html>
