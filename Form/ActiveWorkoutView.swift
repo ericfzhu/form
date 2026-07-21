@@ -101,8 +101,8 @@ struct ActiveWorkoutView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .confirmationDialog("Discard this workout?", isPresented: $showingCancelConfirmation) {
-            Button("Discard workout", role: .destructive, action: discardWorkout)
+        .confirmationDialog("Discard this session?", isPresented: $showingCancelConfirmation) {
+            Button("Discard session", role: .destructive, action: discardWorkout)
             Button("Keep training", role: .cancel) {}
         }
         .confirmationDialog(
@@ -119,7 +119,7 @@ struct ActiveWorkoutView: View {
                 showingCancelConfirmation = true
             }
         }
-        .alert("Couldn’t save workout", isPresented: Binding(
+        .alert("Couldn’t save session", isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
         )) {
@@ -203,6 +203,7 @@ struct ActiveWorkoutView: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             ActiveWorkoutHeader(
+                index: routine.id,
                 progress: "\(completedMovementCount) of \(drafts.count) movements"
             ) {
                 showingCancelConfirmation = true
@@ -821,17 +822,18 @@ struct CardioEntryEditor: View {
 }
 
 private struct ActiveWorkoutHeader: View {
+    let index: String
     let progress: String
     let close: () -> Void
 
     var body: some View {
         HStack(spacing: 0) {
-                Text("00")
+                Text(index)
                     .font(.system(size: 18, weight: .regular, design: .serif))
                     .foregroundStyle(InkPalette.cinnabar)
                     .frame(width: 52, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("IN PROGRESS")
+                    Text("SESSION IN PROGRESS")
                         .font(.system(size: 10, weight: .semibold, design: .serif))
                         .tracking(1.5)
                         .foregroundStyle(InkPalette.ink)

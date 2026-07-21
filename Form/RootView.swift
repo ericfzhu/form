@@ -243,7 +243,7 @@ private enum AppTab: CaseIterable, Hashable {
     var title: String {
         switch self {
         case .train: "Train"
-        case .history: "History"
+        case .history: "Record"
         }
     }
 
@@ -382,11 +382,11 @@ private struct RoutineListView: View {
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text("00 / ACTIVE SESSION")
+                                    Text("SESSION IN PROGRESS")
                                         .font(.system(size: 9, weight: .semibold, design: .serif))
                                         .tracking(1.5)
                                         .foregroundStyle(InkPalette.cinnabar)
-                                    Text("Resume \(resumeRoutine.name)")
+                                    Text(resumeRoutine.name)
                                         .font(.system(.title3, design: .serif, weight: .semibold))
                                         .foregroundStyle(InkPalette.ink)
                                     Text(resumeDetail)
@@ -394,7 +394,7 @@ private struct RoutineListView: View {
                                         .foregroundStyle(InkPalette.softInk)
                                 }
                                 Spacer()
-                                Text("RESUME")
+                                Text("CONTINUE")
                                     .font(.system(size: 10, weight: .semibold, design: .serif))
                                     .tracking(1.4)
                                     .foregroundStyle(InkPalette.cinnabar)
@@ -410,7 +410,7 @@ private struct RoutineListView: View {
                         .padding(.bottom, 24)
                     }
 
-                    RawSectionHeader(index: "01", title: "NEXT WORKOUT", trailing: "UP NEXT")
+                    RawSectionHeader(index: "01", title: "NEXT SESSION")
                         .padding(.bottom, 10)
 
                     NavigationLink(value: nextRoutine) {
@@ -423,7 +423,7 @@ private struct RoutineListView: View {
                     .buttonStyle(PressableButtonStyle())
                     .padding(.bottom, 28)
 
-                    RawSectionHeader(index: "02", title: "ROTATION", trailing: "CONTINUE")
+                    RawSectionHeader(index: "02", title: "ROTATION", trailing: "A → B → C")
                         .padding(.bottom, 10)
 
                     LazyVStack(spacing: 14) {
@@ -522,18 +522,6 @@ private struct RoutineCard: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                if isRecommended {
-                    HStack(spacing: 7) {
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(InkPalette.cinnabar)
-                            .frame(width: 8, height: 8)
-                        Text("UP NEXT")
-                            .font(.caption2.weight(.semibold))
-                            .tracking(1.6)
-                            .foregroundStyle(InkPalette.cinnabar)
-                    }
-                }
-
                 Text(routine.id)
                     .font(.system(size: 58, weight: .regular, design: .serif))
                     .tracking(-2)
@@ -580,7 +568,7 @@ private struct RoutineCard: View {
     }
 
     private var lastCompletedText: String {
-        guard let lastCompleted else { return "Not completed yet" }
+        guard let lastCompleted else { return "No previous session" }
         return "Last · \(lastCompleted.formatted(.dateTime.day().month(.abbreviated)))"
     }
 }
@@ -628,7 +616,7 @@ struct RoutineDetailView: View {
             )
         }
         .safeAreaInset(edge: .bottom) {
-            InkPrimaryButton(title: "Begin \(routine.name)") {
+            InkPrimaryButton(title: "Begin session") {
                 showingWorkout = true
             }
             .padding(.horizontal, 20)

@@ -12,13 +12,13 @@ struct HistoryView: View {
 
             if workouts.isEmpty {
                 VStack(spacing: 0) {
-                    RawScreenTitle(index: "02", title: "History", detail: "RECORD")
+                    RawScreenTitle(index: "02", title: "Record", detail: "SESSIONS")
                     EmptyHistoryView()
                         .frame(maxHeight: .infinity)
                 }
             } else {
                 List {
-                    RawScreenTitle(index: "02", title: "History", detail: "RECORD")
+                    RawScreenTitle(index: "02", title: "Record", detail: "SESSIONS")
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
@@ -56,7 +56,7 @@ struct HistoryView: View {
                             .tint(InkPalette.cinnabar)
                         }
                         .contextMenu {
-                            Button("Delete workout", role: .destructive) {
+                            Button("Delete session", role: .destructive) {
                                 delete(workout)
                             }
                         }
@@ -68,7 +68,7 @@ struct HistoryView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .alert("Couldn’t delete workout", isPresented: Binding(
+        .alert("Couldn’t delete session", isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
         )) {
@@ -86,7 +86,7 @@ struct HistoryView: View {
             try modelContext.save()
         } catch {
             modelContext.rollback()
-            saveErrorMessage = "The workout remains in History. Try again."
+            saveErrorMessage = "The session remains in the record. Try again."
         }
     }
 }
@@ -104,12 +104,12 @@ private struct EmptyHistoryView: View {
                     )
                 )
 
-            Text("No workouts yet")
+            Text("No sessions recorded")
                 .font(.system(size: 30, weight: .semibold, design: .serif))
                 .foregroundStyle(InkPalette.ink)
             InkDivider()
                 .frame(width: 120)
-            Text("Completed workouts will appear here.")
+            Text("Completed sessions will appear here.")
                 .font(.system(.body, design: .serif))
                 .foregroundStyle(InkPalette.softInk)
                 .multilineTextAlignment(.center)
@@ -204,7 +204,7 @@ private struct HistoryConsistencyView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("12-WEEK RHYTHM")
+                    Text("TWELVE-WEEK RECORD")
                         .font(.caption2.weight(.semibold))
                         .tracking(1.6)
                         .foregroundStyle(InkPalette.softInk)
@@ -450,7 +450,7 @@ private struct HistoryWeeklySummary: View {
             }
 
             HStack {
-                Text("Next · \(nextRoutineID)")
+                Text("Next session · \(nextRoutineID)")
                 Spacer()
                 Text("\(prCount) PR\(prCount == 1 ? "" : "s")")
             }
