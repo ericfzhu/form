@@ -7,6 +7,7 @@ private struct SetDraft: Identifiable {
     var weight: Double
     var repetitions: Int
     var completed = false
+    var kind: SetKind = .working
 }
 
 private struct ExerciseDraft: Identifiable {
@@ -15,10 +16,18 @@ private struct ExerciseDraft: Identifiable {
     var sets: [SetDraft]
 }
 
+private struct WorkoutLiveState: Equatable {
+    let completedMovements: Int
+    let totalMovements: Int
+    let currentExercise: String
+    let restEnd: Date?
+}
+
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var history: [WorkoutRecord]
+    @AppStorage("keep-screen-awake") private var keepScreenAwake = true
 
     let routine: RoutineTemplate
     let onDone: () -> Void
@@ -54,7 +63,8 @@ struct ActiveWorkoutView: View {
                     SetDraft(
                         weight: $0.weight,
                         repetitions: $0.repetitions,
-                        completed: $0.completed
+                        completed: $0.completed,
+                        kind: $0.kind ?? .working
                     )
                 } ?? (0..<exercise.sets).map { _ in
                     SetDraft(weight: 0, repetitions: exercise.minimumRepetitions)
@@ -73,6 +83,9 @@ struct ActiveWorkoutView: View {
         } ?? [])
         _expandedExerciseID = State(
             initialValue: validSnapshot?.expandedExerciseID ?? routine.exercises.first?.id
+        )
+        _restEnd = State(
+            initialValue: validSnapshot?.restEnd.flatMap { $0 > Date() ? $0 : nil }
         )
     }
 
@@ -118,10 +131,21 @@ struct ActiveWorkoutView: View {
             if !resumedFromSnapshot {
                 prefillFromHistory()
             }
+            updateScreenAwakeState()
             persistDraft()
+            syncLiveActivity(startIfNeeded: true)
         }
         .onChange(of: currentSnapshot) { _, _ in
             persistDraft()
+        }
+        .onChange(of: liveActivityState) { _, _ in
+            syncLiveActivity()
+        }
+        .onChange(of: keepScreenAwake) { _, _ in
+            updateScreenAwakeState()
+        }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
         }
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
@@ -248,7 +272,8 @@ struct ActiveWorkoutView: View {
                         ActiveSetSnapshot(
                             weight: $0.weight,
                             repetitions: $0.repetitions,
-                            completed: $0.completed
+                            completed: $0.completed,
+                            kind: $0.kind
                         )
                     }
                 )
@@ -263,7 +288,8 @@ struct ActiveWorkoutView: View {
                     incline: $0.incline
                 )
             },
-            expandedExerciseID: expandedExerciseID
+            expandedExerciseID: expandedExerciseID,
+            restEnd: restEnd
         )
     }
 
@@ -277,11 +303,13 @@ struct ActiveWorkoutView: View {
 
     private func discardWorkout() {
         ActiveWorkoutStore.clear()
+        UIApplication.shared.isIdleTimerDisabled = false
+        Task { await WorkoutLiveActivityController.end() }
         dismiss()
     }
 
     private func isExerciseComplete(_ draft: ExerciseDraft) -> Bool {
-        draft.sets.filter(\.completed).count >= draft.template.sets
+        draft.sets.filter { $0.completed && $0.kind == .working }.count >= draft.template.sets
     }
 
     private func didUpdateSet(for exerciseID: String, completed: Bool) {
@@ -310,9 +338,12 @@ struct ActiveWorkoutView: View {
             ) else { continue }
 
             let previousSets = previous.sets
-            for setIndex in drafts[draftIndex].sets.indices where setIndex < previousSets.count {
-                drafts[draftIndex].sets[setIndex].weight = previousSets[setIndex].weight
-                drafts[draftIndex].sets[setIndex].repetitions = previousSets[setIndex].repetitions
+            let workingIndices = drafts[draftIndex].sets.indices.filter {
+                drafts[draftIndex].sets[$0].kind == .working
+            }
+            for (setIndex, previousSet) in zip(workingIndices, previousSets) {
+                drafts[draftIndex].sets[setIndex].weight = previousSet.weight
+                drafts[draftIndex].sets[setIndex].repetitions = previousSet.repetitions
             }
         }
     }
@@ -332,7 +363,12 @@ struct ActiveWorkoutView: View {
             )
             exercise.sets = draft.sets.enumerated().compactMap { setIndex, set in
                 guard set.completed else { return nil }
-                return SetRecord(order: setIndex, weight: set.weight, repetitions: set.repetitions)
+                return SetRecord(
+                    order: setIndex,
+                    weight: set.weight,
+                    repetitions: set.repetitions,
+                    kind: set.kind
+                )
             }
             return exercise
         }
@@ -354,12 +390,65 @@ struct ActiveWorkoutView: View {
             try modelContext.save()
             ActiveWorkoutStore.clear()
             restEnd = nil
+            UIApplication.shared.isIdleTimerDisabled = false
+            Task { await WorkoutLiveActivityController.end() }
             withAnimation(.easeOut(duration: 0.22)) {
                 completedRecord = record
             }
         } catch {
             modelContext.rollback()
             saveErrorMessage = "Nothing was lost from this active session. Try saving again."
+        }
+    }
+
+    private var currentExerciseName: String {
+        if let expandedExerciseID,
+           let expanded = drafts.first(where: { $0.id == expandedExerciseID }) {
+            return expanded.template.name
+        }
+        return drafts.first(where: { !isExerciseComplete($0) })?.template.name
+            ?? routine.name
+    }
+
+    private var liveActivityState: WorkoutLiveState {
+        WorkoutLiveState(
+            completedMovements: completedMovementCount,
+            totalMovements: drafts.count,
+            currentExercise: currentExerciseName,
+            restEnd: restEnd
+        )
+    }
+
+    private func updateScreenAwakeState() {
+        UIApplication.shared.isIdleTimerDisabled = keepScreenAwake && completedRecord == nil
+    }
+
+    private func syncLiveActivity(startIfNeeded: Bool = false) {
+        let completed = completedMovementCount
+        let total = drafts.count
+        let exercise = currentExerciseName
+        let activeRestEnd = restEnd
+        let routineName = routine.name
+        let sessionStart = startedAt
+
+        Task {
+            if startIfNeeded {
+                await WorkoutLiveActivityController.begin(
+                    routineName: routineName,
+                    startedAt: sessionStart,
+                    completedMovements: completed,
+                    totalMovements: total,
+                    currentExercise: exercise,
+                    restEnd: activeRestEnd
+                )
+            } else {
+                await WorkoutLiveActivityController.update(
+                    completedMovements: completed,
+                    totalMovements: total,
+                    currentExercise: exercise,
+                    restEnd: activeRestEnd
+                )
+            }
         }
     }
 }
@@ -376,12 +465,14 @@ private struct WorkoutCompletionView: View {
 
     private var completedExercises: [ExerciseRecord] {
         record.exercises
-            .filter { !$0.sets.isEmpty }
+            .filter { exercise in exercise.sets.contains { $0.kind == .working } }
             .sorted { $0.order < $1.order }
     }
 
     private var completedSetCount: Int {
-        completedExercises.reduce(0) { $0 + $1.sets.count }
+        completedExercises.reduce(0) {
+            $0 + $1.sets.filter { $0.kind == .working }.count
+        }
     }
 
     private var cardioMinutes: Int {
@@ -522,16 +613,17 @@ private struct WorkoutCompletionView: View {
         let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
             ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
         return exercise.sets.sorted { $0.order < $1.order }.map { set in
+            let prefix = set.kind == .warmup ? "W " : ""
             switch measurement {
             case .weighted:
                 let weight = set.weight.formatted(
                     .number.precision(.fractionLength(set.weight.rounded() == set.weight ? 0 : 1))
                 )
-                return "\(weight) × \(set.repetitions)"
+                return "\(prefix)\(weight) × \(set.repetitions)"
             case .bodyweight:
-                return "\(set.repetitions) reps"
+                return "\(prefix)\(set.repetitions) reps"
             case .timed:
-                return "\(set.repetitions) sec"
+                return "\(prefix)\(set.repetitions) sec"
             }
         }
         .joined(separator: " · ")
@@ -779,7 +871,7 @@ private struct ExerciseLoggingCard: View {
     let didUpdateSet: (Bool) -> Void
 
     private var completedSetCount: Int {
-        draft.sets.filter(\.completed).count
+        draft.sets.filter { $0.completed && $0.kind == .working }.count
     }
 
     private var isComplete: Bool {
@@ -841,7 +933,7 @@ private struct ExerciseLoggingCard: View {
                         .padding(.vertical, 5)
 
                     HStack {
-                        Text("SET")
+                        Text("TYPE")
                             .frame(width: 36, alignment: .leading)
                         Text(draft.template.measurement == .weighted ? draft.template.loadLabel : "LOAD")
                             .frame(maxWidth: .infinity)
@@ -884,6 +976,29 @@ private struct ExerciseLoggingCard: View {
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
+
+                    Button {
+                        let firstWorkingIndex = draft.sets.firstIndex { $0.kind == .working } ?? 0
+                        let reference = draft.sets.indices.contains(firstWorkingIndex)
+                            ? draft.sets[firstWorkingIndex]
+                            : SetDraft(weight: 0, repetitions: draft.template.minimumRepetitions)
+                        draft.sets.insert(
+                            SetDraft(
+                                weight: reference.weight,
+                                repetitions: reference.repetitions,
+                                kind: .warmup
+                            ),
+                            at: firstWorkingIndex
+                        )
+                    } label: {
+                        Text("Add warm-up set")
+                            .font(.system(.caption, design: .serif, weight: .semibold))
+                            .foregroundStyle(InkPalette.cinnabar)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .padding(.horizontal, 10)
                     .padding(.bottom, 9)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -893,7 +1008,8 @@ private struct ExerciseLoggingCard: View {
     }
 
     private func setNumber(for id: UUID) -> Int {
-        (draft.sets.firstIndex { $0.id == id } ?? 0) + 1
+        guard let index = draft.sets.firstIndex(where: { $0.id == id }) else { return 1 }
+        return draft.sets.prefix(index + 1).filter { $0.kind == .working }.count
     }
 
     private var statusText: String {
@@ -963,10 +1079,27 @@ private struct SetLoggingRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("\(index)")
-                .font(.body.monospacedDigit().weight(.semibold))
-                .foregroundStyle(InkPalette.softInk)
-                .frame(width: 36, alignment: .leading)
+            Menu {
+                ForEach(SetKind.allCases) { kind in
+                    Button {
+                        set.kind = kind
+                    } label: {
+                        if set.kind == kind {
+                            Label(kind.title, systemImage: "checkmark")
+                        } else {
+                            Text(kind.title)
+                        }
+                    }
+                }
+            } label: {
+                Text(set.kind == .warmup ? set.kind.shortTitle : "\(index)")
+                    .font(.body.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
+                    .frame(width: 36, height: 44, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .tint(InkPalette.ink)
+            .accessibilityLabel("Set type: \(set.kind.title)")
 
             if measurement == .weighted {
                 TextField("0", value: $set.weight, format: .number.precision(.fractionLength(0...1)))

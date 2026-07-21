@@ -303,6 +303,7 @@ private struct InkTabBar: View {
 private struct RoutineListView: View {
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @AppStorage("progression-load-increment") private var loadIncrement = 2.5
+    @AppStorage("keep-screen-awake") private var keepScreenAwake = true
     @State private var resumeSnapshot: ActiveWorkoutSnapshot?
     @State private var showingResume = false
 
@@ -412,6 +413,22 @@ private struct RoutineListView: View {
                     }
                     .frame(minHeight: 52)
                     .padding(.top, 14)
+
+                    InkDivider()
+
+                    Toggle(isOn: $keepScreenAwake) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("KEEP SCREEN AWAKE")
+                                .font(.caption2.weight(.semibold))
+                                .tracking(1.4)
+                                .foregroundStyle(InkPalette.softInk)
+                            Text("While a workout is in progress")
+                                .font(.system(.caption, design: .serif))
+                                .foregroundStyle(InkPalette.softInk.opacity(0.76))
+                        }
+                    }
+                    .tint(InkPalette.cinnabar)
+                    .frame(minHeight: 58)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)

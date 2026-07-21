@@ -51,12 +51,40 @@ final class SetRecord {
     var order: Int
     var weight: Double
     var repetitions: Int
+    var kindRawValue: String = SetKind.working.rawValue
     var exercise: ExerciseRecord?
 
-    init(order: Int, weight: Double, repetitions: Int) {
+    var kind: SetKind {
+        get { SetKind(rawValue: kindRawValue) ?? .working }
+        set { kindRawValue = newValue.rawValue }
+    }
+
+    init(order: Int, weight: Double, repetitions: Int, kind: SetKind = .working) {
         self.order = order
         self.weight = weight
         self.repetitions = repetitions
+        kindRawValue = kind.rawValue
+    }
+}
+
+enum SetKind: String, CaseIterable, Identifiable, Codable {
+    case warmup
+    case working
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .warmup: "Warm-up"
+        case .working: "Working"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .warmup: "W"
+        case .working: "WORK"
+        }
     }
 }
 
@@ -90,6 +118,7 @@ struct ActiveSetSnapshot: Codable, Equatable {
     var weight: Double
     var repetitions: Int
     var completed: Bool
+    var kind: SetKind?
 }
 
 struct ActiveExerciseSnapshot: Codable, Equatable {
@@ -112,6 +141,7 @@ struct ActiveWorkoutSnapshot: Codable, Equatable {
     var exercises: [ActiveExerciseSnapshot]
     var cardio: [ActiveCardioSnapshot]
     var expandedExerciseID: String?
+    var restEnd: Date?
 }
 
 enum ActiveWorkoutStore {

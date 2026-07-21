@@ -15,7 +15,36 @@
 		A006 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B006 /* HistoryView.swift */; };
 		A008 /* ExerciseProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B009 /* ExerciseProgressView.swift */; };
 		A007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B007 /* Assets.xcassets */; };
+		A009 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* WorkoutActivityAttributes.swift */; };
+		A010 /* WorkoutLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B011 /* WorkoutLiveActivityController.swift */; };
+		A011 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* WorkoutActivityAttributes.swift */; };
+		A012 /* FormLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* FormLiveActivity.swift */; };
+		A013 /* FormLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B014 /* FormLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		M001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = P001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E002;
+			remoteInfo = FormLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		K001 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A013 /* FormLiveActivity.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		B001 /* FormApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormApp.swift; sourceTree = "<group>"; };
@@ -27,10 +56,22 @@
 		B007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B008 /* Form.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Form.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B009 /* ExerciseProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseProgressView.swift; sourceTree = "<group>"; };
+		B010 /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
+		B011 /* WorkoutLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityController.swift; sourceTree = "<group>"; };
+		B012 /* FormLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormLiveActivity.swift; sourceTree = "<group>"; };
+		B013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B014 /* FormLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FormLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C002 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -44,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				D002 /* Form */,
+				D004 /* FormLiveActivity */,
 				D003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,6 +100,8 @@
 				B005 /* ActiveWorkoutView.swift */,
 				B006 /* HistoryView.swift */,
 				B009 /* ExerciseProgressView.swift */,
+				B010 /* WorkoutActivityAttributes.swift */,
+				B011 /* WorkoutLiveActivityController.swift */,
 				B007 /* Assets.xcassets */,
 			);
 			path = Form;
@@ -67,8 +111,18 @@
 			isa = PBXGroup;
 			children = (
 				B008 /* Form.app */,
+				B014 /* FormLiveActivity.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D004 /* FormLiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				B012 /* FormLiveActivity.swift */,
+				B013 /* Info.plist */,
+			);
+			path = FormLiveActivity;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -81,15 +135,34 @@
 				G001 /* Sources */,
 				C001 /* Frameworks */,
 				F001 /* Resources */,
+				K001 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				L001 /* PBXTargetDependency */,
 			);
 			name = Form;
 			productName = Form;
 			productReference = B008 /* Form.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E002 /* FormLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = J003 /* Build configuration list for PBXNativeTarget "FormLiveActivity" */;
+			buildPhases = (
+				G002 /* Sources */,
+				C002 /* Frameworks */,
+				F002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FormLiveActivity;
+			productName = FormLiveActivity;
+			productReference = B014 /* FormLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -103,6 +176,9 @@
 				TargetAttributes = {
 					E001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					E002 = {
+						CreatedOnToolsVersion = 26.0;
 					};
 				};
 			};
@@ -120,6 +196,7 @@
 			projectRoot = "";
 			targets = (
 				E001 /* Form */,
+				E002 /* FormLiveActivity */,
 			);
 		};
 /* End PBXProject section */
@@ -130,6 +207,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				A007 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +231,17 @@
 				A005 /* ActiveWorkoutView.swift in Sources */,
 				A006 /* HistoryView.swift in Sources */,
 				A008 /* ExerciseProgressView.swift in Sources */,
+				A009 /* WorkoutActivityAttributes.swift in Sources */,
+				A010 /* WorkoutLiveActivityController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A011 /* WorkoutActivityAttributes.swift in Sources */,
+				A012 /* FormLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,6 +296,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Form;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -226,6 +322,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Form;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -239,7 +336,57 @@
 			};
 			name = Release;
 		};
-/* End XCBuildConfiguration section */
+		H005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2XS93G4WRL;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FormLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eric.form.FormLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		H006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2XS93G4WRL;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FormLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eric.form.FormLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+	/* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		J001 /* Build configuration list for PBXProject "Form" */ = {
@@ -260,7 +407,24 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		J003 /* Build configuration list for PBXNativeTarget "FormLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				H005 /* Debug */,
+				H006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin PBXTargetDependency section */
+		L001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E002 /* FormLiveActivity */;
+			targetProxy = M001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 	};
 	rootObject = P001 /* Project object */;
 }

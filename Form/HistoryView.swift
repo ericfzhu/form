@@ -21,6 +21,13 @@ struct HistoryView: View {
                             EdgeInsets(top: 10, leading: 20, bottom: 14, trailing: 20)
                         )
 
+                    HistoryConsistencyView(workouts: workouts)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(
+                            EdgeInsets(top: 0, leading: 20, bottom: 18, trailing: 20)
+                        )
+
                     ForEach(workouts) { workout in
                         NavigationLink(value: workout) {
                             HistoryCard(workout: workout)
@@ -147,7 +154,9 @@ private struct HistoryCard: View {
     }
 
     private var completedMovementCount: Int {
-        workout.exercises.filter { !$0.sets.isEmpty }.count
+        workout.exercises.filter { exercise in
+            exercise.sets.contains { $0.kind == .working }
+        }.count
     }
 
     private var detailText: String {
@@ -160,6 +169,215 @@ private struct HistoryCard: View {
             parts.append("\(cardioMinutes)m cardio")
         }
         return parts.joined(separator: " · ")
+    }
+}
+
+private struct HistoryConsistencyView: View {
+    let workouts: [WorkoutRecord]
+    @State private var displayedMonth = Calendar.current.date(
+        from: Calendar.current.dateComponents([.year, .month], from: Date())
+    ) ?? Date()
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+    private var calendar: Calendar { .current }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            calendarHeader
+            weekdayHeader
+            LazyVGrid(columns: columns, spacing: 7) {
+                ForEach(monthCells) { cell in
+                    dayCell(cell.date)
+                }
+            }
+
+            InkDivider()
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("12-WEEK RHYTHM")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.6)
+                        .foregroundStyle(InkPalette.softInk)
+                    Spacer()
+                    Text("\(activeWeekCount) active · \(twelveWeekSessionCount) sessions")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(InkPalette.softInk)
+                }
+
+                HStack(alignment: .bottom, spacing: 7) {
+                    ForEach(weeklyCounts) { week in
+                        VStack(spacing: 5) {
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(week.count > 0 ? InkPalette.cinnabar : InkPalette.washedInk.opacity(0.58))
+                                .frame(height: barHeight(for: week.count))
+                            if week.id == weeklyCounts.first?.id || week.id == weeklyCounts.last?.id {
+                                Text(week.id.formatted(.dateTime.month(.abbreviated)))
+                                    .font(.system(size: 8, design: .serif))
+                                    .foregroundStyle(InkPalette.softInk.opacity(0.74))
+                            } else {
+                                Color.clear.frame(height: 10)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .bottom)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(
+                            "Week of \(week.id.formatted(date: .abbreviated, time: .omitted)), \(week.count) sessions"
+                        )
+                    }
+                }
+                .frame(height: 60, alignment: .bottom)
+            }
+        }
+        .padding(.horizontal, 15)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(InkPalette.raisedPaper.opacity(0.64))
+        )
+    }
+
+    private var calendarHeader: some View {
+        HStack {
+            Button {
+                changeMonth(by: -1)
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(PressableButtonStyle())
+            .accessibilityLabel("Previous month")
+
+            Spacer()
+            Text(displayedMonth.formatted(.dateTime.month(.wide).year()))
+                .font(.system(.headline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.ink)
+            Spacer()
+
+            Button {
+                changeMonth(by: 1)
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(PressableButtonStyle())
+            .disabled(isCurrentMonth)
+            .opacity(isCurrentMonth ? 0.24 : 1)
+            .accessibilityLabel("Next month")
+        }
+        .foregroundStyle(InkPalette.ink)
+        .frame(height: 44)
+    }
+
+    private var weekdayHeader: some View {
+        LazyVGrid(columns: columns, spacing: 0) {
+            ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
+                Text(symbol.uppercased())
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(0.7)
+                    .foregroundStyle(InkPalette.softInk.opacity(0.74))
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private func dayCell(_ date: Date?) -> some View {
+        let sessionCount = date.map(sessionCount(on:)) ?? 0
+        let isToday = date.map(calendar.isDateInToday) ?? false
+
+        return VStack(spacing: 3) {
+            if let date {
+                Text(date.formatted(.dateTime.day()))
+                    .font(.caption.monospacedDigit().weight(sessionCount > 0 ? .semibold : .regular))
+                    .foregroundStyle(sessionCount > 0 ? InkPalette.ink : InkPalette.softInk)
+                Circle()
+                    .fill(sessionCount > 0 ? InkPalette.cinnabar : .clear)
+                    .frame(width: 4, height: 4)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 34)
+        .background {
+            if isToday {
+                Circle()
+                    .stroke(InkPalette.ink.opacity(0.2), lineWidth: 1)
+                    .frame(width: 32, height: 32)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(date.map {
+            "\($0.formatted(date: .long, time: .omitted)), \(sessionCount) sessions"
+        } ?? "")
+        .accessibilityHidden(date == nil)
+    }
+
+    private var weekdaySymbols: [String] {
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        let offset = max(0, calendar.firstWeekday - 1)
+        return Array(symbols[offset...] + symbols[..<offset])
+    }
+
+    private var monthCells: [CalendarCell] {
+        guard let dayRange = calendar.range(of: .day, in: .month, for: displayedMonth),
+              let firstDay = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth)) else {
+            return []
+        }
+        let weekday = calendar.component(.weekday, from: firstDay)
+        let leading = (weekday - calendar.firstWeekday + 7) % 7
+        var cells = (0..<leading).map { CalendarCell(id: $0, date: nil) }
+        cells += dayRange.map { day in
+            CalendarCell(
+                id: leading + day - 1,
+                date: calendar.date(byAdding: .day, value: day - 1, to: firstDay)
+            )
+        }
+        return cells
+    }
+
+    private var weeklyCounts: [WeekCount] {
+        guard let currentWeek = calendar.dateInterval(of: .weekOfYear, for: Date())?.start else {
+            return []
+        }
+        return (0..<12).reversed().compactMap { offset in
+            guard let start = calendar.date(byAdding: .weekOfYear, value: -offset, to: currentWeek),
+                  let end = calendar.date(byAdding: .weekOfYear, value: 1, to: start) else { return nil }
+            return WeekCount(
+                id: start,
+                count: workouts.filter { $0.date >= start && $0.date < end }.count
+            )
+        }
+    }
+
+    private var activeWeekCount: Int { weeklyCounts.filter { $0.count > 0 }.count }
+    private var twelveWeekSessionCount: Int { weeklyCounts.reduce(0) { $0 + $1.count } }
+    private var isCurrentMonth: Bool { calendar.isDate(displayedMonth, equalTo: Date(), toGranularity: .month) }
+
+    private func sessionCount(on date: Date) -> Int {
+        workouts.filter { calendar.isDate($0.date, inSameDayAs: date) }.count
+    }
+
+    private func barHeight(for count: Int) -> Double {
+        count == 0 ? 5 : min(42, 10 + Double(count) * 9)
+    }
+
+    private func changeMonth(by value: Int) {
+        guard let next = calendar.date(byAdding: .month, value: value, to: displayedMonth),
+              next <= Date() else { return }
+        withAnimation(.easeOut(duration: 0.2)) {
+            displayedMonth = next
+        }
+    }
+
+    private struct CalendarCell: Identifiable {
+        let id: Int
+        let date: Date?
+    }
+
+    private struct WeekCount: Identifiable {
+        let id: Date
+        let count: Int
     }
 }
 
@@ -176,7 +394,9 @@ private struct HistoryWeeklySummary: View {
 
     private var sets: Int {
         weeklyWorkouts.reduce(0) { result, workout in
-            result + workout.exercises.reduce(0) { $0 + $1.sets.count }
+            result + workout.exercises.reduce(0) {
+                $0 + $1.sets.filter { $0.kind == .working }.count
+            }
         }
     }
 
@@ -257,7 +477,9 @@ struct WorkoutHistoryDetail: View {
     @State private var showingEditor = false
 
     private var completedExercises: [ExerciseRecord] {
-        workout.exercises.filter { !$0.sets.isEmpty }.sorted { $0.order < $1.order }
+        workout.exercises
+            .filter { exercise in exercise.sets.contains { $0.kind == .working } }
+            .sorted { $0.order < $1.order }
     }
 
     private var skippedExerciseCount: Int {
@@ -416,9 +638,9 @@ private struct HistoryExerciseCard: View {
 
                 ForEach(exercise.sets.sorted { $0.order < $1.order }) { set in
                     HStack {
-                        Text("Set \(set.order + 1)")
+                        Text(set.kind == .warmup ? "Warm-up" : "Set \(workingSetNumber(for: set))")
                             .font(.system(.body, design: .serif))
-                            .foregroundStyle(InkPalette.softInk)
+                            .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
                         Spacer()
                         Text(setText(set))
                             .font(.body.monospacedDigit().weight(.semibold))
@@ -437,6 +659,12 @@ private struct HistoryExerciseCard: View {
             return "\(set.weight.formatted(.number.precision(.fractionLength(0...1)))) kg × \(set.repetitions)"
         }
         return "\(set.repetitions) reps"
+    }
+
+    private func workingSetNumber(for set: SetRecord) -> Int {
+        exercise.sets
+            .filter { $0.kind == .working && $0.order <= set.order }
+            .count
     }
 }
 
@@ -491,6 +719,7 @@ private struct EditableSetDraft: Identifiable {
     let id = UUID()
     var weight: Double
     var repetitions: Int
+    var kind: SetKind = .working
 }
 
 private struct EditableExerciseDraft: Identifiable {
@@ -538,7 +767,8 @@ private struct WorkoutEditorView: View {
                         .map {
                             EditableSetDraft(
                                 weight: $0.weight,
-                                repetitions: $0.repetitions
+                                repetitions: $0.repetitions,
+                                kind: $0.kind
                             )
                         }
                 )
@@ -735,7 +965,8 @@ private struct WorkoutEditorView: View {
                 SetRecord(
                     order: index,
                     weight: exerciseDraft.template.measurement == .weighted ? max(0, set.weight) : 0,
-                    repetitions: max(0, set.repetitions)
+                    repetitions: max(0, set.repetitions),
+                    kind: set.kind
                 )
             }
             savedExercises.append(record)
@@ -815,10 +1046,27 @@ private struct EditableExerciseCard: View {
 
             ForEach($exercise.sets) { $set in
                 HStack(spacing: 10) {
-                    Text("\((exercise.sets.firstIndex { $0.id == set.id } ?? 0) + 1)")
-                        .font(.body.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(InkPalette.softInk)
-                        .frame(width: 28, alignment: .leading)
+                    Menu {
+                        ForEach(SetKind.allCases) { kind in
+                            Button {
+                                set.kind = kind
+                            } label: {
+                                if set.kind == kind {
+                                    Label(kind.title, systemImage: "checkmark")
+                                } else {
+                                    Text(kind.title)
+                                }
+                            }
+                        }
+                    } label: {
+                        Text(set.kind == .warmup ? "W" : "\(workingSetNumber(for: set.id))")
+                            .font(.body.monospacedDigit().weight(.semibold))
+                            .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
+                            .frame(width: 28, height: 44, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .tint(InkPalette.ink)
+                    .accessibilityLabel("Set type: \(set.kind.title)")
 
                     if exercise.template.measurement == .weighted {
                         editField(exercise.template.loadLabel, value: $set.weight)
@@ -900,6 +1148,11 @@ private struct EditableExerciseCard: View {
                 .inkInput()
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func workingSetNumber(for id: UUID) -> Int {
+        guard let index = exercise.sets.firstIndex(where: { $0.id == id }) else { return 1 }
+        return exercise.sets.prefix(index + 1).filter { $0.kind == .working }.count
     }
 }
 

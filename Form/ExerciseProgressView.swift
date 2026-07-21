@@ -75,8 +75,11 @@ enum ProgressionEngine {
                   !exercise.sets.isEmpty else { return nil }
 
             let sets = exercise.sets
+                .filter { $0.kind == .working }
                 .sorted { $0.order < $1.order }
                 .map { PerformanceSetValue(weight: $0.weight, repetitions: $0.repetitions) }
+
+            guard !sets.isEmpty else { return nil }
 
             return ExercisePerformance(id: workout.persistentModelID, date: workout.date, sets: sets)
         }
