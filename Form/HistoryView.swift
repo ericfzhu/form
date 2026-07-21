@@ -12,13 +12,13 @@ struct HistoryView: View {
 
             if workouts.isEmpty {
                 VStack(spacing: 0) {
-                    RawScreenTitle(index: "02", title: "Record", detail: "SESSIONS")
+                    RawScreenTitle(index: "02", title: "Record", detail: "12 WEEKS")
                     EmptyHistoryView()
                         .frame(maxHeight: .infinity)
                 }
             } else {
                 List {
-                    RawScreenTitle(index: "02", title: "Record", detail: "SESSIONS")
+                    RawScreenTitle(index: "02", title: "Record", detail: "12 WEEKS")
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
@@ -204,7 +204,7 @@ private struct HistoryConsistencyView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("TWELVE-WEEK RECORD")
+                    Text("12-WEEK CONSISTENCY")
                         .font(.caption2.weight(.semibold))
                         .tracking(1.6)
                         .foregroundStyle(InkPalette.softInk)
@@ -300,9 +300,7 @@ private struct HistoryConsistencyView: View {
                 Text(date.formatted(.dateTime.day()))
                     .font(.caption.monospacedDigit().weight(sessionCount > 0 ? .semibold : .regular))
                     .foregroundStyle(sessionCount > 0 ? InkPalette.raisedPaper : InkPalette.softInk)
-                Text(sessionCount > 0 ? "TRAIN" : "")
-                    .font(.system(size: 5, weight: .bold, design: .monospaced))
-                    .tracking(0.4)
+                Color.clear.frame(height: 6)
             }
         }
         .frame(maxWidth: .infinity)

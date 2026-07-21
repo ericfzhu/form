@@ -372,7 +372,7 @@ private struct RoutineListView: View {
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    RawScreenTitle(index: "01", title: "Train", detail: "A → B → C")
+                    RawScreenTitle(index: "01", title: "Train")
                         .padding(.horizontal, -20)
                         .padding(.bottom, 24)
 
@@ -466,7 +466,7 @@ private struct RoutineListView: View {
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .tracking(1)
                                 .foregroundStyle(InkPalette.softInk)
-                            Text("While a workout is in progress")
+                            Text("While a session is in progress")
                                 .font(.system(.caption, design: .serif))
                                 .foregroundStyle(InkPalette.softInk.opacity(0.76))
                         }

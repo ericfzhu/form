@@ -322,7 +322,7 @@ struct ExerciseProgressView: View {
                     .frame(width: 132, height: 118)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("PRESCRIPTION")
+                    Text("TARGET")
                         .font(.caption2.weight(.semibold))
                         .tracking(1.5)
                         .foregroundStyle(InkPalette.softInk)

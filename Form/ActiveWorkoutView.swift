@@ -513,7 +513,7 @@ private struct WorkoutCompletionView: View {
                     .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
 
                     if completedExercises.isEmpty {
-                        Text("No completed movements")
+                        Text("No movements recorded")
                             .font(.system(.body, design: .serif))
                             .foregroundStyle(InkPalette.softInk)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -900,7 +900,7 @@ private struct ExerciseLoggingCard: View {
                     }
                     Spacer(minLength: 0)
 
-                    Text(isExpanded ? "CLOSE" : "VIEW")
+                    Text(isExpanded ? "HIDE" : "DETAILS")
                         .font(.system(size: 9, weight: .semibold, design: .serif))
                         .tracking(1.4)
                         .foregroundStyle(InkPalette.softInk.opacity(0.72))

@@ -8,7 +8,7 @@ const routines = {
     exercise: "Barbell Back Squat",
     target: "3 × 6–10",
     image: "/assets/barbell-back-squat.png",
-    progress: "Next / 62.5 kg",
+    progress: "Target · 62.5 kg",
   },
   B: {
     focus: "Hinge / incline / unilateral",
@@ -16,7 +16,7 @@ const routines = {
     exercise: "Conventional Deadlift",
     target: "3 × 5–6",
     image: "/assets/conventional-deadlift.png",
-    progress: "90 kg / aim for 6",
+    progress: "Target · 90 kg × 6",
   },
   C: {
     focus: "Squat / shoulders / carry",
@@ -24,7 +24,7 @@ const routines = {
     exercise: "Dumbbell Shoulder Press",
     target: "3 × 8–12",
     image: "/assets/shoulder-press.png",
-    progress: "Last / 22 kg each",
+    progress: "Previous · 22 kg / hand",
   },
 };
 
@@ -53,20 +53,20 @@ document.querySelector("#app").innerHTML = `
     <section class="hero" data-hero>
       <div class="hero-index" aria-hidden="true">FORM / IOS</div>
       <div class="hero-copy reveal">
-        <p class="kicker">WORKOUT ROTATION / A—B—C</p>
-        <h1>Know what<br /><span>comes next.</span></h1>
+        <p class="kicker">SESSION ROTATION / A · B · C</p>
+        <h1>Your training,<br /><span>in order.</span></h1>
         <p class="hero-lede">
-          Your next workout. Your last weight. A clear target. Form keeps the record so
-          you can keep training.
+          Form keeps your place in the rotation and carries your previous performance
+          into the next session.
         </p>
         <a class="raw-button" href="#rotation">
-          <span>SEE THE WORKOUTS</span>
+          <span>VIEW THE ROTATION</span>
           <span aria-hidden="true">↓</span>
         </a>
       </div>
 
       <div class="hero-stage reveal delay-1" aria-label="Form app workout preview">
-        <span class="device-note note-left">CURRENT<br />ROTATION</span>
+        <span class="device-note note-left">CURRENT<br />SEQUENCE</span>
         <div class="phone phone-hero">
           <div class="phone-screen">
             <img
@@ -78,14 +78,14 @@ document.querySelector("#app").innerHTML = `
             />
           </div>
         </div>
-        <span class="device-note note-right">LAST SET<br />READY</span>
+        <span class="device-note note-right">PREVIOUS<br />LOAD</span>
       </div>
     </section>
 
     <div class="ticker" aria-label="Product summary">
       <div class="ticker-track">
-        <span><b>I</b> ROTATION / A—B—C</span>
-        <span><b>II</b> PREVIOUS LOAD / READY</span>
+        <span><b>I</b> ROTATION / A · B · C</span>
+        <span><b>II</b> PREVIOUS LOAD / VISIBLE</span>
         <span><b>III</b> REST TIMER / LIVE</span>
       </div>
     </div>
@@ -98,10 +98,10 @@ document.querySelector("#app").innerHTML = `
       </div>
       <div class="feature-grid">
         <div class="feature-copy">
-          <p class="kicker">ONE DECISION REMOVED</p>
-          <h2>Finish one.<br />The next is ready.</h2>
+          <p class="kicker">THE SEQUENCE</p>
+          <h2>Complete a session.<br />Continue the sequence.</h2>
           <p>
-            Form holds your place across A, B, and C. Open the app and train what is next.
+            Form keeps your place in the A, B and C rotation.
           </p>
           <div class="routine-tabs" role="tablist" aria-label="Choose a workout">
             ${Object.keys(routines)
@@ -168,11 +168,11 @@ document.querySelector("#app").innerHTML = `
       </div>
       <div class="log-grid">
         <div class="log-copy">
-          <p class="kicker">NO MEMORY TEST</p>
-          <h2>Last time<br />is already<br />there.</h2>
+          <p class="kicker">PREVIOUS PERFORMANCE</p>
+          <h2>Begin from<br />your last result.</h2>
           <p>
-            Weight and reps carry into the next session. Warm-up sets stay separate from
-            the work that counts.
+            Weight and reps carry into the next session. Warm-up and working sets remain
+            separate.
           </p>
         </div>
 
@@ -224,11 +224,11 @@ document.querySelector("#app").innerHTML = `
           <div class="giant-clock" aria-hidden="true">01<span>:</span>30</div>
         </div>
         <div class="timer-copy">
-          <p class="kicker">PUT THE PHONE DOWN</p>
+          <p class="kicker">REST TIMER</p>
           <h2>Rest time<br />stays visible.</h2>
           <p>
-            Keep the session awake while logging. Lock the screen and rest time stays
-            visible in Live Activities and the Dynamic Island.
+            The screen stays awake while you log. After you lock it, the timer remains
+            visible in the Live Activity and Dynamic Island.
           </p>
         </div>
       </div>
@@ -241,11 +241,11 @@ document.querySelector("#app").innerHTML = `
         <span>SESSION → WEEK → BLOCK</span>
       </div>
       <div class="progress-heading">
-        <p class="kicker">THE RECORD HAS A JOB</p>
-        <h2>See the work.<br />Set the next number.</h2>
+        <p class="kicker">PROGRESSION</p>
+        <h2>Review the record.<br />Set the next target.</h2>
         <p>
-          Review every session, scan training consistency, and see whether weight, reps,
-          and volume are moving.
+          Review each session and follow your consistency over time. Trends show how
+          your load, reps and volume are changing.
         </p>
       </div>
 
@@ -270,7 +270,7 @@ document.querySelector("#app").innerHTML = `
         </div>
 
         <div class="rhythm-panel">
-          <div class="panel-head"><span>12 WEEK RHYTHM</span><span>27 / 36</span></div>
+          <div class="panel-head"><span>12-WEEK CONSISTENCY</span><span>27 / 36</span></div>
           <div class="rhythm-bars">
             ${weeks.map((sessions, index) => `<span style="--sessions:${sessions}" aria-label="Week ${index + 1}: ${sessions} sessions"></span>`).join("")}
           </div>
@@ -287,7 +287,7 @@ document.querySelector("#app").innerHTML = `
 
   <footer>
     <span>FORM</span>
-    <span>WORKOUT TRACKING FOR IPHONE</span>
+    <span>TRAINING RECORD FOR IPHONE</span>
     <span>© <span id="year"></span></span>
   </footer>
 `;
