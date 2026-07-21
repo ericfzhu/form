@@ -306,8 +306,47 @@ body {
   transition-duration: 150ms;
 }
 
-.routine-tab::after { height: 2px; background: var(--red); }
+.routine-tab::after { display: none; }
 .routine-tab.active { background: var(--red); color: var(--chalk); }
+
+.rotation-timing {
+  width: 180px;
+  margin-top: 13px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  color: var(--bronze);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+}
+
+.rotation-next { min-width: 47px; white-space: nowrap; }
+
+.rotation-meter {
+  height: 5px;
+  padding: 1px;
+  border: 1px solid rgba(138, 116, 71, 0.58);
+}
+
+.rotation-meter i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.rotation-timing.is-counting .rotation-meter i {
+  animation: rotation-countdown 3s linear forwards;
+}
+
+@keyframes rotation-countdown {
+  to { transform: scaleX(1); }
+}
 
 .routine-viewport { background: var(--chalk); }
 .routine-track { transition-duration: var(--slide-duration, 620ms); transition-timing-function: cubic-bezier(.2,0,0,1); }
@@ -593,6 +632,7 @@ footer > span { min-height: 76px; border-color: rgba(243,238,227,.24); }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rotation-timing { display: none; }
   .reveal,
   .feature-copy,
   .log-copy,

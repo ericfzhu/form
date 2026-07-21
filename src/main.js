@@ -119,6 +119,10 @@ document.querySelector("#app").innerHTML = `
               )
               .join("")}
           </div>
+          <div class="rotation-timing" aria-hidden="true">
+            <span class="rotation-next">NEXT · B</span>
+            <span class="rotation-meter"><i></i></span>
+          </div>
         </div>
 
         <div
@@ -294,6 +298,8 @@ document.querySelector("#app").innerHTML = `
 
 const tabButtons = document.querySelectorAll(".routine-tab");
 const routineKeys = Object.keys(routines);
+const rotationTiming = document.querySelector(".rotation-timing");
+const rotationNext = document.querySelector(".rotation-next");
 const routineViewport = document.querySelector(".routine-viewport");
 const routineTrack = document.querySelector(".routine-track");
 const routineSlides = document.querySelectorAll("[data-routine-slide]");
@@ -310,13 +316,15 @@ let announceAfterSlide = false;
 
 function stopCountdown() {
   tabButtons.forEach((button) => button.classList.remove("is-counting"));
+  rotationTiming.classList.remove("is-counting");
 }
 
 function startCountdown() {
   const activeButton = document.querySelector(".routine-tab.active");
   if (!activeButton || carouselPaused || document.hidden || reducedMotion.matches) return;
-  activeButton.getBoundingClientRect();
+  rotationTiming.getBoundingClientRect();
   activeButton.classList.add("is-counting");
+  rotationTiming.classList.add("is-counting");
 }
 
 function stopCarousel() {
@@ -335,6 +343,8 @@ function scheduleCarousel() {
 }
 
 function updateRoutineSelection(key) {
+  const nextIndex = (routineKeys.indexOf(key) + 1) % routineKeys.length;
+  rotationNext.textContent = `NEXT · ${routineKeys[nextIndex]}`;
   tabButtons.forEach((button) => {
     const selected = button.dataset.routine === key;
     button.classList.toggle("active", selected);
