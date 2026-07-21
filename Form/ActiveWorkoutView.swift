@@ -196,7 +196,7 @@ struct ActiveWorkoutView: View {
                     CardioLoggingSection(entries: $cardioDrafts)
                         .padding(.top, 8)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 12)
                 .padding(.top, 14)
                 .padding(.bottom, restEnd == nil ? 96 : 158)
             }
@@ -220,7 +220,7 @@ struct ActiveWorkoutView: View {
                         .foregroundStyle(InkPalette.cinnabar)
                         .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 4)
                     .background(PaperSurface())
                 } else {
@@ -234,9 +234,12 @@ struct ActiveWorkoutView: View {
 
                         InkPrimaryButton(title: "Finish session", action: requestFinish)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 10)
-                    .background(InkPalette.paper.opacity(0.95))
+                    .background(InkPalette.paper)
+                    .overlay(alignment: .top) {
+                        Rectangle().fill(InkPalette.ink).frame(height: 1)
+                    }
                 }
             }
             .animation(.easeOut(duration: 0.16), value: isKeyboardVisible)
@@ -505,8 +508,8 @@ private struct WorkoutCompletionView: View {
                         )
                     }
                     .padding(.vertical, 15)
-                    .background(InkPalette.raisedPaper.opacity(0.72))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(InkPalette.raisedPaper)
+                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
 
                     if completedExercises.isEmpty {
                         Text("No completed movements")
@@ -660,27 +663,21 @@ private struct WorkoutCompletionView: View {
 
 private struct CompletionHeader: View {
     var body: some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(InkPalette.cinnabar)
-                    .frame(width: 9, height: 9)
+        HStack(spacing: 10) {
+                Text("✓")
+                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .foregroundStyle(InkPalette.acid)
+                    .frame(width: 52, height: 52)
+                    .background(InkPalette.ink)
                 Text("SESSION COMPLETE")
-                    .font(.caption.weight(.semibold))
-                    .tracking(2.4)
-                    .foregroundStyle(InkPalette.softInk)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .tracking(1.3)
+                    .foregroundStyle(InkPalette.ink)
                 Spacer()
-            }
-            .frame(minHeight: 44)
-
-            InkDivider()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, 6)
-        .background {
-            PaperSurface()
-        }
+        .padding(.trailing, 16)
+        .background { PaperSurface() }
+        .overlay(alignment: .bottom) { InkDivider() }
     }
 }
 
@@ -720,14 +717,14 @@ struct CardioLoggingSection: View {
                     Image(systemName: "plus")
                     Text(entries.isEmpty ? "Add cardio" : "Add another cardio entry")
                 }
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .tracking(0.8)
+                .textCase(.uppercase)
                 .foregroundStyle(InkPalette.ink)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(InkPalette.raisedPaper.opacity(0.72))
-                )
+                .background(InkPalette.raisedPaper)
+                .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -828,37 +825,38 @@ private struct ActiveWorkoutHeader: View {
     let close: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(InkPalette.cinnabar)
-                    .frame(width: 9, height: 9)
+        HStack(spacing: 0) {
+                Text("00")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(InkPalette.raisedPaper)
+                    .frame(width: 52, height: 56)
+                    .background(InkPalette.cinnabar)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("IN PROGRESS")
-                        .font(.caption.weight(.semibold))
-                        .tracking(2.6)
-                        .foregroundStyle(InkPalette.softInk)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(InkPalette.ink)
                     Text(progress)
-                        .font(.system(.caption2, design: .serif))
+                        .font(.system(size: 9, design: .monospaced))
                         .foregroundStyle(InkPalette.softInk.opacity(0.76))
                         .monospacedDigit()
                 }
+                .padding(.leading, 12)
 
                 Spacer()
 
                 Button("Close", action: close)
-                    .font(.system(.subheadline, design: .serif, weight: .medium))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .textCase(.uppercase)
                     .foregroundStyle(InkPalette.ink)
-                    .frame(minWidth: 44, minHeight: 44)
+                    .frame(width: 72, height: 56)
+                    .overlay(alignment: .leading) {
+                        Rectangle().fill(InkPalette.ink).frame(width: 1)
+                    }
                     .buttonStyle(PressableButtonStyle())
-            }
-
-            InkDivider()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, 6)
-        .background(InkPalette.paper.opacity(0.96))
+        .background(InkPalette.paper)
+        .overlay(alignment: .bottom) { InkDivider() }
     }
 }
 
@@ -890,7 +888,7 @@ private struct ExerciseLoggingCard: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(draft.template.name)
-                            .font(.system(.headline, design: .serif, weight: .semibold))
+                            .font(.system(.headline, design: .default, weight: .black))
                             .foregroundStyle(InkPalette.ink)
                             .multilineTextAlignment(.leading)
                         Text(draft.template.targetText)
@@ -905,7 +903,7 @@ private struct ExerciseLoggingCard: View {
                     Spacer(minLength: 0)
 
                     Text(isExpanded ? "CLOSE" : "VIEW")
-                        .font(.caption2.weight(.semibold))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .tracking(1.1)
                         .foregroundStyle(InkPalette.softInk.opacity(0.72))
                         .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
@@ -969,10 +967,14 @@ private struct ExerciseLoggingCard: View {
                             Image(systemName: "plus")
                             Text("Add another set")
                         }
-                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .tracking(0.7)
+                        .textCase(.uppercase)
                         .foregroundStyle(InkPalette.ink)
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
+                        .background(InkPalette.raisedPaper)
+                        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -992,10 +994,13 @@ private struct ExerciseLoggingCard: View {
                         )
                     } label: {
                         Text("Add warm-up set")
-                            .font(.system(.caption, design: .serif, weight: .semibold))
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .tracking(0.7)
+                            .textCase(.uppercase)
                             .foregroundStyle(InkPalette.cinnabar)
                             .frame(maxWidth: .infinity)
                             .frame(height: 42)
+                            .overlay { Rectangle().stroke(InkPalette.cinnabar, lineWidth: 1) }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -1093,9 +1098,11 @@ private struct SetLoggingRow: View {
                 }
             } label: {
                 Text(set.kind == .warmup ? set.kind.shortTitle : "\(index)")
-                    .font(.body.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
-                    .frame(width: 36, height: 44, alignment: .leading)
+                    .font(.system(.body, design: .monospaced, weight: .bold))
+                    .foregroundStyle(InkPalette.ink)
+                    .frame(width: 36, height: 44)
+                    .background(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.acid)
+                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
                     .contentShape(Rectangle())
             }
             .tint(InkPalette.ink)
@@ -1108,17 +1115,13 @@ private struct SetLoggingRow: View {
                     .frame(maxWidth: .infinity)
                     .inkInput()
             } else {
-                Text("BODY")
+                    Text("BODY")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
-                    .background(InkPalette.paper.opacity(0.45))
-                    .overlay(alignment: .bottom) {
-                        Rectangle()
-                            .fill(InkPalette.ink.opacity(0.28))
-                            .frame(height: 1)
-                    }
+                    .background(InkPalette.raisedPaper)
+                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
             }
 
             TextField("0", value: $set.repetitions, format: .number)
@@ -1134,9 +1137,9 @@ private struct SetLoggingRow: View {
                 didToggleCompletion(completed)
             } label: {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 2)
+                    Rectangle()
                         .stroke(InkPalette.ink.opacity(set.completed ? 0 : 0.28), lineWidth: 1)
-                    RoundedRectangle(cornerRadius: 2)
+                    Rectangle()
                         .fill(set.completed ? InkPalette.cinnabar : .clear)
                     Image(systemName: "checkmark")
                         .font(.system(size: 14, weight: .bold))
@@ -1154,6 +1157,9 @@ private struct SetLoggingRow: View {
             .accessibilityLabel(set.completed ? "Mark incomplete" : "Mark complete")
         }
         .padding(.vertical, 2)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(InkPalette.ink.opacity(0.18)).frame(height: 1)
+        }
     }
 }
 
@@ -1163,12 +1169,8 @@ struct InkInput: ViewModifier {
             .font(.body.monospacedDigit().weight(.medium))
             .foregroundStyle(InkPalette.ink)
             .frame(height: 42)
-            .background(InkPalette.paper.opacity(0.45))
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(InkPalette.ink.opacity(0.28))
-                    .frame(height: 1)
-            }
+            .background(InkPalette.raisedPaper)
+            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
     }
 }
 
@@ -1203,7 +1205,8 @@ private struct RestTimer: View {
             }
             .padding(.horizontal, 16)
             .frame(height: 64)
-            .inkCard()
+            .background(InkPalette.acid)
+            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
             .onChange(of: remaining) { _, value in
                 if value == 0 { cancel() }
             }

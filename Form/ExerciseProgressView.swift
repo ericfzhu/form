@@ -250,6 +250,10 @@ struct ExerciseProgressView: View {
 
             ScrollView {
                 LazyVStack(spacing: 18) {
+                    RawScreenTitle(index: "03", title: "Progress", detail: "12 WEEKS")
+                        .padding(.horizontal, -20)
+                        .padding(.bottom, 2)
+
                     exerciseOverview
 
                     if let recommendation {
@@ -376,8 +380,8 @@ struct ExerciseProgressView: View {
             }
         }
         .padding(.vertical, 14)
-        .background(InkPalette.raisedPaper.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(InkPalette.raisedPaper)
+        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
     }
 
     private func summaryItem(label: String, value: String) -> some View {
@@ -405,15 +409,16 @@ struct ExerciseProgressView: View {
                     } label: {
                         Text(metric.title(for: exercise.measurement))
                             .font(.system(.caption, design: .serif, weight: selectedMetric == metric ? .semibold : .regular))
-                            .foregroundStyle(selectedMetric == metric ? InkPalette.ink : InkPalette.softInk)
                             .padding(.horizontal, 12)
                             .frame(minHeight: 40)
                             .background {
                                 if selectedMetric == metric {
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .fill(InkPalette.raisedPaper)
+                                    Rectangle()
+                                        .fill(InkPalette.ink)
                                 }
                             }
+                            .foregroundStyle(selectedMetric == metric ? InkPalette.raisedPaper : InkPalette.softInk)
+                            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
                     }
                     .buttonStyle(PressableButtonStyle())
                 }
@@ -424,15 +429,15 @@ struct ExerciseProgressView: View {
                     x: .value("Date", performance.date),
                     y: .value(selectedMetric.axisLabel(for: exercise.measurement), selectedMetric.value(for: performance))
                 )
-                .foregroundStyle(InkPalette.ink)
-                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                .foregroundStyle(InkPalette.cinnabar)
+                .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .square, lineJoin: .bevel))
 
                 PointMark(
                     x: .value("Date", performance.date),
                     y: .value(selectedMetric.axisLabel(for: exercise.measurement), selectedMetric.value(for: performance))
                 )
-                .foregroundStyle(InkPalette.cinnabar)
-                .symbolSize(34)
+                .foregroundStyle(InkPalette.acid)
+                .symbolSize(42)
             }
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { _ in

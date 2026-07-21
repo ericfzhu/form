@@ -13,7 +13,7 @@ struct FormWorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
             lockScreenView(context)
-                .activityBackgroundTint(Color(red: 0.955, green: 0.938, blue: 0.89))
+                .activityBackgroundTint(paper)
                 .activitySystemActionForegroundColor(ink)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -27,11 +27,11 @@ struct FormWorkoutLiveActivity: Widget {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(context.attributes.routineName.uppercased())
-                                .font(.caption2.weight(.semibold))
-                                .tracking(1.2)
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .tracking(1)
                                 .foregroundStyle(.secondary)
                             Text(context.state.currentExercise)
-                                .font(.subheadline.weight(.semibold))
+                                .font(.subheadline.weight(.black))
                                 .lineLimit(1)
                         }
                         Spacer(minLength: 12)
@@ -52,28 +52,32 @@ struct FormWorkoutLiveActivity: Widget {
     private func lockScreenView(
         _ context: ActivityViewContext<WorkoutActivityAttributes>
     ) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 0) {
             activityMark
-                .frame(width: 32)
+                .frame(width: 50, height: 68)
+                .background(cinnabar)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(context.attributes.routineName.uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.4)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1)
                     .foregroundStyle(softInk)
                 Text(context.state.currentExercise)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .font(.system(.headline, design: .default, weight: .black))
                     .foregroundStyle(ink)
                     .lineLimit(1)
                 progressText(context.state)
                     .foregroundStyle(softInk)
             }
+            .padding(.leading, 12)
 
             Spacer(minLength: 12)
             timerOrElapsed(context)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.trailing, 16)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(ink).frame(height: 1)
+        }
     }
 
     @ViewBuilder
@@ -83,8 +87,8 @@ struct FormWorkoutLiveActivity: Widget {
         if let restEnd = context.state.restEnd, restEnd > Date() {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("REST")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.2)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1)
                     .foregroundStyle(cinnabar)
                 Text(timerInterval: Date()...restEnd, countsDown: true)
                     .font(.title3.monospacedDigit().weight(.semibold))
@@ -93,8 +97,8 @@ struct FormWorkoutLiveActivity: Widget {
         } else {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("SESSION")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.2)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1)
                     .foregroundStyle(softInk)
                 Text(context.attributes.startedAt, style: .timer)
                     .font(.title3.monospacedDigit().weight(.semibold))
@@ -123,22 +127,23 @@ struct FormWorkoutLiveActivity: Widget {
         _ state: WorkoutActivityAttributes.ContentState
     ) -> some View {
         Text("\(state.completedMovements) of \(state.totalMovements) movements")
-            .font(.caption.monospacedDigit())
+            .font(.system(.caption, design: .monospaced))
     }
 
     private var activityMark: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(cinnabar)
-                .frame(width: 22, height: 22)
-            Circle()
-                .fill(Color(red: 0.955, green: 0.938, blue: 0.89))
-                .frame(width: 6, height: 6)
+            Rectangle().fill(cinnabar)
+            Text("F")
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundStyle(acid)
         }
+        .frame(width: 22, height: 22)
         .accessibilityHidden(true)
     }
 
-    private var ink: Color { Color(red: 0.08, green: 0.075, blue: 0.065) }
-    private var softInk: Color { Color(red: 0.34, green: 0.32, blue: 0.28) }
-    private var cinnabar: Color { Color(red: 0.56, green: 0.12, blue: 0.09) }
+    private var ink: Color { Color(red: 0.067, green: 0.067, blue: 0.059) }
+    private var softInk: Color { Color(red: 0.29, green: 0.28, blue: 0.25) }
+    private var paper: Color { Color(red: 0.914, green: 0.886, blue: 0.835) }
+    private var cinnabar: Color { Color(red: 0.835, green: 0.169, blue: 0.118) }
+    private var acid: Color { Color(red: 0.91, green: 1.0, blue: 0.21) }
 }

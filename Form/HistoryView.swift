@@ -11,9 +11,18 @@ struct HistoryView: View {
             PaperBackground()
 
             if workouts.isEmpty {
-                EmptyHistoryView()
+                VStack(spacing: 0) {
+                    RawScreenTitle(index: "02", title: "History", detail: "RECORD")
+                    EmptyHistoryView()
+                        .frame(maxHeight: .infinity)
+                }
             } else {
                 List {
+                    RawScreenTitle(index: "02", title: "History", detail: "RECORD")
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
+
                     HistoryWeeklySummary(workouts: workouts)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
@@ -127,7 +136,7 @@ private struct HistoryCard: View {
             }
             .frame(width: 62)
 
-            Capsule()
+            Rectangle()
                 .fill(InkPalette.ink.opacity(0.18))
                 .frame(width: 1, height: 58)
 
@@ -208,7 +217,7 @@ private struct HistoryConsistencyView: View {
                 HStack(alignment: .bottom, spacing: 7) {
                     ForEach(weeklyCounts) { week in
                         VStack(spacing: 5) {
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            Rectangle()
                                 .fill(week.count > 0 ? InkPalette.cinnabar : InkPalette.washedInk.opacity(0.58))
                                 .frame(height: barHeight(for: week.count))
                             if week.id == weeklyCounts.first?.id || week.id == weeklyCounts.last?.id {
@@ -231,10 +240,8 @@ private struct HistoryConsistencyView: View {
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(InkPalette.raisedPaper.opacity(0.64))
-        )
+        .background(InkPalette.raisedPaper)
+        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
     }
 
     private var calendarHeader: some View {
@@ -291,19 +298,21 @@ private struct HistoryConsistencyView: View {
             if let date {
                 Text(date.formatted(.dateTime.day()))
                     .font(.caption.monospacedDigit().weight(sessionCount > 0 ? .semibold : .regular))
-                    .foregroundStyle(sessionCount > 0 ? InkPalette.ink : InkPalette.softInk)
-                Circle()
-                    .fill(sessionCount > 0 ? InkPalette.cinnabar : .clear)
-                    .frame(width: 4, height: 4)
+                    .foregroundStyle(sessionCount > 0 ? InkPalette.raisedPaper : InkPalette.softInk)
+                Text(sessionCount > 0 ? "TRAIN" : "")
+                    .font(.system(size: 5, weight: .bold, design: .monospaced))
+                    .tracking(0.4)
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 34)
+        .frame(height: 38)
+        .background(sessionCount > 0 ? InkPalette.cinnabar : Color.clear)
+        .foregroundStyle(sessionCount > 0 ? InkPalette.raisedPaper : InkPalette.ink)
+        .overlay { Rectangle().stroke(InkPalette.ink.opacity(0.28), lineWidth: 0.5) }
         .background {
             if isToday {
-                Circle()
-                    .stroke(InkPalette.ink.opacity(0.2), lineWidth: 1)
-                    .frame(width: 32, height: 32)
+                Rectangle()
+                    .stroke(InkPalette.ink, lineWidth: 2)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -449,10 +458,8 @@ private struct HistoryWeeklySummary: View {
             .monospacedDigit()
         }
         .padding(15)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(InkPalette.raisedPaper.opacity(0.76))
-        )
+        .background(InkPalette.raisedPaper)
+        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
     }
 
     private func metric(_ value: String, _ label: String) -> some View {
@@ -903,10 +910,8 @@ private struct WorkoutEditorView: View {
                 .foregroundStyle(InkPalette.ink)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(InkPalette.raisedPaper.opacity(0.72))
-                )
+                .background(InkPalette.raisedPaper)
+                .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
         }
     }
 

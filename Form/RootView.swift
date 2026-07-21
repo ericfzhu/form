@@ -3,56 +3,108 @@ import SwiftData
 import UIKit
 
 enum InkPalette {
-    static let ink = Color(red: 0.08, green: 0.075, blue: 0.065)
-    static let softInk = Color(red: 0.34, green: 0.32, blue: 0.28)
-    static let paper = Color(red: 0.955, green: 0.938, blue: 0.89)
-    static let raisedPaper = Color(red: 0.982, green: 0.969, blue: 0.925)
-    static let washedInk = Color(red: 0.83, green: 0.81, blue: 0.75)
-    static let cinnabar = Color(red: 0.56, green: 0.12, blue: 0.09)
+    static let ink = Color(red: 0.067, green: 0.067, blue: 0.059)
+    static let softInk = Color(red: 0.29, green: 0.28, blue: 0.25)
+    static let paper = Color(red: 0.914, green: 0.886, blue: 0.835)
+    static let raisedPaper = Color(red: 0.957, green: 0.937, blue: 0.898)
+    static let washedInk = Color(red: 0.69, green: 0.66, blue: 0.60)
+    static let cinnabar = Color(red: 0.835, green: 0.169, blue: 0.118)
+    static let acid = Color(red: 0.91, green: 1.0, blue: 0.21)
 }
 
 struct PaperSurface: View {
     var body: some View {
-        ZStack {
-            InkPalette.paper
-            Image("xuan-paper")
-                .resizable(resizingMode: .tile)
-                .blendMode(.multiply)
-                .opacity(0.34)
-            LinearGradient(
-                colors: [.white.opacity(0.12), .clear, InkPalette.ink.opacity(0.018)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        InkPalette.paper
     }
 }
 
 struct PaperBackground: View {
     var body: some View {
-        PaperSurface()
+        GeometryReader { proxy in
+            ZStack {
+                PaperSurface()
+                HStack(spacing: 0) {
+                    ForEach(0..<4, id: \.self) { column in
+                        Color.clear
+                            .frame(width: proxy.size.width / 4)
+                            .overlay(alignment: .trailing) {
+                                if column < 3 {
+                                    Rectangle()
+                                        .fill(InkPalette.ink.opacity(0.055))
+                                        .frame(width: 1)
+                                }
+                            }
+                    }
+                }
+            }
+        }
         .ignoresSafeArea()
     }
 }
 
 struct InkDivider: View {
     var body: some View {
-        GeometryReader { proxy in
-            Path { path in
-                path.move(to: CGPoint(x: 0, y: 2))
-                path.addCurve(
-                    to: CGPoint(x: proxy.size.width, y: 2),
-                    control1: CGPoint(x: proxy.size.width * 0.30, y: 1.2),
-                    control2: CGPoint(x: proxy.size.width * 0.70, y: 2.8)
-                )
-            }
-            .stroke(
-                InkPalette.ink.opacity(0.24),
-                style: StrokeStyle(lineWidth: 1, lineCap: .round)
-            )
-        }
-        .frame(height: 5)
+        Rectangle()
+            .fill(InkPalette.ink)
+            .frame(height: 1)
         .accessibilityHidden(true)
+    }
+}
+
+struct RawScreenTitle: View {
+    let index: String
+    let title: String
+    var detail: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("FORM—\(index)")
+                Spacer()
+                if !detail.isEmpty { Text(detail) }
+            }
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .tracking(1.1)
+            .foregroundStyle(InkPalette.softInk)
+
+            Text(title.uppercased())
+                .font(.system(size: 64, weight: .black, design: .default))
+                .tracking(-4.8)
+                .foregroundStyle(InkPalette.ink)
+                .minimumScaleFactor(0.62)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 30)
+        .padding(.bottom, 22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .bottom) { InkDivider() }
+    }
+}
+
+struct RawSectionHeader: View {
+    let index: String
+    let title: String
+    var trailing: String = ""
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Text(index)
+                .frame(width: 48)
+                .overlay(alignment: .trailing) { Rectangle().fill(InkPalette.ink).frame(width: 1) }
+            Text(title)
+                .padding(.leading, 12)
+            Spacer()
+            if !trailing.isEmpty {
+                Text(trailing)
+                    .foregroundStyle(InkPalette.softInk)
+                    .padding(.trailing, 12)
+            }
+        }
+        .font(.system(size: 9, weight: .bold, design: .monospaced))
+        .tracking(1)
+        .frame(height: 42)
+        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
     }
 }
 
@@ -64,52 +116,54 @@ struct InkTextHeader: View {
     var trailingAction: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 2) {
-            HStack {
+        HStack(spacing: 0) {
                 Button(leadingTitle, action: leadingAction)
-                    .font(.system(.subheadline, design: .serif, weight: .medium))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .textCase(.uppercase)
                     .foregroundStyle(InkPalette.ink)
-                    .frame(minWidth: 58, minHeight: 44, alignment: .leading)
+                    .frame(width: 76, height: 52)
+                    .overlay(alignment: .trailing) {
+                        Rectangle().fill(InkPalette.ink).frame(width: 1)
+                    }
                     .buttonStyle(PressableButtonStyle())
 
-                Spacer()
-
                 Text(title)
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(InkPalette.softInk)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(InkPalette.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.76)
-
-                Spacer()
+                    .frame(maxWidth: .infinity)
 
                 if let trailingTitle, let trailingAction {
                     Button(trailingTitle, action: trailingAction)
-                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .textCase(.uppercase)
                         .foregroundStyle(InkPalette.cinnabar)
-                        .frame(minWidth: 58, minHeight: 44, alignment: .trailing)
+                        .frame(width: 76, height: 52)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(InkPalette.ink).frame(width: 1)
+                        }
                         .buttonStyle(PressableButtonStyle())
                 } else {
                     Color.clear
-                        .frame(width: 58, height: 44)
+                        .frame(width: 76, height: 52)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(InkPalette.ink).frame(width: 1)
+                        }
                         .accessibilityHidden(true)
                 }
-            }
-
-            InkDivider()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 2)
-        .padding(.bottom, 6)
-        .background {
-            PaperSurface()
-        }
+        .background { PaperSurface() }
+        .overlay(alignment: .bottom) { Rectangle().fill(InkPalette.ink).frame(height: 1) }
     }
 }
 
 private struct InkCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
+            .background(InkPalette.raisedPaper)
+            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
     }
 }
 
@@ -150,7 +204,9 @@ struct InkPrimaryButton: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Text(title)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .tracking(0.8)
+                    .textCase(.uppercase)
                 Spacer()
                 Image(systemName: "arrow.right")
                     .font(.system(size: 15, weight: .semibold))
@@ -160,10 +216,8 @@ struct InkPrimaryButton: View {
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(
-                BrushBandShape()
-                    .fill(InkPalette.ink)
-            )
+            .background(InkPalette.cinnabar)
+            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1.5) }
         }
         .buttonStyle(PressableButtonStyle())
     }
@@ -251,7 +305,7 @@ struct RootView: View {
                     .allowsHitTesting(false)
             }
             .tint(InkPalette.ink)
-            .fontDesign(.serif)
+            .fontDesign(.default)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if isFooterVisible {
                     InkTabBar(selection: $selection)
@@ -266,36 +320,35 @@ private struct InkTabBar: View {
     @Binding var selection: AppTab
 
     var body: some View {
-        HStack(spacing: 56) {
+        HStack(spacing: 0) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 Button {
                     withAnimation(.easeOut(duration: 0.24)) {
                         selection = tab
                     }
                 } label: {
-                    VStack(spacing: 4) {
-                        HStack(spacing: 7) {
-                            Image(systemName: tab.symbol)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.softInk.opacity(0.55))
-                            Text(tab.title)
-                                .font(.system(.subheadline, design: .serif, weight: selection == tab ? .semibold : .regular))
-                                .foregroundStyle(selection == tab ? InkPalette.ink : InkPalette.softInk.opacity(0.62))
-                        }
-                        Circle()
-                            .fill(selection == tab ? InkPalette.cinnabar : .clear)
-                            .frame(width: 4, height: 4)
+                    HStack(spacing: 9) {
+                        Text(tab == .train ? "01" : "02")
+                            .foregroundStyle(selection == tab ? InkPalette.acid : InkPalette.softInk)
+                        Text(tab.title.uppercased())
                     }
-                    .frame(minWidth: 96, minHeight: 50)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(selection == tab ? InkPalette.raisedPaper : InkPalette.ink)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(selection == tab ? InkPalette.ink : InkPalette.paper)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
+                .overlay(alignment: .trailing) {
+                    if tab == .train { Rectangle().fill(InkPalette.ink).frame(width: 1) }
+                }
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 5)
-        .background(InkPalette.raisedPaper.opacity(0.82))
+        .background(InkPalette.paper)
+        .overlay(alignment: .top) { Rectangle().fill(InkPalette.ink).frame(height: 1) }
         .animation(.easeOut(duration: 0.22), value: selection)
     }
 }
@@ -327,46 +380,45 @@ private struct RoutineListView: View {
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
+                    RawScreenTitle(index: "01", title: "Train", detail: "A → B → C")
+                        .padding(.horizontal, -20)
+                        .padding(.bottom, 24)
+
                     if let resumeRoutine {
                         Button {
                             showingResume = true
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text("ACTIVE SESSION")
-                                        .font(.caption2.weight(.semibold))
-                                        .tracking(1.5)
+                                    Text("00 / ACTIVE SESSION")
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .tracking(1)
                                         .foregroundStyle(InkPalette.cinnabar)
                                     Text("Resume \(resumeRoutine.name)")
-                                        .font(.system(.title3, design: .serif, weight: .semibold))
+                                        .font(.system(.title3, design: .default, weight: .black))
                                         .foregroundStyle(InkPalette.ink)
                                     Text(resumeDetail)
-                                        .font(.caption.monospacedDigit())
+                                        .font(.system(.caption, design: .monospaced))
                                         .foregroundStyle(InkPalette.softInk)
                                 }
                                 Spacer()
                                 Text("RESUME")
-                                    .font(.caption2.weight(.semibold))
-                                    .tracking(1.1)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .tracking(1)
                                     .foregroundStyle(InkPalette.ink)
                                     .frame(minWidth: 54, minHeight: 44)
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(InkPalette.raisedPaper.opacity(0.88))
-                            )
+                            .background(InkPalette.acid)
+                            .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
                         }
                         .buttonStyle(PressableButtonStyle())
                         .padding(.bottom, 24)
                     }
 
-                    Text("NEXT WORKOUT")
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.8)
-                        .foregroundStyle(InkPalette.softInk)
-                        .padding(.bottom, 9)
+                    RawSectionHeader(index: "01", title: "NEXT WORKOUT", trailing: "UP NEXT")
+                        .padding(.bottom, 10)
 
                     NavigationLink(value: nextRoutine) {
                         RoutineCard(
@@ -378,11 +430,8 @@ private struct RoutineListView: View {
                     .buttonStyle(PressableButtonStyle())
                     .padding(.bottom, 28)
 
-                    Text("ROTATION")
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.8)
-                        .foregroundStyle(InkPalette.softInk)
-                        .padding(.bottom, 9)
+                    RawSectionHeader(index: "02", title: "ROTATION", trailing: "CONTINUE")
+                        .padding(.bottom, 10)
 
                     LazyVStack(spacing: 14) {
                         ForEach(remainingRoutines) { routine in
@@ -398,8 +447,8 @@ private struct RoutineListView: View {
 
                     HStack {
                         Text("LOAD INCREMENT")
-                            .font(.caption2.weight(.semibold))
-                            .tracking(1.4)
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .tracking(1)
                             .foregroundStyle(InkPalette.softInk)
                         Spacer()
                         Picker("Load increment", selection: $loadIncrement) {
@@ -413,14 +462,16 @@ private struct RoutineListView: View {
                     }
                     .frame(minHeight: 52)
                     .padding(.top, 14)
+                    .padding(.horizontal, 12)
+                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
 
                     InkDivider()
 
                     Toggle(isOn: $keepScreenAwake) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("KEEP SCREEN AWAKE")
-                                .font(.caption2.weight(.semibold))
-                                .tracking(1.4)
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .tracking(1)
                                 .foregroundStyle(InkPalette.softInk)
                             Text("While a workout is in progress")
                                 .font(.system(.caption, design: .serif))
@@ -429,6 +480,8 @@ private struct RoutineListView: View {
                     }
                     .tint(InkPalette.cinnabar)
                     .frame(minHeight: 58)
+                    .padding(.horizontal, 12)
+                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
@@ -489,7 +542,8 @@ private struct RoutineCard: View {
                 }
 
                 Text(routine.id)
-                    .font(.system(size: 48, weight: .medium, design: .serif))
+                    .font(.system(size: 62, weight: .black, design: .default))
+                    .tracking(-4)
                     .foregroundStyle(InkPalette.ink)
                 Text(routine.focus.replacingOccurrences(of: " · ", with: ", "))
                     .font(.system(size: 15, weight: .medium, design: .serif))
@@ -521,16 +575,14 @@ private struct RoutineCard: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 15)
         .frame(minHeight: 174)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(InkPalette.raisedPaper.opacity(0.92))
-                .shadow(color: InkPalette.ink.opacity(0.07), radius: 12, y: 6)
-        )
+        .background(InkPalette.raisedPaper)
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(.black.opacity(0.08), lineWidth: 1)
+            Rectangle().stroke(InkPalette.ink, lineWidth: isRecommended ? 2 : 1)
         }
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(alignment: .top) {
+            if isRecommended { Rectangle().fill(InkPalette.cinnabar).frame(height: 5) }
+        }
+        .contentShape(Rectangle())
     }
 
     private var lastCompletedText: String {
@@ -550,6 +602,14 @@ struct RoutineDetailView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 14) {
+                    RawScreenTitle(
+                        index: routine.id,
+                        title: routine.name,
+                        detail: "\(routine.exercises.count) MOVEMENTS"
+                    )
+                    .padding(.horizontal, -20)
+                    .padding(.bottom, 6)
+
                     ForEach(Array(routine.exercises.enumerated()), id: \.element.id) { index, exercise in
                         NavigationLink(value: exercise) {
                             ExercisePreviewRow(index: index + 1, exercise: exercise)
@@ -664,12 +724,11 @@ struct DemonstrationImage: View {
                     .luminanceToAlpha()
             }
             .clipShape(
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                Rectangle()
             )
             .overlay {
                 if outlined {
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .stroke(.black.opacity(0.10), lineWidth: 1)
+                    Rectangle().stroke(.black.opacity(0.10), lineWidth: 1)
                 }
             }
             .accessibilityLabel("Ink illustration demonstrating the exercise")
