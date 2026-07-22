@@ -540,19 +540,26 @@ body {
   line-height: .8;
 }
 
-.raw-button.inverted { border-color: rgba(243,238,227,.7); }
+.end-signature {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(16px, 2vw, 30px);
+}
 
-footer {
-  min-height: 76px;
-  background: var(--ink);
-  color: var(--chalk);
+.end-year {
+  padding-bottom: .12em;
+  color: rgba(243,238,227,.72);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: .13em;
+  letter-spacing: .15em;
+  white-space: nowrap;
 }
 
-footer > span { min-height: 76px; border-color: rgba(243,238,227,.24); }
+.raw-button.inverted {
+  border-color: rgba(243,238,227,.7);
+  color: var(--chalk);
+}
 
 @media (max-width: 980px) {
   .hero { grid-template-columns: 1fr .72fr; }

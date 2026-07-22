@@ -1090,41 +1090,31 @@ p {
   letter-spacing: -0.07em;
 }
 
+.end-signature {
+  display: flex;
+  align-items: flex-end;
+  gap: 22px;
+}
+
+.end-year {
+  padding-bottom: 0.15em;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .raw-button.inverted {
   min-width: 180px;
   border-color: var(--chalk);
   background: transparent;
+  color: var(--chalk);
 }
 
 .raw-button.inverted:hover {
   background: var(--chalk);
   color: var(--ink);
-}
-
-footer {
-  min-height: 70px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: stretch;
-  background: var(--ink);
-  color: var(--chalk);
-  font-family: "Courier New", monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-}
-
-footer > span {
-  min-height: 70px;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  border-right: 1px solid var(--chalk);
-}
-
-footer > span:last-child {
-  justify-content: flex-end;
-  border-right: 0;
 }
 
 .sr-only {
@@ -1386,13 +1376,6 @@ footer > span:last-child {
     flex-direction: column;
   }
 
-  footer {
-    grid-template-columns: 1fr auto;
-  }
-
-  footer > span:nth-child(2) {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

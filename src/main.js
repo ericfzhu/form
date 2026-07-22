@@ -284,16 +284,13 @@ document.querySelector("#app").innerHTML = `
     </section>
 
     <section class="end-mark">
-      <p>FORM</p>
+      <div class="end-signature">
+        <p>FORM</p>
+        <span class="end-year">© <span id="year"></span></span>
+      </div>
       <a class="raw-button inverted" href="#top"><span>BACK TO TOP</span><span aria-hidden="true">↑</span></a>
     </section>
   </main>
-
-  <footer>
-    <span>FORM</span>
-    <span>TRAINING RECORD FOR IPHONE</span>
-    <span>© <span id="year"></span></span>
-  </footer>
 `;
 
 const tabButtons = document.querySelectorAll(".routine-tab");
