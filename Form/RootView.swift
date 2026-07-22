@@ -543,15 +543,6 @@ private struct RoutineCard: View {
 
             DemonstrationImage(assetName: routine.exercises[0].assetName, outlined: false)
                 .frame(width: 136, height: 144)
-                .offset(x: -10)
-                .mask(
-                    RadialGradient(
-                        colors: [.black, .black, .clear],
-                        center: .center,
-                        startRadius: 42,
-                        endRadius: 105
-                    )
-                )
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 15)
@@ -699,7 +690,7 @@ struct DemonstrationImage: View {
             .mask {
                 Image(assetName)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
                     .grayscale(1)
                     .contrast(3)
                     .colorInvert()
