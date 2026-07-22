@@ -387,7 +387,6 @@ body {
   line-height: 0.94;
 }
 
-.routine-exercise img { filter: grayscale(1) contrast(1.12); opacity: .86; }
 .exercise-data { border-top: 3px double var(--bronze); }
 .exercise-target { color: var(--red); font-family: Georgia, "Times New Roman", serif; font-size: 12px; font-weight: 600; }
 

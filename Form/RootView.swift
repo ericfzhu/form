@@ -269,30 +269,35 @@ struct RootView: View {
             ZStack {
                 PaperBackground()
 
-                NavigationStack(path: $navigationPath) {
-                    TabView(selection: $selection) {
-                        RoutineListView()
-                            .tag(AppTab.train)
+                VStack(spacing: 0) {
+                    NavigationStack(path: $navigationPath) {
+                        TabView(selection: $selection) {
+                            RoutineListView()
+                                .tag(AppTab.train)
 
-                        HistoryView()
-                            .tag(AppTab.history)
+                            HistoryView()
+                                .tag(AppTab.history)
+                        }
+                        .background(Color.clear)
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .navigationDestination(for: RoutineTemplate.self) { routine in
+                            RoutineDetailView(routine: routine)
+                        }
+                        .navigationDestination(for: ExerciseTemplate.self) { exercise in
+                            ExerciseProgressView(exercise: exercise)
+                        }
+                        .navigationDestination(for: WorkoutRecord.self) { workout in
+                            WorkoutHistoryDetail(workout: workout)
+                        }
                     }
                     .background(Color.clear)
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .navigationDestination(for: RoutineTemplate.self) { routine in
-                        RoutineDetailView(routine: routine)
-                    }
-                    .navigationDestination(for: ExerciseTemplate.self) { exercise in
-                        ExerciseProgressView(exercise: exercise)
-                    }
-                    .navigationDestination(for: WorkoutRecord.self) { workout in
-                        WorkoutHistoryDetail(workout: workout)
-                    }
-                }
-                .background(Color.clear)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
+
                     if isFooterVisible {
                         InkTabBar(selection: $selection)
+                            .background {
+                                InkPalette.paper
+                                    .ignoresSafeArea(edges: .bottom)
+                            }
                     }
                 }
 
