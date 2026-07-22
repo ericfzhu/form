@@ -686,16 +686,9 @@ struct DemonstrationImage: View {
     var outlined = true
 
     var body: some View {
-        InkPalette.ink
-            .mask {
-                Image(assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .grayscale(1)
-                    .contrast(3)
-                    .colorInvert()
-                    .luminanceToAlpha()
-            }
+        Image(assetName)
+            .resizable()
+            .scaledToFit()
             .clipShape(
                 Rectangle()
             )
@@ -704,7 +697,7 @@ struct DemonstrationImage: View {
                     Rectangle().stroke(.black.opacity(0.10), lineWidth: 1)
                 }
             }
-            .accessibilityLabel("Ink illustration demonstrating the exercise")
+            .accessibilityLabel("Mosaic illustration demonstrating the exercise")
     }
 }
 
