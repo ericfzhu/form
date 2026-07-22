@@ -290,6 +290,11 @@ struct RootView: View {
                     }
                 }
                 .background(Color.clear)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if isFooterVisible {
+                        InkTabBar(selection: $selection)
+                    }
+                }
 
                 PaperSurface()
                     .frame(height: proxy.safeAreaInsets.top)
@@ -298,11 +303,6 @@ struct RootView: View {
                     .allowsHitTesting(false)
             }
             .tint(InkPalette.ink)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if isFooterVisible {
-                    InkTabBar(selection: $selection)
-                }
-            }
         }
     }
 

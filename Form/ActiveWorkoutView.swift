@@ -100,6 +100,23 @@ struct ActiveWorkoutView: View {
                 workoutLogger
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Group {
+                if completedRecord == nil {
+                    ActiveWorkoutHeader(
+                        index: routine.id,
+                        progress: "\(completedMovementCount) of \(drafts.count) movements"
+                    ) {
+                        showingCancelConfirmation = true
+                    }
+                } else {
+                    CompletionHeader()
+                }
+            }
+            .transaction { transaction in
+                transaction.animation = nil
+            }
+        }
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("Discard this session?", isPresented: $showingCancelConfirmation) {
             Button("Discard session", role: .destructive, action: discardWorkout)
@@ -199,14 +216,6 @@ struct ActiveWorkoutView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 14)
                 .padding(.bottom, restEnd == nil ? 96 : 158)
-            }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            ActiveWorkoutHeader(
-                index: routine.id,
-                progress: "\(completedMovementCount) of \(drafts.count) movements"
-            ) {
-                showingCancelConfirmation = true
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -553,9 +562,6 @@ private struct WorkoutCompletionView: View {
                 .padding(.bottom, 104)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            CompletionHeader()
-        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             InkPrimaryButton(title: "Done", action: done)
                 .padding(.horizontal, 20)
@@ -879,10 +885,7 @@ private struct ExerciseLoggingCard: View {
             Button(action: toggleExpanded) {
                 HStack(spacing: 14) {
                     DemonstrationImage(assetName: draft.template.assetName)
-                        .frame(
-                            width: isExpanded ? 86 : 64,
-                            height: isExpanded ? 86 : 64
-                        )
+                        .frame(width: 64, height: 64)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(draft.template.name)
@@ -900,17 +903,20 @@ private struct ExerciseLoggingCard: View {
                     }
                     Spacer(minLength: 0)
 
-                    Text(isExpanded ? "HIDE" : "DETAILS")
-                        .font(.system(size: 9, weight: .semibold, design: .serif))
-                        .tracking(1.4)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(InkPalette.softInk.opacity(0.72))
-                        .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                        .frame(width: 44, height: 44)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                        .accessibilityHidden(true)
                 }
-                .padding(isExpanded ? 11 : 8)
+                .padding(8)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(PressableButtonStyle())
-            .animation(.easeOut(duration: 0.2), value: isExpanded)
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityHint(isExpanded ? "Hides exercise details" : "Shows exercise details")
 
             if isExpanded {
                 Group {
