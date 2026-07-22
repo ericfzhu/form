@@ -1010,7 +1010,8 @@ private struct ExerciseLoggingCard: View {
                     .padding(.horizontal, 10)
                     .padding(.bottom, 9)
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .clipped()
+                .transition(.downwardReveal)
             }
         }
         .inkCard()
@@ -1027,6 +1028,31 @@ private struct ExerciseLoggingCard: View {
         }
         return "\(completedSetCount)/\(draft.template.sets) SETS"
     }
+}
+
+private struct DownwardRevealModifier: AnimatableModifier {
+    var progress: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .offset(y: -8 * (1 - progress))
+            .mask(alignment: .top) {
+                Rectangle()
+                    .scaleEffect(y: progress, anchor: .top)
+            }
+    }
+}
+
+private extension AnyTransition {
+    static let downwardReveal = AnyTransition.modifier(
+        active: DownwardRevealModifier(progress: 0),
+        identity: DownwardRevealModifier(progress: 1)
+    )
 }
 
 private struct LastPerformanceSummary: View {
