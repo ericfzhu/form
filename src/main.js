@@ -45,6 +45,7 @@ document.querySelector("#app").innerHTML = `
       <a href="#rotation">ROTATION</a>
       <a href="#logging">LOGGING</a>
       <a href="#progress">PROGRESS</a>
+      <a href="#setup">SETUP</a>
     </nav>
     <span class="masthead-meta">IPHONE / IOS 17+</span>
   </header>
@@ -283,6 +284,102 @@ document.querySelector("#app").innerHTML = `
       </div>
     </section>
 
+    <section class="feature feature-setup" id="setup">
+      <div class="section-label">
+        <span>05</span>
+        <span>INSTALLATION</span>
+        <span>MAC → XCODE → IPHONE</span>
+      </div>
+
+      <div class="setup-grid">
+        <div class="setup-intro">
+          <p class="kicker">INSTALL IT YOURSELF</p>
+          <h2>Put Form on<br />your iPhone.</h2>
+          <p>
+            Form is installed directly from Xcode. You need a Mac, an Apple Account,
+            and an iPhone running iOS 17 or later.
+          </p>
+          <a
+            class="raw-button setup-source"
+            href="https://github.com/ericfzhu/form"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>OPEN THE SOURCE</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+
+        <div class="setup-ledger">
+          <ol class="setup-steps">
+            <li>
+              <span class="setup-numeral">I</span>
+              <div>
+                <p class="setup-step-label">SOURCE</p>
+                <h3>Download the project.</h3>
+                <p>
+                  Install Xcode 16 or later from the Mac App Store. Download Form from
+                  GitHub, then open <code>Form.xcodeproj</code>.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="setup-numeral">II</span>
+              <div>
+                <p class="setup-step-label">SIGNING</p>
+                <h3>Choose your Personal Team.</h3>
+                <p>
+                  In the Form target, open Signing &amp; Capabilities and select your
+                  Apple Account. If Xcode asks, give the app a unique bundle identifier.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="setup-numeral">III</span>
+              <div>
+                <p class="setup-step-label">DEVICE</p>
+                <h3>Connect your iPhone.</h3>
+                <p>
+                  Connect it to the Mac, approve Trust, and select it as the run
+                  destination. Enable Developer Mode under Privacy &amp; Security if prompted.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="setup-numeral">IV</span>
+              <div>
+                <p class="setup-step-label">INSTALL</p>
+                <h3>Press Run in Xcode.</h3>
+                <p>
+                  Xcode builds and installs Form. If iOS reports an untrusted developer,
+                  approve your Apple Account under VPN &amp; Device Management.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="setup-numeral">V</span>
+              <div>
+                <p class="setup-step-label">HEALTH</p>
+                <h3>Connect Apple Health.</h3>
+                <p>
+                  In Form, open Train and press Connect under Apple Health. Allow workout
+                  writing and body-weight reading.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="signing-note">
+            <span>FREE SIGNING</span>
+            <p>
+              A Personal Team installation expires after seven days. Reconnect your
+              iPhone and press Run in Xcode to renew it; your on-device data remains in place.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="end-mark">
       <div class="end-signature">
         <p>FORM</p>
@@ -460,7 +557,7 @@ window.setInterval(() => {
   restClock.textContent = `${minutes}:${seconds}`;
 }, 1000);
 
-const revealTargets = document.querySelectorAll(".feature-copy, .log-copy, .set-ledger, .timer-demo, .timer-copy, .progress-heading, .progress-board");
+const revealTargets = document.querySelectorAll(".feature-copy, .log-copy, .set-ledger, .timer-demo, .timer-copy, .progress-heading, .progress-board, .setup-intro, .setup-ledger");
 if ("IntersectionObserver" in window && !reducedMotion.matches) {
   const observer = new IntersectionObserver(
     (entries) => {

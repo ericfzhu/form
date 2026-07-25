@@ -504,13 +504,66 @@ body {
 .rhythm-bars span:nth-child(3n) { background: var(--red); }
 .rhythm-foot { font-family: Georgia, "Times New Roman", serif; }
 
+.feature-setup { background: var(--chalk); }
+
+.setup-intro {
+  border-right-color: var(--bronze);
+  background: var(--paper);
+}
+
+.setup-intro h2 {
+  margin-bottom: 28px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(52px, 5.2vw, 82px);
+  font-weight: 400;
+  line-height: .9;
+  letter-spacing: -.06em;
+}
+
+.setup-intro > p:last-of-type {
+  color: #514a40;
+  font-size: clamp(17px, 1.5vw, 22px);
+  line-height: 1.42;
+}
+
+.setup-steps li { border-bottom-color: var(--bronze); }
+.setup-numeral { border-right-color: rgba(138,116,71,.5); }
+
+.setup-step-label,
+.signing-note > span {
+  color: var(--red);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.setup-steps h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 500;
+}
+
+.setup-steps li p:last-child { color: #514a40; }
+
+.setup-steps code {
+  background: rgba(138,116,71,.11);
+  color: var(--ink);
+}
+
+.signing-note {
+  background: var(--ink);
+  color: var(--chalk);
+}
+
+.signing-note > span { color: #b9766d; }
+.signing-note p { color: rgba(243,238,227,.76); }
+
 .feature-copy,
 .log-copy,
 .set-ledger,
 .timer-demo,
 .timer-copy,
 .progress-heading,
-.progress-board { transform: translateY(14px); }
+.progress-board,
+.setup-intro,
+.setup-ledger { transform: translateY(14px); }
 
 .feature-copy.in-view,
 .log-copy.in-view,
@@ -518,7 +571,9 @@ body {
 .timer-demo.in-view,
 .timer-copy.in-view,
 .progress-heading.in-view,
-.progress-board.in-view {
+.progress-board.in-view,
+.setup-intro.in-view,
+.setup-ledger.in-view {
   transition-duration: 620ms;
   transition-timing-function: cubic-bezier(.2,0,0,1);
 }
@@ -621,6 +676,7 @@ body {
   .log-copy h2,
   .timer-copy h2,
   .progress-heading h2 { font-size: clamp(49px, 15vw, 74px); }
+  .setup-intro h2 { font-size: clamp(49px, 15vw, 74px); }
 
   .routine-canvas { min-height: 560px; padding: 28px 22px; }
   .routine-exercise { min-height: 410px; grid-template-columns: 1fr; }
@@ -632,6 +688,9 @@ body {
   .progress-heading .kicker { padding-top: 0; }
   .progress-heading > p:last-child { grid-column: auto; }
   .progress-board { grid-template-columns: 1fr; }
+  .setup-intro { border-bottom-color: var(--bronze); }
+  .setup-steps li { border-bottom-color: var(--bronze); }
+  .setup-numeral { border-right-color: rgba(138,116,71,.5); }
   .calendar-panel { grid-row: auto; border-right: 0; border-bottom: 1px solid var(--bronze); }
   .end-mark { min-height: 230px; padding: 44px 22px; }
   .end-mark p { font-size: clamp(72px, 23vw, 116px); }
@@ -646,5 +705,7 @@ body {
   .timer-demo,
   .timer-copy,
   .progress-heading,
-  .progress-board { animation: none; transition: none; transform: none; opacity: 1; }
+  .progress-board,
+  .setup-intro,
+  .setup-ledger { animation: none; transition: none; transform: none; opacity: 1; }
 }

@@ -1067,6 +1067,138 @@ p {
   transition-timing-function: steps(5, end);
 }
 
+.setup-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
+}
+
+.setup-intro {
+  padding: clamp(70px, 9vw, 130px) clamp(34px, 6vw, 88px);
+  border-right: var(--line) solid var(--ink);
+}
+
+.setup-intro h2 {
+  margin-bottom: 26px;
+  font-family: "Arial Black", "Helvetica Neue", sans-serif;
+  font-size: clamp(52px, 6.2vw, 96px);
+  font-weight: 950;
+  line-height: 0.82;
+  letter-spacing: -0.07em;
+}
+
+.setup-intro > p:last-of-type {
+  max-width: 570px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(18px, 1.6vw, 24px);
+  line-height: 1.35;
+}
+
+.setup-source {
+  margin-top: 32px;
+}
+
+.setup-steps {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.setup-steps li {
+  min-height: 164px;
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  border-bottom: 1px solid var(--ink);
+}
+
+.setup-numeral {
+  display: flex;
+  justify-content: center;
+  padding-top: 30px;
+  border-right: 1px solid var(--ink);
+  color: var(--red);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+}
+
+.setup-steps li > div {
+  padding: 27px 34px 30px;
+}
+
+.setup-step-label,
+.signing-note > span {
+  margin-bottom: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.setup-steps h3 {
+  margin: 0 0 8px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(23px, 2.2vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.setup-steps li p:last-child {
+  max-width: 760px;
+  margin-bottom: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.setup-steps code {
+  padding: 0.12em 0.34em;
+  background: rgba(17, 17, 15, 0.08);
+  font-family: "Courier New", monospace;
+  font-size: 0.82em;
+}
+
+.signing-note {
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: start;
+  gap: 20px;
+  padding: 26px 34px;
+  background: var(--ink);
+  color: var(--chalk);
+}
+
+.signing-note > span {
+  margin: 0;
+  color: var(--acid);
+}
+
+.signing-note p {
+  max-width: 720px;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.setup-intro,
+.setup-ledger {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.setup-intro.in-view,
+.setup-ledger.in-view {
+  opacity: 1;
+  transform: translateY(0);
+  transition-property: opacity, transform;
+  transition-duration: 440ms;
+  transition-timing-function: steps(5, end);
+}
+
+.setup-ledger.in-view {
+  transition-delay: 90ms;
+}
+
 .end-mark {
   min-height: 260px;
   padding: 50px;
@@ -1349,6 +1481,44 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-intro {
+    padding: 68px 22px;
+    border-right: 0;
+    border-bottom: var(--line) solid var(--ink);
+  }
+
+  .setup-intro h2 {
+    font-size: clamp(49px, 15vw, 74px);
+  }
+
+  .setup-steps li {
+    min-height: 0;
+    grid-template-columns: 58px 1fr;
+  }
+
+  .setup-numeral {
+    padding-top: 25px;
+    font-size: 20px;
+  }
+
+  .setup-steps li > div {
+    padding: 23px 20px 26px;
+  }
+
+  .setup-steps li p:last-child {
+    font-size: 14px;
+  }
+
+  .signing-note {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 24px 20px 28px;
+  }
+
   .calendar-panel {
     grid-row: auto;
     border-right: 0;
@@ -1397,6 +1567,12 @@ p {
   .timer-copy,
   .progress-heading,
   .progress-board {
+    opacity: 1;
+    transform: none;
+  }
+
+  .setup-intro,
+  .setup-ledger {
     opacity: 1;
     transform: none;
   }
