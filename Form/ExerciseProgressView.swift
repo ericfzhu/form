@@ -67,11 +67,37 @@ enum ProgressionEngine {
     }
 
     static func performances(
-        for exerciseName: String,
+        for template: ExerciseTemplate,
+        in workouts: [WorkoutRecord]
+    ) -> [ExercisePerformance] {
+        performances(
+            forExerciseID: template.id,
+            legacyName: template.name,
+            in: workouts
+        )
+    }
+
+    static func performances(
+        for record: ExerciseRecord,
+        in workouts: [WorkoutRecord]
+    ) -> [ExercisePerformance] {
+        performances(
+            forExerciseID: WorkoutCatalog.stableExerciseID(for: record),
+            legacyName: record.name,
+            in: workouts
+        )
+    }
+
+    private static func performances(
+        forExerciseID exerciseID: String,
+        legacyName: String,
         in workouts: [WorkoutRecord]
     ) -> [ExercisePerformance] {
         workouts.compactMap { workout in
-            guard let exercise = workout.exercises.first(where: { $0.name == exerciseName }),
+            guard let exercise = workout.exercises.first(where: {
+                WorkoutCatalog.stableExerciseID(for: $0) == exerciseID
+                    || ($0.exerciseID.isEmpty && $0.name == legacyName)
+            }),
                   !exercise.sets.isEmpty else { return nil }
 
             let sets = exercise.sets
@@ -87,10 +113,10 @@ enum ProgressionEngine {
     }
 
     static func latestCompleted(
-        for exerciseName: String,
+        for template: ExerciseTemplate,
         in workouts: [WorkoutRecord]
     ) -> ExercisePerformance? {
-        performances(for: exerciseName, in: workouts).first
+        performances(for: template, in: workouts).first
     }
 
     static func recommendedLoad(
@@ -234,7 +260,7 @@ struct ExerciseProgressView: View {
     @State private var selectedMetric: TrendMetric = .load
 
     private var performances: [ExercisePerformance] {
-        ProgressionEngine.performances(for: exercise.name, in: workouts)
+        ProgressionEngine.performances(for: exercise, in: workouts)
     }
 
     private var availableMetrics: [TrendMetric] {

@@ -34,6 +34,13 @@ struct HistoryView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(
+                            EdgeInsets(top: 0, leading: 20, bottom: 14, trailing: 20)
+                        )
+
+                    CoachingReportShareRow(workouts: workouts)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(
                             EdgeInsets(top: 0, leading: 20, bottom: 18, trailing: 20)
                         )
 
@@ -88,6 +95,64 @@ struct HistoryView: View {
             modelContext.rollback()
             saveErrorMessage = "The session remains in the record. Try again."
         }
+    }
+}
+
+private struct CoachingReportShareRow: View {
+    let workouts: [WorkoutRecord]
+
+    private var report: CoachingReport {
+        CoachingReportBuilder.build(from: workouts)
+    }
+
+    private var includedSessionCount: Int {
+        let start = Calendar.current.date(
+            byAdding: .weekOfYear,
+            value: -12,
+            to: Date()
+        ) ?? .distantPast
+        return workouts.filter { $0.date >= start }.count
+    }
+
+    var body: some View {
+        ShareLink(
+            item: report,
+            preview: SharePreview("Form coaching report")
+        ) {
+            HStack(spacing: 14) {
+                Text("03")
+                    .font(.system(size: 24, weight: .regular, design: .serif))
+                    .foregroundStyle(InkPalette.cinnabar)
+                    .monospacedDigit()
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("COACHING REPORT")
+                        .font(.system(size: 11, weight: .semibold, design: .serif))
+                        .tracking(1.5)
+                        .foregroundStyle(InkPalette.ink)
+                    Text("12 WEEKS · \(includedSessionCount) SESSIONS")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(InkPalette.softInk)
+                        .monospacedDigit()
+                }
+
+                Spacer(minLength: 12)
+
+                Text("SHARE")
+                    .font(.system(size: 10, weight: .semibold, design: .serif))
+                    .tracking(1.3)
+                    .foregroundStyle(InkPalette.cinnabar)
+                    .frame(minWidth: 52, minHeight: 44)
+            }
+            .padding(.horizontal, 15)
+            .frame(minHeight: 68)
+            .background(InkPalette.raisedPaper)
+            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel("Share 12-week coaching report")
+        .accessibilityValue("\(includedSessionCount) sessions")
     }
 }
 
@@ -419,11 +484,11 @@ private struct HistoryWeeklySummary: View {
     private var prCount: Int {
         weeklyWorkouts.reduce(0) { total, workout in
             total + workout.exercises.reduce(0) { exerciseTotal, exercise in
-                let performances = ProgressionEngine.performances(for: exercise.name, in: workouts)
+                let performances = ProgressionEngine.performances(for: exercise, in: workouts)
                 guard let performance = performances.first(where: {
                     $0.id == workout.persistentModelID
                 }) else { return exerciseTotal }
-                let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+                let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
                     ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
                 return exerciseTotal + ProgressionEngine.personalRecords(
                     for: performance,
@@ -514,7 +579,7 @@ struct WorkoutHistoryDetail: View {
                     .padding(.bottom, 6)
 
                     ForEach(completedExercises) { exercise in
-                        if let template = WorkoutCatalog.exercise(named: exercise.name) {
+                        if let template = WorkoutCatalog.exercise(for: exercise) {
                             NavigationLink(value: template) {
                                 HistoryExerciseCard(
                                     exercise: exercise,
@@ -588,13 +653,13 @@ struct WorkoutHistoryDetail: View {
 
     private func records(for exercise: ExerciseRecord) -> [ProgressRecord] {
         let performances = ProgressionEngine.performances(
-            for: exercise.name,
+            for: exercise,
             in: workouts
         )
         guard let performance = performances.first(where: { $0.id == workout.persistentModelID }) else {
             return []
         }
-        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
             ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
         return ProgressionEngine.personalRecords(
             for: performance,
@@ -759,7 +824,7 @@ private struct WorkoutEditorView: View {
             .map { exercise in
                 EditableExerciseDraft(
                     record: exercise,
-                    template: WorkoutCatalog.exercise(named: exercise.name)
+                    template: WorkoutCatalog.exercise(for: exercise)
                         ?? ExerciseTemplate(
                             id: exercise.assetName,
                             name: exercise.name,
@@ -767,7 +832,8 @@ private struct WorkoutEditorView: View {
                             sets: max(1, exercise.sets.count),
                             minimumRepetitions: 1,
                             maximumRepetitions: 20,
-                            measurement: exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight
+                            measurement: exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight,
+                            restSeconds: 90
                         ),
                     sets: exercise.sets
                         .sorted { $0.order < $1.order }
@@ -958,10 +1024,12 @@ private struct WorkoutEditorView: View {
         for (exerciseIndex, exerciseDraft) in exercises.enumerated() {
             if exerciseDraft.record == nil && exerciseDraft.sets.isEmpty { continue }
             let record = exerciseDraft.record ?? ExerciseRecord(
+                exerciseID: exerciseDraft.template.id,
                 name: exerciseDraft.template.name,
                 assetName: exerciseDraft.template.assetName,
                 order: exerciseIndex
             )
+            record.exerciseID = exerciseDraft.template.id
             record.order = exerciseIndex
             let oldSets = record.sets
             record.sets = []

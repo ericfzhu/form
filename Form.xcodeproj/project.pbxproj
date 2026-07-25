@@ -20,6 +20,7 @@
 		A011 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B010 /* WorkoutActivityAttributes.swift */; };
 		A012 /* FormLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* FormLiveActivity.swift */; };
 		A013 /* FormLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B014 /* FormLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A014 /* CoachingReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* CoachingReport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 		B012 /* FormLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormLiveActivity.swift; sourceTree = "<group>"; };
 		B013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B014 /* FormLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FormLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B015 /* CoachingReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingReport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +102,7 @@
 				B005 /* ActiveWorkoutView.swift */,
 				B006 /* HistoryView.swift */,
 				B009 /* ExerciseProgressView.swift */,
+				B015 /* CoachingReport.swift */,
 				B010 /* WorkoutActivityAttributes.swift */,
 				B011 /* WorkoutLiveActivityController.swift */,
 				B007 /* Assets.xcassets */,
@@ -231,6 +234,7 @@
 				A005 /* ActiveWorkoutView.swift in Sources */,
 				A006 /* HistoryView.swift in Sources */,
 				A008 /* ExerciseProgressView.swift in Sources */,
+				A014 /* CoachingReport.swift in Sources */,
 				A009 /* WorkoutActivityAttributes.swift in Sources */,
 				A010 /* WorkoutLiveActivityController.swift in Sources */,
 			);

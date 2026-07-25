@@ -8,6 +8,7 @@ struct ExerciseTemplate: Identifiable, Hashable {
     let minimumRepetitions: Int
     let maximumRepetitions: Int
     let measurement: Measurement
+    let restSeconds: Int
 
     enum Measurement: Hashable {
         case weighted
@@ -147,12 +148,12 @@ enum WorkoutCatalog {
             name: "Workout A",
             focus: "Squat · press · pull",
             exercises: [
-                exercise("barbell-back-squat", "Barbell Back Squat", 3, 6, 10),
-                exercise("chest-press", "Dumbbell Chest Press", 3, 6, 10),
-                exercise("seated-row", "Seated Cable Row", 3, 8, 12),
-                exercise("romanian-deadlift", "Romanian Deadlift", 2, 8, 10),
-                exercise("lat-pulldown", "Lat Pulldown", 2, 8, 12),
-                timed("plank", "Plank", 2)
+                exercise("barbell-back-squat", "Barbell Back Squat", 3, 6, 10, rest: 180),
+                exercise("chest-press", "Dumbbell Chest Press", 3, 6, 10, rest: 120),
+                exercise("seated-row", "Seated Cable Row", 3, 8, 12, rest: 90),
+                exercise("romanian-deadlift", "Romanian Deadlift", 2, 8, 10, rest: 150),
+                exercise("lat-pulldown", "Lat Pulldown", 2, 8, 12, rest: 90),
+                timed("plank", "Plank", 2, rest: 60)
             ]
         ),
         RoutineTemplate(
@@ -160,12 +161,12 @@ enum WorkoutCatalog {
             name: "Workout B",
             focus: "Hinge · incline · unilateral",
             exercises: [
-                exercise("conventional-deadlift", "Conventional Barbell Deadlift", 3, 5, 6),
-                exercise("incline-press", "Incline Dumbbell Press", 3, 8, 12),
-                exercise("underhand-lat-pulldown", "Underhand Lat Pulldown", 3, 8, 12),
-                exercise("split-squat", "Split Squat", 2, 8, 12),
-                exercise("chest-supported-row", "Chest-Supported Row", 2, 8, 12),
-                timed("side-plank", "Side Plank", 2)
+                exercise("conventional-deadlift", "Conventional Barbell Deadlift", 3, 5, 6, rest: 180),
+                exercise("incline-press", "Incline Dumbbell Press", 3, 8, 12, rest: 120),
+                exercise("underhand-lat-pulldown", "Underhand Lat Pulldown", 3, 8, 12, rest: 90),
+                exercise("split-squat", "Split Squat", 2, 8, 12, rest: 120),
+                exercise("chest-supported-row", "Chest-Supported Row", 2, 8, 12, rest: 90),
+                timed("side-plank", "Side Plank", 2, rest: 60)
             ]
         ),
         RoutineTemplate(
@@ -173,12 +174,12 @@ enum WorkoutCatalog {
             name: "Workout C",
             focus: "Squat · shoulders · carry",
             exercises: [
-                exercise("goblet-squat", "Goblet Squat", 3, 8, 12),
-                exercise("shoulder-press", "Dumbbell Shoulder Press", 3, 8, 12),
-                exercise("cable-row", "Cable Row", 3, 8, 12),
-                exercise("leg-curl", "Leg Curl", 2, 10, 15),
-                bodyweight("pushup", "Push-Up", 2, 8, 15),
-                timed("farmer-carry", "Farmer Carry", 3)
+                exercise("goblet-squat", "Goblet Squat", 3, 8, 12, rest: 120),
+                exercise("shoulder-press", "Dumbbell Shoulder Press", 3, 8, 12, rest: 120),
+                exercise("cable-row", "Cable Row", 3, 8, 12, rest: 90),
+                exercise("leg-curl", "Leg Curl", 2, 10, 15, rest: 75),
+                bodyweight("pushup", "Push-Up", 2, 8, 15, rest: 75),
+                timed("farmer-carry", "Farmer Carry", 3, rest: 90)
             ]
         )
     ]
@@ -189,15 +190,76 @@ enum WorkoutCatalog {
             .first { $0.name == name }
     }
 
-    private static func exercise(_ asset: String, _ name: String, _ sets: Int, _ minimum: Int, _ maximum: Int) -> ExerciseTemplate {
-        ExerciseTemplate(id: asset, name: name, assetName: asset, sets: sets, minimumRepetitions: minimum, maximumRepetitions: maximum, measurement: .weighted)
+    static func exercise(id: String) -> ExerciseTemplate? {
+        routines
+            .flatMap(\.exercises)
+            .first { $0.id == id }
     }
 
-    private static func bodyweight(_ asset: String, _ name: String, _ sets: Int, _ minimum: Int, _ maximum: Int) -> ExerciseTemplate {
-        ExerciseTemplate(id: asset, name: name, assetName: asset, sets: sets, minimumRepetitions: minimum, maximumRepetitions: maximum, measurement: .bodyweight)
+    static func exercise(for record: ExerciseRecord) -> ExerciseTemplate? {
+        exercise(id: stableExerciseID(for: record))
+            ?? exercise(named: record.name)
     }
 
-    private static func timed(_ asset: String, _ name: String, _ sets: Int) -> ExerciseTemplate {
-        ExerciseTemplate(id: asset, name: name, assetName: asset, sets: sets, minimumRepetitions: 30, maximumRepetitions: 45, measurement: .timed)
+    static func stableExerciseID(for record: ExerciseRecord) -> String {
+        if !record.exerciseID.isEmpty {
+            return record.exerciseID
+        }
+        return exercise(named: record.name)?.id
+            ?? exercise(id: record.assetName)?.id
+            ?? record.assetName
+    }
+
+    private static func exercise(
+        _ asset: String,
+        _ name: String,
+        _ sets: Int,
+        _ minimum: Int,
+        _ maximum: Int,
+        rest: Int
+    ) -> ExerciseTemplate {
+        ExerciseTemplate(
+            id: asset,
+            name: name,
+            assetName: asset,
+            sets: sets,
+            minimumRepetitions: minimum,
+            maximumRepetitions: maximum,
+            measurement: .weighted,
+            restSeconds: rest
+        )
+    }
+
+    private static func bodyweight(
+        _ asset: String,
+        _ name: String,
+        _ sets: Int,
+        _ minimum: Int,
+        _ maximum: Int,
+        rest: Int
+    ) -> ExerciseTemplate {
+        ExerciseTemplate(
+            id: asset,
+            name: name,
+            assetName: asset,
+            sets: sets,
+            minimumRepetitions: minimum,
+            maximumRepetitions: maximum,
+            measurement: .bodyweight,
+            restSeconds: rest
+        )
+    }
+
+    private static func timed(_ asset: String, _ name: String, _ sets: Int, rest: Int) -> ExerciseTemplate {
+        ExerciseTemplate(
+            id: asset,
+            name: name,
+            assetName: asset,
+            sets: sets,
+            minimumRepetitions: 30,
+            maximumRepetitions: 45,
+            measurement: .timed,
+            restSeconds: rest
+        )
     }
 }

@@ -257,6 +257,7 @@ private enum AppTab: CaseIterable, Hashable {
 }
 
 struct RootView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selection: AppTab = .train
     @State private var navigationPath = NavigationPath()
 
@@ -308,6 +309,9 @@ struct RootView: View {
                     .allowsHitTesting(false)
             }
             .tint(InkPalette.ink)
+        }
+        .task {
+            try? ExerciseIdentityMigration.backfillLegacyRecords(in: modelContext)
         }
     }
 
@@ -637,7 +641,7 @@ private struct ExercisePreviewRow: View {
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
 
     private var previous: ExercisePerformance? {
-        ProgressionEngine.latestCompleted(for: exercise.name, in: workouts)
+        ProgressionEngine.latestCompleted(for: exercise, in: workouts)
     }
 
     var body: some View {

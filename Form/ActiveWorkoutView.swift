@@ -185,13 +185,13 @@ struct ActiveWorkoutView: View {
                         ExerciseLoggingCard(
                             draft: $draft,
                             previous: ProgressionEngine.latestCompleted(
-                                for: draft.template.name,
+                                for: draft.template,
                                 in: history
                             ),
                             recommendation: ProgressionEngine.recommendation(
                                 for: draft.template,
                                 performances: ProgressionEngine.performances(
-                                    for: draft.template.name,
+                                    for: draft.template,
                                     in: history
                                 )
                             ),
@@ -203,8 +203,12 @@ struct ActiveWorkoutView: View {
                                         : draft.id
                                 }
                             },
-                            didUpdateSet: { completed in
-                                didUpdateSet(for: draft.id, completed: completed)
+                            didUpdateSet: { completed, kind in
+                                didUpdateSet(
+                                    for: draft.id,
+                                    completed: completed,
+                                    kind: kind
+                                )
                             }
                         )
                         .id(draft.id)
@@ -325,13 +329,21 @@ struct ActiveWorkoutView: View {
         draft.sets.filter { $0.completed && $0.kind == .working }.count >= draft.template.sets
     }
 
-    private func didUpdateSet(for exerciseID: String, completed: Bool) {
-        guard completed else { return }
-        restEnd = Date().addingTimeInterval(90)
+    private func didUpdateSet(
+        for exerciseID: String,
+        completed: Bool,
+        kind: SetKind
+    ) {
+        guard completed,
+              let index = drafts.firstIndex(where: { $0.id == exerciseID }) else { return }
+        let prescribedRest = drafts[index].template.restSeconds
+        let restSeconds = kind == .warmup ? min(90, prescribedRest) : prescribedRest
+        restEnd = Date().addingTimeInterval(
+            TimeInterval(restSeconds)
+        )
 
         DispatchQueue.main.async {
-            guard let index = drafts.firstIndex(where: { $0.id == exerciseID }),
-                  isExerciseComplete(drafts[index]) else { return }
+            guard isExerciseComplete(drafts[index]) else { return }
 
             let following = drafts.dropFirst(index + 1).first(where: {
                 !isExerciseComplete($0)
@@ -346,7 +358,7 @@ struct ActiveWorkoutView: View {
     private func prefillFromHistory() {
         for draftIndex in drafts.indices {
             guard let previous = ProgressionEngine.latestCompleted(
-                for: drafts[draftIndex].template.name,
+                for: drafts[draftIndex].template,
                 in: history
             ) else { continue }
 
@@ -370,6 +382,7 @@ struct ActiveWorkoutView: View {
 
         record.exercises = drafts.enumerated().map { exerciseIndex, draft in
             let exercise = ExerciseRecord(
+                exerciseID: draft.template.id,
                 name: draft.template.name,
                 assetName: draft.template.assetName,
                 order: exerciseIndex
@@ -620,7 +633,7 @@ private struct WorkoutCompletionView: View {
     }
 
     private func setSummary(_ exercise: ExerciseRecord) -> String {
-        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
             ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
         return exercise.sets.sorted { $0.order < $1.order }.map { set in
             let prefix = set.kind == .warmup ? "W " : ""
@@ -640,11 +653,11 @@ private struct WorkoutCompletionView: View {
     }
 
     private func personalRecords(for exercise: ExerciseRecord) -> [ProgressRecord] {
-        let performances = ProgressionEngine.performances(for: exercise.name, in: workouts)
+        let performances = ProgressionEngine.performances(for: exercise, in: workouts)
         guard let performance = performances.first(where: {
             $0.id == record.persistentModelID
         }) else { return [] }
-        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
             ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
         return ProgressionEngine.personalRecords(
             for: performance,
@@ -654,11 +667,11 @@ private struct WorkoutCompletionView: View {
     }
 
     private func comparison(for exercise: ExerciseRecord) -> String? {
-        let performances = ProgressionEngine.performances(for: exercise.name, in: workouts)
+        let performances = ProgressionEngine.performances(for: exercise, in: workouts)
         guard let performance = performances.first(where: {
             $0.id == record.persistentModelID
         }) else { return nil }
-        let measurement = WorkoutCatalog.exercise(named: exercise.name)?.measurement
+        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
             ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
         return ProgressionEngine.comparison(
             for: performance,
@@ -870,7 +883,7 @@ private struct ExerciseLoggingCard: View {
     let recommendation: ProgressionRecommendation?
     let isExpanded: Bool
     let toggleExpanded: () -> Void
-    let didUpdateSet: (Bool) -> Void
+    let didUpdateSet: (Bool, SetKind) -> Void
 
     private var completedSetCount: Int {
         draft.sets.filter { $0.completed && $0.kind == .working }.count
@@ -1110,7 +1123,7 @@ private struct SetLoggingRow: View {
     let index: Int
     let measurement: ExerciseTemplate.Measurement
     @Binding var set: SetDraft
-    let didToggleCompletion: (Bool) -> Void
+    let didToggleCompletion: (Bool, SetKind) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -1164,7 +1177,7 @@ private struct SetLoggingRow: View {
                 set.completed.toggle()
                 let completed = set.completed
                 dismissKeyboard()
-                didToggleCompletion(completed)
+                didToggleCompletion(completed, set.kind)
             } label: {
                 ZStack {
                     Rectangle()

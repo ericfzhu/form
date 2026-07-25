@@ -30,6 +30,7 @@ final class WorkoutRecord {
 
 @Model
 final class ExerciseRecord {
+    var exerciseID: String = ""
     var name: String
     var assetName: String
     var order: Int
@@ -38,11 +39,34 @@ final class ExerciseRecord {
     @Relationship(deleteRule: .cascade, inverse: \SetRecord.exercise)
     var sets: [SetRecord]
 
-    init(name: String, assetName: String, order: Int, sets: [SetRecord] = []) {
+    init(
+        exerciseID: String,
+        name: String,
+        assetName: String,
+        order: Int,
+        sets: [SetRecord] = []
+    ) {
+        self.exerciseID = exerciseID
         self.name = name
         self.assetName = assetName
         self.order = order
         self.sets = sets
+    }
+}
+
+enum ExerciseIdentityMigration {
+    static func backfillLegacyRecords(in modelContext: ModelContext) throws {
+        let records = try modelContext.fetch(FetchDescriptor<ExerciseRecord>())
+        var changed = false
+
+        for record in records where record.exerciseID.isEmpty {
+            record.exerciseID = WorkoutCatalog.stableExerciseID(for: record)
+            changed = true
+        }
+
+        if changed {
+            try modelContext.save()
+        }
     }
 }
 
