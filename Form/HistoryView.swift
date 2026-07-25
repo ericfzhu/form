@@ -86,11 +86,15 @@ struct HistoryView: View {
     }
 
     private func delete(_ workout: WorkoutRecord) {
+        let healthWorkoutUUID = workout.healthKitWorkoutUUID
         withAnimation(.easeOut(duration: 0.2)) {
             modelContext.delete(workout)
         }
         do {
             try modelContext.save()
+            Task {
+                try? await HealthKitService.shared.deleteWorkout(with: healthWorkoutUUID)
+            }
         } catch {
             modelContext.rollback()
             saveErrorMessage = "The session remains in the record. Try again."
@@ -1063,10 +1067,29 @@ private struct WorkoutEditorView: View {
 
         do {
             try modelContext.save()
+            syncEditedWorkoutToHealth()
             dismiss()
         } catch {
             modelContext.rollback()
             saveErrorMessage = "Your edits are still on this screen. Try saving again."
+        }
+    }
+
+    private func syncEditedWorkoutToHealth() {
+        let health = HealthKitService.shared
+        guard health.canWriteWorkouts else { return }
+        let previousUUID = workout.healthKitWorkoutUUID
+
+        Task {
+            do {
+                workout.healthKitWorkoutUUID = try await health.saveWorkout(
+                    from: workout,
+                    replacing: previousUUID
+                )
+                try modelContext.save()
+            } catch {
+                // The local edit remains authoritative; a future edit can retry the Health sync.
+            }
         }
     }
 }

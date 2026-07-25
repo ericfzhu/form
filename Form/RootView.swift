@@ -358,6 +358,7 @@ private struct RoutineListView: View {
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @AppStorage("progression-load-increment") private var loadIncrement = 2.5
     @AppStorage("keep-screen-awake") private var keepScreenAwake = true
+    @StateObject private var health = HealthKitService.shared
     @State private var resumeSnapshot: ActiveWorkoutSnapshot?
     @State private var showingResume = false
 
@@ -484,6 +485,9 @@ private struct RoutineListView: View {
                     .frame(minHeight: 58)
                     .padding(.horizontal, 12)
                     .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+
+                    HealthIntegrationSection(health: health)
+                        .padding(.top, 14)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
@@ -493,6 +497,9 @@ private struct RoutineListView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             resumeSnapshot = ActiveWorkoutStore.load()
+        }
+        .task {
+            await health.refresh()
         }
         .fullScreenCover(isPresented: $showingResume, onDismiss: {
             resumeSnapshot = ActiveWorkoutStore.load()
@@ -520,6 +527,97 @@ private struct RoutineListView: View {
 
     private func lastCompleted(_ routine: RoutineTemplate) -> Date? {
         workouts.first { $0.routineName == routine.name }?.date
+    }
+}
+
+private struct HealthIntegrationSection: View {
+    @ObservedObject var health: HealthKitService
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("APPLE HEALTH")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .tracking(1)
+                        .foregroundStyle(InkPalette.softInk)
+                    Text(detail)
+                        .font(.system(.caption, design: .serif))
+                        .foregroundStyle(InkPalette.softInk.opacity(0.8))
+                }
+
+                Spacer(minLength: 12)
+
+                Button(actionTitle) {
+                    performAction()
+                }
+                .font(.system(size: 10, weight: .semibold, design: .serif))
+                .tracking(1.1)
+                .foregroundStyle(InkPalette.cinnabar)
+                .frame(minWidth: 72, minHeight: 44, alignment: .trailing)
+                .buttonStyle(PressableButtonStyle())
+                .disabled(health.accessState == .unavailable)
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: 66)
+
+            if let errorMessage = health.errorMessage {
+                InkDivider()
+                Text(errorMessage)
+                    .font(.system(.caption2, design: .serif))
+                    .foregroundStyle(InkPalette.cinnabar)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+            }
+        }
+        .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+    }
+
+    private var detail: String {
+        switch health.accessState {
+        case .unavailable:
+            return "Not available on this device"
+        case .notConnected:
+            return "Save sessions and read your latest weight"
+        case .denied:
+            return "Workout access is disabled"
+        case .connected:
+            guard let kilograms = health.latestBodyMassKilograms else {
+                return "Connected · no body weight shared"
+            }
+            let value = kilograms.formatted(
+                .number.precision(.fractionLength(kilograms.rounded() == kilograms ? 0 : 1))
+            )
+            return "Connected · \(value) kg"
+        }
+    }
+
+    private var actionTitle: String {
+        switch health.accessState {
+        case .unavailable:
+            return "UNAVAILABLE"
+        case .notConnected:
+            return "CONNECT"
+        case .denied:
+            return "SETTINGS"
+        case .connected:
+            return "REFRESH"
+        }
+    }
+
+    private func performAction() {
+        switch health.accessState {
+        case .notConnected:
+            Task { await health.requestAccess() }
+        case .connected:
+            Task { await health.refresh() }
+        case .denied:
+            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+            UIApplication.shared.open(url)
+        case .unavailable:
+            break
+        }
     }
 }
 

@@ -21,6 +21,7 @@
 		A012 /* FormLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B012 /* FormLiveActivity.swift */; };
 		A013 /* FormLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B014 /* FormLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A014 /* CoachingReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B015 /* CoachingReport.swift */; };
+		A015 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B016 /* HealthKitService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +64,8 @@
 		B013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B014 /* FormLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FormLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B015 /* CoachingReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingReport.swift; sourceTree = "<group>"; };
+		B016 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		B017 /* Form.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Form.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +106,8 @@
 				B006 /* HistoryView.swift */,
 				B009 /* ExerciseProgressView.swift */,
 				B015 /* CoachingReport.swift */,
+				B016 /* HealthKitService.swift */,
+				B017 /* Form.entitlements */,
 				B010 /* WorkoutActivityAttributes.swift */,
 				B011 /* WorkoutLiveActivityController.swift */,
 				B007 /* Assets.xcassets */,
@@ -235,6 +240,7 @@
 				A006 /* HistoryView.swift in Sources */,
 				A008 /* ExerciseProgressView.swift in Sources */,
 				A014 /* CoachingReport.swift in Sources */,
+				A015 /* HealthKitService.swift in Sources */,
 				A009 /* WorkoutActivityAttributes.swift in Sources */,
 				A010 /* WorkoutLiveActivityController.swift in Sources */,
 			);
@@ -293,6 +299,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = Form/Form.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 2XS93G4WRL;
@@ -301,6 +308,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Form;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Form reads your latest body weight to keep your training context current.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Form saves completed training sessions to Apple Health.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -319,6 +328,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = Form/Form.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = 2XS93G4WRL;
@@ -327,6 +337,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Form;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Form reads your latest body weight to keep your training context current.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Form saves completed training sessions to Apple Health.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

@@ -3,6 +3,8 @@ import SwiftData
 
 @Model
 final class WorkoutRecord {
+    var healthSyncIdentifier: UUID = UUID()
+    var healthKitWorkoutUUID: UUID?
     var date: Date
     var routineName: String
     var duration: TimeInterval
@@ -20,6 +22,8 @@ final class WorkoutRecord {
         exercises: [ExerciseRecord] = [],
         cardioEntries: [CardioRecord] = []
     ) {
+        healthSyncIdentifier = UUID()
+        healthKitWorkoutUUID = nil
         self.date = date
         self.routineName = routineName
         self.duration = duration

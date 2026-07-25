@@ -40,6 +40,7 @@ struct ActiveWorkoutView: View {
     @State private var showingEmptyFinishConfirmation = false
     @State private var expandedExerciseID: String?
     @State private var completedRecord: WorkoutRecord?
+    @State private var healthSyncState: HealthWorkoutSyncState = .notConnected
     @State private var saveErrorMessage: String?
     @State private var isKeyboardVisible = false
 
@@ -92,7 +93,10 @@ struct ActiveWorkoutView: View {
     var body: some View {
         Group {
             if let completedRecord {
-                WorkoutCompletionView(record: completedRecord) {
+                WorkoutCompletionView(
+                    record: completedRecord,
+                    healthSyncState: healthSyncState
+                ) {
                     onDone()
                     dismiss()
                 }
@@ -421,9 +425,29 @@ struct ActiveWorkoutView: View {
             withAnimation(.easeOut(duration: 0.22)) {
                 completedRecord = record
             }
+            syncCompletedWorkout(record)
         } catch {
             modelContext.rollback()
             saveErrorMessage = "Nothing was lost from this active session. Try saving again."
+        }
+    }
+
+    private func syncCompletedWorkout(_ record: WorkoutRecord) {
+        let health = HealthKitService.shared
+        guard health.canWriteWorkouts else {
+            healthSyncState = .notConnected
+            return
+        }
+
+        healthSyncState = .syncing
+        Task {
+            do {
+                record.healthKitWorkoutUUID = try await health.saveWorkout(from: record)
+                try modelContext.save()
+                healthSyncState = .saved
+            } catch {
+                healthSyncState = .failed
+            }
         }
     }
 
@@ -481,11 +505,17 @@ struct ActiveWorkoutView: View {
 
 private struct WorkoutCompletionView: View {
     let record: WorkoutRecord
+    let healthSyncState: HealthWorkoutSyncState
     let done: () -> Void
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
 
-    init(record: WorkoutRecord, done: @escaping () -> Void) {
+    init(
+        record: WorkoutRecord,
+        healthSyncState: HealthWorkoutSyncState,
+        done: @escaping () -> Void
+    ) {
         self.record = record
+        self.healthSyncState = healthSyncState
         self.done = done
     }
 
@@ -534,6 +564,23 @@ private struct WorkoutCompletionView: View {
                     .background(InkPalette.raisedPaper)
                     .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
 
+                    if let healthStatusText {
+                        HStack(spacing: 10) {
+                            Image(systemName: healthSyncState == .saved
+                                  ? "heart.fill"
+                                  : "heart")
+                                .foregroundStyle(InkPalette.cinnabar)
+                            Text(healthStatusText)
+                                .font(.system(.caption, design: .serif, weight: .semibold))
+                                .foregroundStyle(
+                                    healthSyncState == .failed
+                                        ? InkPalette.cinnabar
+                                        : InkPalette.softInk
+                                )
+                            Spacer()
+                        }
+                    }
+
                     if completedExercises.isEmpty {
                         Text("No movements recorded")
                             .font(.system(.body, design: .serif))
@@ -580,6 +627,19 @@ private struct WorkoutCompletionView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
                 .background(InkPalette.paper.opacity(0.95))
+        }
+    }
+
+    private var healthStatusText: String? {
+        switch healthSyncState {
+        case .notConnected:
+            return nil
+        case .syncing:
+            return "Saving to Apple Health"
+        case .saved:
+            return "Saved to Apple Health"
+        case .failed:
+            return "Not saved to Apple Health"
         }
     }
 
