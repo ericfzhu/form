@@ -193,7 +193,10 @@ enum CoachingReportBuilder {
     private static func totalVolume(_ workouts: [WorkoutRecord]) -> Double {
         workouts.reduce(0) { workoutTotal, workout in
             workoutTotal + workout.exercises.reduce(0) { exerciseTotal, exercise in
-                exerciseTotal + exercise.sets
+                guard WorkoutCatalog.exercise(for: exercise)?.measurement != .weightedTimed else {
+                    return exerciseTotal
+                }
+                return exerciseTotal + exercise.sets
                     .filter { $0.kind == .working }
                     .reduce(0) { $0 + $1.weight * Double($1.repetitions) }
             }
@@ -207,6 +210,8 @@ enum CoachingReportBuilder {
         switch measurement {
         case .weighted:
             "\(weight(set.weight)) kg × \(set.repetitions)"
+        case .weightedTimed:
+            "\(weight(set.weight)) kg / hand × \(set.repetitions) sec"
         case .bodyweight:
             "\(set.repetitions) reps"
         case .timed:

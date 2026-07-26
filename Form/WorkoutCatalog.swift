@@ -12,17 +12,26 @@ struct ExerciseTemplate: Identifiable, Hashable {
 
     enum Measurement: Hashable {
         case weighted
+        case weightedTimed
         case bodyweight
         case timed
     }
 
     var targetText: String {
         switch measurement {
-        case .timed:
+        case .timed, .weightedTimed:
             return "\(sets) × 30–45 sec"
         default:
             return "\(sets) × \(minimumRepetitions)–\(maximumRepetitions)"
         }
+    }
+
+    var recordsLoad: Bool {
+        measurement == .weighted || measurement == .weightedTimed
+    }
+
+    var recordsTime: Bool {
+        measurement == .timed || measurement == .weightedTimed
     }
 
     var formCues: [String] {
@@ -32,7 +41,8 @@ struct ExerciseTemplate: Identifiable, Hashable {
     var usesPerHandLoad: Bool {
         [
             "chest-press", "romanian-deadlift", "incline-press",
-            "split-squat", "chest-supported-row", "shoulder-press"
+            "split-squat", "chest-supported-row", "shoulder-press",
+            "farmer-carry"
         ].contains(id)
     }
 
@@ -179,7 +189,7 @@ enum WorkoutCatalog {
                 exercise("cable-row", "Cable Row", 3, 8, 12, rest: 90),
                 exercise("leg-curl", "Leg Curl", 2, 10, 15, rest: 75),
                 bodyweight("pushup", "Push-Up", 2, 8, 15, rest: 75),
-                timed("farmer-carry", "Farmer Carry", 3, rest: 90)
+                weightedTimed("farmer-carry", "Farmer Carry", 3, rest: 90)
             ]
         )
     ]
@@ -259,6 +269,24 @@ enum WorkoutCatalog {
             minimumRepetitions: 30,
             maximumRepetitions: 45,
             measurement: .timed,
+            restSeconds: rest
+        )
+    }
+
+    private static func weightedTimed(
+        _ asset: String,
+        _ name: String,
+        _ sets: Int,
+        rest: Int
+    ) -> ExerciseTemplate {
+        ExerciseTemplate(
+            id: asset,
+            name: name,
+            assetName: asset,
+            sets: sets,
+            minimumRepetitions: 30,
+            maximumRepetitions: 45,
+            measurement: .weightedTimed,
             restSeconds: rest
         )
     }

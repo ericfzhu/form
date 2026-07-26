@@ -42,6 +42,7 @@ enum ProgressRecord: String, Identifiable {
     case estimatedOneRepMax
     case volume
     case repetitions
+    case time
 
     var id: String { rawValue }
 
@@ -51,6 +52,7 @@ enum ProgressRecord: String, Identifiable {
         case .estimatedOneRepMax: "1RM PR"
         case .volume: "VOLUME PR"
         case .repetitions: "REP PR"
+        case .time: "TIME PR"
         }
     }
 }
@@ -123,7 +125,7 @@ enum ProgressionEngine {
         for template: ExerciseTemplate,
         after performance: ExercisePerformance?
     ) -> Double? {
-        guard template.measurement == .weighted,
+        guard template.recordsLoad,
               let performance,
               performance.sets.count >= template.sets else { return nil }
 
@@ -178,6 +180,58 @@ enum ProgressionEngine {
                 title: "Keep \(load) kg\(template.usesPerHandLoad ? " / hand" : "")",
                 detail: "Aim to add one repetition while staying inside the target range."
             )
+        case .weightedTimed:
+            let prescribed = Array(latest.sets.prefix(template.sets))
+            guard !prescribed.isEmpty else { return nil }
+            let currentLoad = prescribed.map(\.weight).max() ?? 0
+            guard currentLoad > 0 else {
+                return ProgressionRecommendation(
+                    title: "Record the dumbbell load",
+                    detail: "Enter the weight of one dumbbell and carry for \(template.minimumRepetitions)–\(template.maximumRepetitions) seconds."
+                )
+            }
+            let load = currentLoad.formatted(
+                .number.precision(.fractionLength(0...2))
+            )
+
+            if prescribed.count >= template.sets,
+               prescribed.allSatisfy({
+                   $0.weight == currentLoad
+                       && $0.repetitions >= template.maximumRepetitions
+               }) {
+                let next = (currentLoad + loadIncrement).formatted(
+                    .number.precision(.fractionLength(0...2))
+                )
+                return ProgressionRecommendation(
+                    title: "Increase to \(next) kg / hand",
+                    detail: "You held the current load for the full target time across every set."
+                )
+            }
+
+            let repeatedShortfall = performances.prefix(2).count == 2
+                && performances.prefix(2).allSatisfy { performance in
+                    let sets = Array(performance.sets.prefix(template.sets))
+                    return sets.count < template.sets
+                        || sets.contains {
+                            $0.weight <= 0
+                                || $0.repetitions < template.minimumRepetitions
+                        }
+                }
+
+            if repeatedShortfall {
+                let reduced = max(0, currentLoad - loadIncrement).formatted(
+                    .number.precision(.fractionLength(0...2))
+                )
+                return ProgressionRecommendation(
+                    title: "Consider \(reduced) kg / hand",
+                    detail: "The minimum carry time was missed in two consecutive sessions."
+                )
+            }
+
+            return ProgressionRecommendation(
+                title: "Keep \(load) kg / hand",
+                detail: "Build every set toward \(template.maximumRepetitions) seconds before increasing the load."
+            )
         case .bodyweight:
             return ProgressionRecommendation(
                 title: "Add one repetition",
@@ -215,6 +269,16 @@ enum ProgressionEngine {
                 return "\(repDelta > 0 ? "+" : "")\(repDelta) reps"
             }
             return "Matched previous"
+        case .weightedTimed:
+            let loadDelta = (current.topSet?.weight ?? 0) - (previous.topSet?.weight ?? 0)
+            if loadDelta != 0 {
+                return "\(loadDelta > 0 ? "+" : "")\(loadDelta.formatted(.number.precision(.fractionLength(0...2)))) kg / hand"
+            }
+            let timeDelta = current.bestRepetitions - previous.bestRepetitions
+            if timeDelta != 0 {
+                return "\(timeDelta > 0 ? "+" : "")\(timeDelta) sec"
+            }
+            return "Matched previous"
         case .bodyweight, .timed:
             let delta = current.bestRepetitions - previous.bestRepetitions
             if delta == 0 { return "Matched previous" }
@@ -245,6 +309,17 @@ enum ProgressionEngine {
                 records.append(.volume)
             }
             return records
+        case .weightedTimed:
+            var records: [ProgressRecord] = []
+            let previousLoad = previous.compactMap { $0.topSet?.weight }.max() ?? 0
+            if (performance.topSet?.weight ?? 0) > previousLoad {
+                records.append(.load)
+            }
+            let previousBestTime = previous.map(\.bestRepetitions).max() ?? 0
+            if performance.bestRepetitions > previousBestTime {
+                records.append(.time)
+            }
+            return records
         case .bodyweight, .timed:
             let previousBest = previous.map(\.bestRepetitions).max() ?? 0
             return performance.bestRepetitions > previousBest ? [.repetitions] : []
@@ -266,6 +341,7 @@ struct ExerciseProgressView: View {
     private var availableMetrics: [TrendMetric] {
         switch exercise.measurement {
         case .weighted: [.load, .estimatedOneRepMax, .repetitions, .volume]
+        case .weightedTimed: [.load, .repetitions]
         case .bodyweight, .timed: [.repetitions]
         }
     }
@@ -555,6 +631,14 @@ struct ExerciseProgressView: View {
             }
             guard let best else { return "—" }
             return "\(weightText(best.weight)) × \(best.repetitions)"
+        case .weightedTimed:
+            guard let best = performances.compactMap(\.topSet).max(by: {
+                if $0.weight == $1.weight {
+                    return $0.repetitions < $1.repetitions
+                }
+                return $0.weight < $1.weight
+            }) else { return "—" }
+            return "\(weightText(best.weight)) kg · \(best.repetitions) sec"
         case .bodyweight:
             return "\(performances.map(\.bestRepetitions).max() ?? 0) reps"
         case .timed:
@@ -580,6 +664,9 @@ struct ExerciseProgressView: View {
         case .weighted:
             guard let topSet = performance.topSet else { return "—" }
             return "\(weightText(topSet.weight)) kg × \(topSet.repetitions)  ·  \(Int(performance.totalVolume)) kg"
+        case .weightedTimed:
+            guard let topSet = performance.topSet else { return "—" }
+            return "\(weightText(topSet.weight)) kg / hand · \(topSet.repetitions) sec"
         case .bodyweight:
             return "Best \(performance.bestRepetitions) reps"
         case .timed:
@@ -606,7 +693,8 @@ private enum TrendMetric: Hashable {
         switch self {
         case .load: "Load"
         case .estimatedOneRepMax: "1RM"
-        case .repetitions: measurement == .timed ? "Time" : "Reps"
+        case .repetitions:
+            measurement == .timed || measurement == .weightedTimed ? "Time" : "Reps"
         case .volume: "Volume"
         }
     }
@@ -615,7 +703,8 @@ private enum TrendMetric: Hashable {
         switch self {
         case .load: "Kilograms"
         case .estimatedOneRepMax: "Estimated 1RM"
-        case .repetitions: measurement == .timed ? "Seconds" : "Repetitions"
+        case .repetitions:
+            measurement == .timed || measurement == .weightedTimed ? "Seconds" : "Repetitions"
         case .volume: "Kilograms"
         }
     }

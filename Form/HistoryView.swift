@@ -731,10 +731,16 @@ private struct HistoryExerciseCard: View {
     }
 
     private func setText(_ set: SetRecord) -> String {
+        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
+        if measurement == .weightedTimed {
+            return "\(set.weight.formatted(.number.precision(.fractionLength(0...1)))) kg / hand × \(set.repetitions) sec"
+        }
         if set.weight > 0 {
             return "\(set.weight.formatted(.number.precision(.fractionLength(0...1)))) kg × \(set.repetitions)"
         }
-        return "\(set.repetitions) reps"
+        return measurement == .timed
+            ? "\(set.repetitions) sec"
+            : "\(set.repetitions) reps"
     }
 
     private func workingSetNumber(for set: SetRecord) -> Int {
@@ -1041,7 +1047,7 @@ private struct WorkoutEditorView: View {
             record.sets = exerciseDraft.sets.enumerated().map { index, set in
                 SetRecord(
                     order: index,
-                    weight: exerciseDraft.template.measurement == .weighted ? max(0, set.weight) : 0,
+                    weight: exerciseDraft.template.recordsLoad ? max(0, set.weight) : 0,
                     repetitions: max(0, set.repetitions),
                     kind: set.kind
                 )
@@ -1164,12 +1170,12 @@ private struct EditableExerciseCard: View {
                     .tint(InkPalette.ink)
                     .accessibilityLabel("Set type: \(set.kind.title)")
 
-                    if exercise.template.measurement == .weighted {
+                    if exercise.template.recordsLoad {
                         editField(exercise.template.loadLabel, value: $set.weight)
                     }
 
                     editRepetitionField(
-                        exercise.template.measurement == .timed ? "SEC" : "REPS",
+                        exercise.template.recordsTime ? "SEC" : "REPS",
                         value: $set.repetitions
                     )
 

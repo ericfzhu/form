@@ -780,6 +780,12 @@ private struct ExercisePreviewRow: View {
                 .number.precision(.fractionLength(topSet.weight.rounded() == topSet.weight ? 0 : 1))
             )
             return "\(weight) kg × \(topSet.repetitions)"
+        case .weightedTimed:
+            guard let topSet = performance.topSet else { return "No completed sets" }
+            let weight = topSet.weight.formatted(
+                .number.precision(.fractionLength(topSet.weight.rounded() == topSet.weight ? 0 : 1))
+            )
+            return "\(weight) kg / hand × \(topSet.repetitions) sec"
         case .bodyweight:
             return "\(performance.bestRepetitions) reps"
         case .timed:

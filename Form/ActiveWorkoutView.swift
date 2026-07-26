@@ -703,6 +703,11 @@ private struct WorkoutCompletionView: View {
                     .number.precision(.fractionLength(set.weight.rounded() == set.weight ? 0 : 1))
                 )
                 return "\(prefix)\(weight) × \(set.repetitions)"
+            case .weightedTimed:
+                let weight = set.weight.formatted(
+                    .number.precision(.fractionLength(set.weight.rounded() == set.weight ? 0 : 1))
+                )
+                return "\(prefix)\(weight) kg / hand × \(set.repetitions) sec"
             case .bodyweight:
                 return "\(prefix)\(set.repetitions) reps"
             case .timed:
@@ -1010,9 +1015,9 @@ private struct ExerciseLoggingCard: View {
                     HStack {
                         Text("TYPE")
                             .frame(width: 36, alignment: .leading)
-                        Text(draft.template.measurement == .weighted ? draft.template.loadLabel : "LOAD")
+                        Text(draft.template.recordsLoad ? draft.template.loadLabel : "LOAD")
                             .frame(maxWidth: .infinity)
-                        Text(draft.template.measurement == .timed ? "SEC" : "REPS")
+                        Text(draft.template.recordsTime ? "SEC" : "REPS")
                             .frame(maxWidth: .infinity)
                         Color.clear.frame(width: 52, height: 1)
                     }
@@ -1165,6 +1170,8 @@ private struct LastPerformanceSummary: View {
             switch template.measurement {
             case .weighted:
                 "\(weightText(set.weight)) × \(set.repetitions)"
+            case .weightedTimed:
+                "\(weightText(set.weight)) kg / hand × \(set.repetitions) sec"
             case .bodyweight:
                 "\(set.repetitions) reps"
             case .timed:
@@ -1211,7 +1218,7 @@ private struct SetLoggingRow: View {
             .tint(InkPalette.ink)
             .accessibilityLabel("Set type: \(set.kind.title)")
 
-            if measurement == .weighted {
+            if measurement == .weighted || measurement == .weightedTimed {
                 TextField("0", value: $set.weight, format: .number.precision(.fractionLength(0...1)))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.center)
