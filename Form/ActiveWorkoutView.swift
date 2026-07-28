@@ -753,7 +753,10 @@ private struct CompletionHeader: View {
                     .font(.system(size: 15, weight: .semibold, design: .serif))
                     .foregroundStyle(InkPalette.raisedPaper)
                     .frame(width: 52, height: 52)
-                    .background(InkPalette.cinnabar)
+                    .background {
+                        Rectangle()
+                            .fill(InkPalette.cinnabar)
+                    }
                 Text("SESSION COMPLETE")
                     .font(.system(size: 11, weight: .semibold, design: .serif))
                     .tracking(1.6)
