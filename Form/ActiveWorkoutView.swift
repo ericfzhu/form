@@ -1000,7 +1000,7 @@ private struct ExerciseLoggingCard: View {
             .accessibilityHint(isExpanded ? "Hides exercise details" : "Shows exercise details")
 
             if isExpanded {
-                Group {
+                VStack(spacing: 0) {
                     if let previous {
                         LastPerformanceSummary(
                             template: draft.template,
