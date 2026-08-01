@@ -611,7 +611,7 @@ private struct HealthIntegrationSection: View {
         case .notConnected:
             Task { await health.requestAccess() }
         case .connected:
-            Task { await health.refresh() }
+            Task { await health.requestAccess() }
         case .denied:
             guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
             UIApplication.shared.open(url)

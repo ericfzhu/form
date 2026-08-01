@@ -33,6 +33,19 @@ final class HealthKitService: ObservableObject {
         HKObjectType.quantityType(forIdentifier: .bodyMass)!
     }
 
+    private var workoutShareTypes: Set<HKSampleType> {
+        var types: Set<HKSampleType> = [
+            workoutType,
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKObjectType.quantityType(forIdentifier: .distanceCycling)!
+        ]
+        if #available(iOS 18.0, *),
+           let rowingDistance = HKObjectType.quantityType(forIdentifier: .distanceRowing) {
+            types.insert(rowingDistance)
+        }
+        return types
+    }
+
     var canWriteWorkouts: Bool {
         accessState == .connected
     }
@@ -65,7 +78,7 @@ final class HealthKitService: ObservableObject {
 
         do {
             try await healthStore.requestAuthorization(
-                toShare: [workoutType],
+                toShare: workoutShareTypes,
                 read: [bodyMassType]
             )
             refreshAccessState()
@@ -86,26 +99,53 @@ final class HealthKitService: ObservableObject {
         guard canWriteWorkouts, record.hasTrainingData else { return nil }
 
         let endDate = record.date.addingTimeInterval(max(1, record.duration))
-        let workout = HKWorkout(
-            activityType: record.healthActivityType,
-            start: record.date,
-            end: endDate,
-            duration: max(1, record.duration),
-            totalEnergyBurned: nil,
-            totalDistance: record.healthDistance,
-            metadata: [
-                HKMetadataKeyIndoorWorkout: true,
-                HKMetadataKeyExternalUUID: record.healthSyncIdentifier.uuidString
-            ]
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = record.healthActivityType
+        configuration.locationType = .indoor
+
+        let builder = HKWorkoutBuilder(
+            healthStore: healthStore,
+            configuration: configuration,
+            device: .local()
         )
 
-        try await save(workout)
+        do {
+            try await builder.beginCollection(at: record.date)
+            try await builder.addMetadata([
+                HKMetadataKeyIndoorWorkout: true,
+                HKMetadataKeyExternalUUID: record.healthSyncIdentifier.uuidString
+            ])
 
-        if let previousWorkoutUUID, previousWorkoutUUID != workout.uuid {
-            try? await deleteWorkout(with: previousWorkoutUUID)
+            if let distance = record.healthDistance,
+               let distanceType = record.healthDistanceType,
+               healthStore.authorizationStatus(for: distanceType) == .sharingAuthorized {
+                let sampleStart = min(
+                    endDate,
+                    record.date.addingTimeInterval(min(1, max(1, record.duration) / 2))
+                )
+                let distanceSample = HKQuantitySample(
+                    type: distanceType,
+                    quantity: distance,
+                    start: sampleStart,
+                    end: endDate
+                )
+                try await builder.addSamples([distanceSample])
+            }
+
+            try await builder.endCollection(at: endDate)
+            guard let workout = try await builder.finishWorkout() else {
+                throw HealthKitError.operationFailed
+            }
+
+            if let previousWorkoutUUID, previousWorkoutUUID != workout.uuid {
+                try? await deleteWorkout(with: previousWorkoutUUID)
+            }
+
+            return workout.uuid
+        } catch {
+            builder.discardWorkout()
+            throw error
         }
-
-        return workout.uuid
     }
 
     func deleteWorkout(with uuid: UUID?) async throws {
@@ -190,20 +230,6 @@ final class HealthKitService: ObservableObject {
         }
     }
 
-    private func save(_ object: HKObject) async throws {
-        try await withCheckedThrowingContinuation {
-            (continuation: CheckedContinuation<Void, Error>) in
-            healthStore.save(object) { success, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: HealthKitError.operationFailed)
-                }
-            }
-        }
-    }
 }
 
 private enum HealthKitError: Error {
@@ -246,5 +272,21 @@ private extension WorkoutRecord {
             unit: .meterUnit(with: .kilo),
             doubleValue: kilometers
         )
+    }
+
+    var healthDistanceType: HKQuantityType? {
+        switch cardioEntries.sorted(by: { $0.order < $1.order }).first?.kind {
+        case .treadmillWalk, .treadmillRun:
+            return HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)
+        case .cycling:
+            return HKObjectType.quantityType(forIdentifier: .distanceCycling)
+        case .rowing:
+            if #available(iOS 18.0, *) {
+                return HKObjectType.quantityType(forIdentifier: .distanceRowing)
+            }
+            return nil
+        case .elliptical, .other, .none:
+            return nil
+        }
     }
 }
