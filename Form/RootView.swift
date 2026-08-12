@@ -279,7 +279,7 @@ struct RootView: View {
                 PaperBackground()
 
                 VStack(spacing: 0) {
-                    TabView(selection: $selection) {
+                    ZStack {
                         NavigationStack(path: $trainPath) {
                             RoutineListView()
                                 .navigationDestination(for: RoutineTemplate.self) { routine in
@@ -289,7 +289,10 @@ struct RootView: View {
                                     ExerciseProgressView(exercise: exercise)
                                 }
                         }
-                        .tag(AppTab.train)
+                        .opacity(selection == .train ? 1 : 0)
+                        .allowsHitTesting(selection == .train)
+                        .accessibilityHidden(selection != .train)
+                        .zIndex(selection == .train ? 1 : 0)
 
                         NavigationStack(path: $historyPath) {
                             HistoryView()
@@ -300,10 +303,12 @@ struct RootView: View {
                                     WorkoutHistoryDetail(workout: workout)
                                 }
                         }
-                        .tag(AppTab.history)
+                        .opacity(selection == .history ? 1 : 0)
+                        .allowsHitTesting(selection == .history)
+                        .accessibilityHidden(selection != .history)
+                        .zIndex(selection == .history ? 1 : 0)
                     }
                     .background(Color.clear)
-                    .toolbar(.hidden, for: .tabBar)
 
                     if isFooterVisible {
                         InkTabBar(selection: $selection)

@@ -25,12 +25,7 @@ struct HistoryView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
 
-                    Picker("Record section", selection: $selectedSection) {
-                        ForEach(HistorySection.allCases) { section in
-                            Text(section.title).tag(section)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    HistorySectionControl(selection: $selectedSection)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(
@@ -152,6 +147,45 @@ private enum HistorySection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
+}
+
+private struct HistorySectionControl: View {
+    @Binding var selection: HistorySection
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(HistorySection.allCases) { section in
+                Button {
+                    selection = section
+                } label: {
+                    Text(section.title.uppercased())
+                        .font(.system(.caption, design: .serif, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(
+                            selection == section
+                                ? InkPalette.raisedPaper
+                                : InkPalette.softInk
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 46)
+                        .background(
+                            selection == section
+                                ? InkPalette.cinnabar
+                                : InkPalette.raisedPaper
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PressableButtonStyle())
+                .accessibilityAddTraits(selection == section ? .isSelected : [])
+            }
+        }
+        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+        .overlay(alignment: .center) {
+            Rectangle()
+                .fill(InkPalette.bronze.opacity(0.72))
+                .frame(width: 1)
+                .accessibilityHidden(true)
+        }
+    }
 }
 
 private struct ExerciseIndexView: View {
