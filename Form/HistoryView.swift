@@ -7,6 +7,7 @@ struct HistoryView: View {
     @State private var saveErrorMessage: String?
     @State private var selectedSection: HistorySection = .sessions
     @State private var showingExerciseIndex = false
+    let openWorkout: (WorkoutRecord) -> Void
 
     var body: some View {
         ZStack {
@@ -39,8 +40,6 @@ struct HistoryView: View {
                             Image(systemName: "magnifyingglass")
                             Text("Find exercise progress")
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
                         }
                         .font(.system(.subheadline, design: .serif, weight: .semibold))
                         .foregroundStyle(InkPalette.ink)
@@ -80,7 +79,9 @@ struct HistoryView: View {
 
                     } else {
                         ForEach(workouts) { workout in
-                            NavigationLink(value: workout) {
+                            Button {
+                                openWorkout(workout)
+                            } label: {
                                 HistoryCard(workout: workout)
                             }
                             .buttonStyle(PressableButtonStyle())
@@ -361,6 +362,12 @@ private struct HistoryCard: View {
 
             Spacer()
 
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(InkPalette.bronze.opacity(0.72))
+                .frame(width: 18)
+                .frame(minHeight: 44)
+                .accessibilityHidden(true)
         }
         .padding(16)
         .inkCard()

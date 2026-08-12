@@ -295,7 +295,9 @@ struct RootView: View {
                         .zIndex(selection == .train ? 1 : 0)
 
                         NavigationStack(path: $historyPath) {
-                            HistoryView()
+                            HistoryView { workout in
+                                historyPath.append(workout)
+                            }
                                 .navigationDestination(for: ExerciseTemplate.self) { exercise in
                                     ExerciseProgressView(exercise: exercise)
                                 }
