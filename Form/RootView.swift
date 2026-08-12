@@ -54,6 +54,7 @@ struct RawScreenTitle: View {
     let index: String
     let title: String
     var detail: String = ""
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = 52
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -62,12 +63,12 @@ struct RawScreenTitle: View {
                 Spacer()
                 if !detail.isEmpty { Text(detail) }
             }
-            .font(.system(size: 9, weight: .semibold, design: .serif))
+            .font(.system(.caption2, design: .serif, weight: .semibold))
             .tracking(1.8)
             .foregroundStyle(InkPalette.bronze)
 
             Text(title)
-                .font(.system(size: 52, weight: .regular, design: .serif))
+                .font(.system(size: titleSize, weight: .regular, design: .serif))
                 .tracking(-2.2)
                 .foregroundStyle(InkPalette.ink)
                 .minimumScaleFactor(0.62)
@@ -93,7 +94,7 @@ struct RawSectionHeader: View {
                 .foregroundStyle(InkPalette.cinnabar)
                 .frame(width: 34, alignment: .leading)
             Text(title)
-                .font(.system(size: 11, weight: .semibold, design: .serif))
+                .font(.system(.caption, design: .serif, weight: .semibold))
                 .tracking(1.3)
             Spacer()
             if !trailing.isEmpty {
@@ -101,7 +102,7 @@ struct RawSectionHeader: View {
                     .foregroundStyle(InkPalette.softInk)
             }
         }
-        .font(.system(size: 9, weight: .semibold, design: .serif))
+        .font(.system(.caption2, design: .serif, weight: .semibold))
         .tracking(1.2)
         .padding(.horizontal, 2)
         .frame(height: 46)
@@ -120,13 +121,13 @@ struct InkTextHeader: View {
     var body: some View {
         HStack(spacing: 0) {
                 Button(leadingTitle, action: leadingAction)
-                    .font(.system(size: 13, weight: .regular, design: .serif))
+                    .font(.system(.subheadline, design: .serif))
                     .foregroundStyle(InkPalette.ink)
                     .frame(width: 76, height: 52)
                     .buttonStyle(PressableButtonStyle())
 
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
                     .tracking(1.8)
                     .foregroundStyle(InkPalette.ink)
                     .lineLimit(1)
@@ -135,7 +136,7 @@ struct InkTextHeader: View {
 
                 if let trailingTitle, let trailingAction {
                     Button(trailingTitle, action: trailingAction)
-                        .font(.system(size: 13, weight: .regular, design: .serif))
+                        .font(.system(.subheadline, design: .serif))
                         .foregroundStyle(InkPalette.cinnabar)
                         .frame(width: 76, height: 52)
                         .buttonStyle(PressableButtonStyle())
@@ -197,7 +198,7 @@ struct InkPrimaryButton: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
                     .tracking(1.4)
                 Spacer()
                 Image(systemName: "arrow.right")
@@ -258,11 +259,18 @@ private enum AppTab: CaseIterable, Hashable {
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("did-see-training-introduction") private var didSeeIntroduction = false
     @State private var selection: AppTab = .train
-    @State private var navigationPath = NavigationPath()
+    @State private var trainPath = NavigationPath()
+    @State private var historyPath = NavigationPath()
+    @State private var showingIntroduction = false
 
     private var isFooterVisible: Bool {
-        navigationPath.isEmpty
+        switch selection {
+        case .train: trainPath.isEmpty
+        case .history: historyPath.isEmpty
+        }
     }
 
     var body: some View {
@@ -271,27 +279,31 @@ struct RootView: View {
                 PaperBackground()
 
                 VStack(spacing: 0) {
-                    NavigationStack(path: $navigationPath) {
-                        TabView(selection: $selection) {
+                    TabView(selection: $selection) {
+                        NavigationStack(path: $trainPath) {
                             RoutineListView()
-                                .tag(AppTab.train)
+                                .navigationDestination(for: RoutineTemplate.self) { routine in
+                                    RoutineDetailView(routine: routine)
+                                }
+                                .navigationDestination(for: ExerciseTemplate.self) { exercise in
+                                    ExerciseProgressView(exercise: exercise)
+                                }
+                        }
+                        .tag(AppTab.train)
 
+                        NavigationStack(path: $historyPath) {
                             HistoryView()
-                                .tag(AppTab.history)
+                                .navigationDestination(for: ExerciseTemplate.self) { exercise in
+                                    ExerciseProgressView(exercise: exercise)
+                                }
+                                .navigationDestination(for: WorkoutRecord.self) { workout in
+                                    WorkoutHistoryDetail(workout: workout)
+                                }
                         }
-                        .background(Color.clear)
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        .navigationDestination(for: RoutineTemplate.self) { routine in
-                            RoutineDetailView(routine: routine)
-                        }
-                        .navigationDestination(for: ExerciseTemplate.self) { exercise in
-                            ExerciseProgressView(exercise: exercise)
-                        }
-                        .navigationDestination(for: WorkoutRecord.self) { workout in
-                            WorkoutHistoryDetail(workout: workout)
-                        }
+                        .tag(AppTab.history)
                     }
                     .background(Color.clear)
+                    .toolbar(.hidden, for: .tabBar)
 
                     if isFooterVisible {
                         InkTabBar(selection: $selection)
@@ -309,12 +321,92 @@ struct RootView: View {
                     .allowsHitTesting(false)
             }
             .tint(InkPalette.ink)
+            .transaction { transaction in
+                if reduceMotion {
+                    transaction.animation = nil
+                }
+            }
         }
         .task {
             try? ExerciseIdentityMigration.backfillLegacyRecords(in: modelContext)
+            if !didSeeIntroduction {
+                showingIntroduction = true
+            }
+        }
+        .sheet(isPresented: $showingIntroduction, onDismiss: {
+            didSeeIntroduction = true
+        }) {
+            TrainingIntroductionView {
+                didSeeIntroduction = true
+                showingIntroduction = false
+            }
         }
     }
 
+}
+
+private struct TrainingIntroductionView: View {
+    let done: () -> Void
+
+    var body: some View {
+        ZStack {
+            PaperBackground()
+
+            VStack(alignment: .leading, spacing: 0) {
+                RawScreenTitle(index: "00", title: "Begin")
+
+                VStack(spacing: 0) {
+                    introductionRow(
+                        index: "I",
+                        title: "Follow the rotation",
+                        detail: "Form keeps your place across Workouts A, B and C."
+                    )
+                    introductionRow(
+                        index: "II",
+                        title: "Record each completed set",
+                        detail: "Your last load and repetitions return when the movement comes again."
+                    )
+                    introductionRow(
+                        index: "III",
+                        title: "Leave and return safely",
+                        detail: "Close a session whenever you need to. Your work and active time remain preserved."
+                    )
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+
+                Spacer(minLength: 24)
+
+                InkPrimaryButton(title: "Continue") {
+                    done()
+                }
+                .padding(20)
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private func introductionRow(index: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            Text(index)
+                .font(.system(.title3, design: .serif))
+                .foregroundStyle(InkPalette.cinnabar)
+                .frame(width: 30, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .foregroundStyle(InkPalette.ink)
+                Text(detail)
+                    .font(.system(.body, design: .serif))
+                    .foregroundStyle(InkPalette.softInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 18)
+        .overlay(alignment: .bottom) { InkDivider() }
+    }
 }
 
 private struct InkTabBar: View {
@@ -333,7 +425,7 @@ private struct InkTabBar: View {
                             .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.bronze)
                         Text(tab.title.uppercased())
                     }
-                    .font(.system(size: 11, weight: .semibold, design: .serif))
+                    .font(.system(.caption, design: .serif, weight: .semibold))
                     .tracking(1.5)
                     .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.softInk)
                     .frame(maxWidth: .infinity, minHeight: 56)
@@ -393,7 +485,7 @@ private struct RoutineListView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text("SESSION IN PROGRESS")
-                                        .font(.system(size: 9, weight: .semibold, design: .serif))
+                                        .font(.system(.caption2, design: .serif, weight: .semibold))
                                         .tracking(1.5)
                                         .foregroundStyle(InkPalette.cinnabar)
                                     Text(resumeRoutine.name)
@@ -405,7 +497,7 @@ private struct RoutineListView: View {
                                 }
                                 Spacer()
                                 Text("CONTINUE")
-                                    .font(.system(size: 10, weight: .semibold, design: .serif))
+                                    .font(.system(.caption, design: .serif, weight: .semibold))
                                     .tracking(1.4)
                                     .foregroundStyle(InkPalette.cinnabar)
                                     .frame(minWidth: 54, minHeight: 44)
@@ -644,6 +736,15 @@ private struct RoutineCard: View {
                     .font(.system(.caption, design: .serif))
                     .foregroundStyle(InkPalette.softInk.opacity(0.72))
                     .monospacedDigit()
+
+                HStack(spacing: 6) {
+                    Text("VIEW ROUTINE")
+                    Image(systemName: "arrow.right")
+                        .offset(x: 1)
+                }
+                .font(.system(.caption2, design: .serif, weight: .semibold))
+                .tracking(1.1)
+                .foregroundStyle(InkPalette.cinnabar)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .layoutPriority(1)
@@ -674,7 +775,8 @@ private struct RoutineCard: View {
 struct RoutineDetailView: View {
     let routine: RoutineTemplate
     @Environment(\.dismiss) private var dismiss
-    @State private var showingWorkout = false
+    @State private var workoutLaunch: WorkoutLaunch?
+    @State private var startConflict: ActiveWorkoutSnapshot?
     @State private var shouldReturnToTrain = false
 
     var body: some View {
@@ -715,22 +817,91 @@ struct RoutineDetailView: View {
         }
         .safeAreaInset(edge: .bottom) {
             InkPrimaryButton(title: "Begin session") {
-                showingWorkout = true
+                requestWorkoutStart()
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .background(InkPalette.paper.opacity(0.94))
         }
-        .fullScreenCover(isPresented: $showingWorkout, onDismiss: {
+        .confirmationDialog(
+            startConflictTitle,
+            isPresented: Binding(
+                get: { startConflict != nil },
+                set: { if !$0 { startConflict = nil } }
+            )
+        ) {
+            if let startConflict,
+               let activeRoutine = WorkoutCatalog.routines.first(where: {
+                   $0.id == startConflict.routineID
+               }) {
+                Button("Resume \(activeRoutine.name)") {
+                    workoutLaunch = WorkoutLaunch(
+                        routine: activeRoutine,
+                        snapshot: startConflict
+                    )
+                    self.startConflict = nil
+                }
+                Button(
+                    activeRoutine.id == routine.id
+                        ? "Discard and restart"
+                        : "Discard and begin \(routine.name)",
+                    role: .destructive
+                ) {
+                    replaceActiveWorkout()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Only one session can be active at a time. Your current progress will remain saved unless you choose to discard it.")
+        }
+        .fullScreenCover(item: $workoutLaunch, onDismiss: {
             if shouldReturnToTrain {
                 dismiss()
             }
-        }) {
-            ActiveWorkoutView(routine: routine) {
+        }) { launch in
+            ActiveWorkoutView(routine: launch.routine, snapshot: launch.snapshot) {
                 shouldReturnToTrain = true
             }
         }
     }
+
+    private var startConflictTitle: String {
+        guard let startConflict,
+              let activeRoutine = WorkoutCatalog.routines.first(where: {
+                  $0.id == startConflict.routineID
+              }) else {
+            return "Session already in progress"
+        }
+        return "\(activeRoutine.name) is already in progress"
+    }
+
+    private func requestWorkoutStart() {
+        guard let snapshot = ActiveWorkoutStore.load() else {
+            workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
+            return
+        }
+        guard WorkoutCatalog.routines.contains(where: { $0.id == snapshot.routineID }) else {
+            ActiveWorkoutStore.clear()
+            workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
+            return
+        }
+        startConflict = snapshot
+    }
+
+    private func replaceActiveWorkout() {
+        startConflict = nil
+        ActiveWorkoutStore.clear()
+        Task {
+            await WorkoutLiveActivityController.end()
+            workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
+        }
+    }
+}
+
+private struct WorkoutLaunch: Identifiable {
+    let id = UUID()
+    let routine: RoutineTemplate
+    let snapshot: ActiveWorkoutSnapshot?
 }
 
 private struct ExercisePreviewRow: View {
@@ -815,11 +986,13 @@ struct DemonstrationImage: View {
 }
 
 struct PressableButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
             .opacity(configuration.isPressed ? 0.84 : 1)
-            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 

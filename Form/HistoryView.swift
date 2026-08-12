@@ -5,6 +5,8 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var saveErrorMessage: String?
+    @State private var selectedSection: HistorySection = .sessions
+    @State private var showingExerciseIndex = false
 
     var body: some View {
         ZStack {
@@ -23,48 +25,87 @@ struct HistoryView: View {
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
 
-                    HistoryWeeklySummary(workouts: workouts)
+                    Picker("Record section", selection: $selectedSection) {
+                        ForEach(HistorySection.allCases) { section in
+                            Text(section.title).tag(section)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(
+                        EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)
+                    )
+
+                    Button {
+                        showingExerciseIndex = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "magnifyingglass")
+                            Text("Find exercise progress")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                        .padding(.horizontal, 15)
+                        .frame(minHeight: 50)
+                        .background(InkPalette.raisedPaper)
+                        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(
+                        EdgeInsets(top: 0, leading: 20, bottom: 10, trailing: 20)
+                    )
+
+                    if selectedSection == .overview {
+                        HistoryWeeklySummary(workouts: workouts)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(
                             EdgeInsets(top: 10, leading: 20, bottom: 14, trailing: 20)
                         )
 
-                    HistoryConsistencyView(workouts: workouts)
+                        HistoryConsistencyView(workouts: workouts)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(
                             EdgeInsets(top: 0, leading: 20, bottom: 14, trailing: 20)
                         )
 
-                    CoachingReportShareRow(workouts: workouts)
+                        CoachingReportShareRow(workouts: workouts)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(
                             EdgeInsets(top: 0, leading: 20, bottom: 18, trailing: 20)
                         )
 
-                    ForEach(workouts) { workout in
-                        NavigationLink(value: workout) {
-                            HistoryCard(workout: workout)
-                        }
-                        .buttonStyle(PressableButtonStyle())
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(
-                            EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20)
-                        )
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                delete(workout)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                    } else {
+                        ForEach(workouts) { workout in
+                            NavigationLink(value: workout) {
+                                HistoryCard(workout: workout)
                             }
-                            .tint(InkPalette.cinnabar)
-                        }
-                        .contextMenu {
-                            Button("Delete session", role: .destructive) {
-                                delete(workout)
+                            .buttonStyle(PressableButtonStyle())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(
+                                EdgeInsets(top: 7, leading: 20, bottom: 7, trailing: 20)
+                            )
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    delete(workout)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .tint(InkPalette.cinnabar)
+                            }
+                            .contextMenu {
+                                Button("Delete session", role: .destructive) {
+                                    delete(workout)
+                                }
                             }
                         }
                     }
@@ -75,6 +116,9 @@ struct HistoryView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showingExerciseIndex) {
+            ExerciseIndexView()
+        }
         .alert("Couldn’t delete session", isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
@@ -99,6 +143,67 @@ struct HistoryView: View {
             modelContext.rollback()
             saveErrorMessage = "The session remains in the record. Try again."
         }
+    }
+}
+
+private enum HistorySection: String, CaseIterable, Identifiable {
+    case sessions
+    case overview
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+}
+
+private struct ExerciseIndexView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var exercises: [ExerciseTemplate] {
+        let all = WorkoutCatalog.routines.flatMap(\.exercises).uniquedByName()
+        guard !searchText.isEmpty else { return all }
+        return all.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                PaperBackground()
+
+                List(exercises) { exercise in
+                    NavigationLink(value: exercise) {
+                        HStack(spacing: 14) {
+                            DemonstrationImage(assetName: exercise.assetName)
+                                .frame(width: 64, height: 64)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(exercise.name)
+                                    .font(.system(.headline, design: .serif, weight: .semibold))
+                                Text(exercise.targetText)
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundStyle(InkPalette.softInk)
+                            }
+                        }
+                        .foregroundStyle(InkPalette.ink)
+                        .padding(.vertical, 5)
+                    }
+                    .listRowBackground(InkPalette.raisedPaper)
+                }
+                .scrollContentBackground(.hidden)
+                .searchable(text: $searchText, prompt: "Exercise")
+            }
+            .navigationTitle("Exercise progress")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: ExerciseTemplate.self) { exercise in
+                ExerciseProgressView(exercise: exercise)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .tint(InkPalette.cinnabar)
     }
 }
 
@@ -131,11 +236,11 @@ private struct CoachingReportShareRow: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("COACHING REPORT")
-                        .font(.system(size: 11, weight: .semibold, design: .serif))
+                        .font(.system(.caption, design: .serif, weight: .semibold))
                         .tracking(1.5)
                         .foregroundStyle(InkPalette.ink)
                     Text("12 WEEKS · \(includedSessionCount) SESSIONS")
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(.caption2, design: .monospaced))
                         .foregroundStyle(InkPalette.softInk)
                         .monospacedDigit()
                 }
@@ -143,7 +248,7 @@ private struct CoachingReportShareRow: View {
                 Spacer(minLength: 12)
 
                 Text("SHARE")
-                    .font(.system(size: 10, weight: .semibold, design: .serif))
+                    .font(.system(.caption, design: .serif, weight: .semibold))
                     .tracking(1.3)
                     .foregroundStyle(InkPalette.cinnabar)
                     .frame(minWidth: 52, minHeight: 44)
@@ -797,18 +902,25 @@ private struct CardioHistoryCard: View {
     }
 }
 
-private struct EditableSetDraft: Identifiable {
+private struct EditableSetDraft: Identifiable, Equatable {
     let id = UUID()
     var weight: Double
     var repetitions: Int
     var kind: SetKind = .working
 }
 
-private struct EditableExerciseDraft: Identifiable {
+private struct EditableExerciseDraft: Identifiable, Equatable {
     let id = UUID()
     let record: ExerciseRecord?
     let template: ExerciseTemplate
     var sets: [EditableSetDraft]
+
+    static func == (lhs: EditableExerciseDraft, rhs: EditableExerciseDraft) -> Bool {
+        lhs.id == rhs.id
+            && lhs.record?.persistentModelID == rhs.record?.persistentModelID
+            && lhs.template == rhs.template
+            && lhs.sets == rhs.sets
+    }
 }
 
 private struct WorkoutEditorView: View {
@@ -823,13 +935,19 @@ private struct WorkoutEditorView: View {
     @State private var exercises: [EditableExerciseDraft]
     @State private var cardioEntries: [CardioDraft]
     @State private var saveErrorMessage: String?
+    @State private var showingDiscardConfirmation = false
+    private let initialDate: Date
+    private let initialRoutineName: String
+    private let initialDurationMinutes: Double
+    private let initialExercises: [EditableExerciseDraft]
+    private let initialCardioEntries: [CardioDraft]
 
     init(workout: WorkoutRecord) {
         self.workout = workout
-        _date = State(initialValue: workout.date)
-        _routineName = State(initialValue: workout.routineName)
-        _durationMinutes = State(initialValue: max(1, workout.duration / 60))
-        _exercises = State(initialValue: workout.exercises
+        let initialDate = workout.date
+        let initialRoutineName = workout.routineName
+        let initialDurationMinutes = max(1, workout.duration / 60)
+        let initialExercises = workout.exercises
             .sorted { $0.order < $1.order }
             .map { exercise in
                 EditableExerciseDraft(
@@ -855,10 +973,20 @@ private struct WorkoutEditorView: View {
                             )
                         }
                 )
-            })
-        _cardioEntries = State(initialValue: workout.cardioEntries
+            }
+        let initialCardioEntries = workout.cardioEntries
             .sorted { $0.order < $1.order }
-            .map(CardioDraft.init(record:)))
+            .map(CardioDraft.init(record:))
+        self.initialDate = initialDate
+        self.initialRoutineName = initialRoutineName
+        self.initialDurationMinutes = initialDurationMinutes
+        self.initialExercises = initialExercises
+        self.initialCardioEntries = initialCardioEntries
+        _date = State(initialValue: initialDate)
+        _routineName = State(initialValue: initialRoutineName)
+        _durationMinutes = State(initialValue: initialDurationMinutes)
+        _exercises = State(initialValue: initialExercises)
+        _cardioEntries = State(initialValue: initialCardioEntries)
     }
 
     var body: some View {
@@ -900,6 +1028,13 @@ private struct WorkoutEditorView: View {
             editorHeader
         }
         .interactiveDismissDisabled()
+        .confirmationDialog(
+            "Discard unsaved changes?",
+            isPresented: $showingDiscardConfirmation
+        ) {
+            Button("Discard changes", role: .destructive) { dismiss() }
+            Button("Keep editing", role: .cancel) {}
+        }
         .alert("Couldn’t save changes", isPresented: Binding(
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
@@ -914,10 +1049,26 @@ private struct WorkoutEditorView: View {
         InkTextHeader(
             title: "EDIT SESSION",
             leadingTitle: "Cancel",
-            leadingAction: { dismiss() },
+            leadingAction: requestCancel,
             trailingTitle: "Save",
             trailingAction: save
         )
+    }
+
+    private var hasUnsavedChanges: Bool {
+        date != initialDate
+            || routineName != initialRoutineName
+            || durationMinutes != initialDurationMinutes
+            || exercises != initialExercises
+            || cardioEntries != initialCardioEntries
+    }
+
+    private func requestCancel() {
+        if hasUnsavedChanges {
+            showingDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
     }
 
     private var sessionDetails: some View {

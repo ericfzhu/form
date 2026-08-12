@@ -16,6 +16,17 @@ private struct ExerciseDraft: Identifiable {
     var sets: [SetDraft]
 }
 
+private struct WorkoutInputField: Hashable {
+    enum Value: Hashable {
+        case load
+        case repetitions
+    }
+
+    let exerciseID: String
+    let setID: UUID
+    let value: Value
+}
+
 private struct WorkoutLiveState: Equatable {
     let completedMovements: Int
     let totalMovements: Int
@@ -28,21 +39,27 @@ struct ActiveWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var history: [WorkoutRecord]
     @AppStorage("keep-screen-awake") private var keepScreenAwake = true
+    @AppStorage("progression-load-increment") private var loadIncrement = 2.5
 
     let routine: RoutineTemplate
     let onDone: () -> Void
     let resumedFromSnapshot: Bool
     @State private var startedAt = Date()
+    @State private var activeDuration: TimeInterval
+    @State private var activeSegmentStartedAt: Date?
     @State private var drafts: [ExerciseDraft]
     @State private var cardioDrafts: [CardioDraft] = []
     @State private var restEnd: Date?
     @State private var showingCancelConfirmation = false
     @State private var showingEmptyFinishConfirmation = false
+    @State private var showingIncompleteFinishConfirmation = false
     @State private var expandedExerciseID: String?
     @State private var completedRecord: WorkoutRecord?
     @State private var healthSyncState: HealthWorkoutSyncState = .notConnected
     @State private var saveErrorMessage: String?
     @State private var isKeyboardVisible = false
+    @State private var didEndSession = false
+    @FocusState private var focusedInput: WorkoutInputField?
 
     init(
         routine: RoutineTemplate,
@@ -53,7 +70,10 @@ struct ActiveWorkoutView: View {
         self.onDone = onDone
         let validSnapshot = snapshot?.routineID == routine.id ? snapshot : nil
         resumedFromSnapshot = validSnapshot != nil
-        _startedAt = State(initialValue: validSnapshot?.startedAt ?? Date())
+        let now = Date()
+        _startedAt = State(initialValue: validSnapshot?.startedAt ?? now)
+        _activeDuration = State(initialValue: max(0, validSnapshot?.activeDuration ?? 0))
+        _activeSegmentStartedAt = State(initialValue: now)
         _drafts = State(initialValue: routine.exercises.map { exercise in
             let savedSets = validSnapshot?.exercises
                 .first { $0.exerciseID == exercise.id }?.sets
@@ -109,10 +129,10 @@ struct ActiveWorkoutView: View {
                 if completedRecord == nil {
                     ActiveWorkoutHeader(
                         index: routine.id,
-                        progress: "\(completedMovementCount) of \(drafts.count) movements"
-                    ) {
-                        showingCancelConfirmation = true
-                    }
+                        progress: "\(completedMovementCount) of \(drafts.count) movements",
+                        close: saveAndClose,
+                        requestDiscard: { showingCancelConfirmation = true }
+                    )
                 } else {
                     CompletionHeader()
                 }
@@ -135,9 +155,18 @@ struct ActiveWorkoutView: View {
         } message: {
             Text("No completed sets or cardio entries will be saved.")
         }
+        .confirmationDialog(
+            "Finish this partial session?",
+            isPresented: $showingIncompleteFinishConfirmation
+        ) {
+            Button("Finish partial session", role: .destructive, action: finishWorkout)
+            Button("Keep training", role: .cancel) {}
+        } message: {
+            Text("\(completedMovementCount) of \(drafts.count) movements are complete. Only completed sets and cardio entries will be saved.")
+        }
         .leadingEdgeSwipe {
             if completedRecord == nil {
-                showingCancelConfirmation = true
+                saveAndClose()
             }
         }
         .alert("Couldn’t save session", isPresented: Binding(
@@ -167,6 +196,10 @@ struct ActiveWorkoutView: View {
         }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            if !didEndSession && completedRecord == nil {
+                pauseActiveDuration()
+                persistDraft()
+            }
         }
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
@@ -183,56 +216,103 @@ struct ActiveWorkoutView: View {
     private var workoutLogger: some View {
         ZStack {
             PaperBackground()
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach($drafts) { $draft in
-                        ExerciseLoggingCard(
-                            draft: $draft,
-                            previous: ProgressionEngine.latestCompleted(
-                                for: draft.template,
-                                in: history
-                            ),
-                            recommendation: ProgressionEngine.recommendation(
-                                for: draft.template,
-                                performances: ProgressionEngine.performances(
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach($drafts) { $draft in
+                            ExerciseLoggingCard(
+                                draft: $draft,
+                                previous: ProgressionEngine.latestCompleted(
                                     for: draft.template,
                                     in: history
-                                )
-                            ),
-                            isExpanded: expandedExerciseID == draft.id,
-                            toggleExpanded: {
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    expandedExerciseID = expandedExerciseID == draft.id
-                                        ? nil
-                                        : draft.id
+                                ),
+                                recommendation: ProgressionEngine.recommendation(
+                                    for: draft.template,
+                                    performances: ProgressionEngine.performances(
+                                        for: draft.template,
+                                        in: history
+                                    )
+                                ),
+                                isExpanded: expandedExerciseID == draft.id,
+                                focusedInput: $focusedInput,
+                                toggleExpanded: {
+                                    withAnimation(.easeOut(duration: 0.2)) {
+                                        expandedExerciseID = expandedExerciseID == draft.id
+                                            ? nil
+                                            : draft.id
+                                    }
+                                },
+                                didUpdateSet: { completed, kind in
+                                    didUpdateSet(
+                                        for: draft.id,
+                                        completed: completed,
+                                        kind: kind
+                                    )
                                 }
-                            },
-                            didUpdateSet: { completed, kind in
-                                didUpdateSet(
-                                    for: draft.id,
-                                    completed: completed,
-                                    kind: kind
-                                )
-                            }
-                        )
-                        .id(draft.id)
-                    }
+                            )
+                            .id(draft.id)
+                        }
 
-                    CardioLoggingSection(entries: $cardioDrafts)
-                        .padding(.top, 8)
+                        CardioLoggingSection(entries: $cardioDrafts)
+                            .padding(.top, 8)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 14)
+                    .padding(.bottom, restEnd == nil ? 96 : 158)
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 14)
-                .padding(.bottom, restEnd == nil ? 96 : 158)
+                .onChange(of: expandedExerciseID) { oldValue, newValue in
+                    guard oldValue != nil, let newValue else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                        withAnimation(.easeOut(duration: 0.24)) {
+                            proxy.scrollTo(newValue, anchor: .top)
+                        }
+                    }
+                }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Group {
                 if isKeyboardVisible {
-                    HStack {
-                        Spacer()
+                    HStack(spacing: 2) {
+                        Button {
+                            moveInputFocus(by: -1)
+                        } label: {
+                            Image(systemName: "chevron.up")
+                                .frame(width: 44, height: 44)
+                        }
+                        .disabled(!canMoveInputFocus(by: -1))
+                        .accessibilityLabel("Previous field")
+
+                        Button {
+                            moveInputFocus(by: 1)
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .frame(width: 44, height: 44)
+                        }
+                        .disabled(!canMoveInputFocus(by: 1))
+                        .accessibilityLabel("Next field")
+
+                        Spacer(minLength: 8)
+
+                        Button {
+                            adjustFocusedInput(by: -1)
+                        } label: {
+                            Image(systemName: "minus")
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Decrease value")
+
+                        Button {
+                            adjustFocusedInput(by: 1)
+                        } label: {
+                            Image(systemName: "plus")
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Increase value")
+
                         Button("Done") {
                             dismissKeyboard()
+                            focusedInput = nil
                         }
                         .font(.system(.body, design: .serif, weight: .semibold))
                         .foregroundStyle(InkPalette.cinnabar)
@@ -244,9 +324,11 @@ struct ActiveWorkoutView: View {
                 } else {
                     VStack(spacing: 9) {
                         if let restEnd {
-                            RestTimer(end: restEnd) {
-                                self.restEnd = nil
-                            }
+                            RestTimer(
+                                end: restEnd,
+                                adjust: adjustRest,
+                                cancel: { self.restEnd = nil }
+                            )
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                         }
 
@@ -274,18 +356,95 @@ struct ActiveWorkoutView: View {
             || cardioDrafts.contains { $0.durationMinutes > 0 }
     }
 
-    private func requestFinish() {
-        if hasRecordedWork {
-            finishWorkout()
-        } else {
-            showingEmptyFinishConfirmation = true
+    private var inputFields: [WorkoutInputField] {
+        drafts.flatMap { draft in
+            draft.sets.flatMap { set -> [WorkoutInputField] in
+                var fields: [WorkoutInputField] = []
+                if draft.template.recordsLoad {
+                    fields.append(
+                        WorkoutInputField(
+                            exerciseID: draft.id,
+                            setID: set.id,
+                            value: .load
+                        )
+                    )
+                }
+                fields.append(
+                    WorkoutInputField(
+                        exerciseID: draft.id,
+                        setID: set.id,
+                        value: .repetitions
+                    )
+                )
+                return fields
+            }
         }
+    }
+
+    private func canMoveInputFocus(by offset: Int) -> Bool {
+        guard let focusedInput,
+              let index = inputFields.firstIndex(of: focusedInput) else { return false }
+        return inputFields.indices.contains(index + offset)
+    }
+
+    private func moveInputFocus(by offset: Int) {
+        guard let focusedInput,
+              let index = inputFields.firstIndex(of: focusedInput),
+              inputFields.indices.contains(index + offset) else { return }
+        self.focusedInput = inputFields[index + offset]
+    }
+
+    private func adjustFocusedInput(by direction: Double) {
+        guard let focusedInput,
+              let exerciseIndex = drafts.firstIndex(where: {
+                  $0.id == focusedInput.exerciseID
+              }),
+              let setIndex = drafts[exerciseIndex].sets.firstIndex(where: {
+                  $0.id == focusedInput.setID
+              }) else { return }
+
+        switch focusedInput.value {
+        case .load:
+            drafts[exerciseIndex].sets[setIndex].weight = max(
+                0,
+                drafts[exerciseIndex].sets[setIndex].weight
+                    + direction * loadIncrement
+            )
+        case .repetitions:
+            drafts[exerciseIndex].sets[setIndex].repetitions = max(
+                0,
+                drafts[exerciseIndex].sets[setIndex].repetitions + Int(direction)
+            )
+        }
+    }
+
+    private func adjustRest(by seconds: Int) {
+        guard let restEnd else { return }
+        let adjusted = restEnd.addingTimeInterval(TimeInterval(seconds))
+        self.restEnd = adjusted > Date() ? adjusted : nil
+    }
+
+    private func requestFinish() {
+        if !hasRecordedWork {
+            showingEmptyFinishConfirmation = true
+        } else if completedMovementCount < drafts.count {
+            showingIncompleteFinishConfirmation = true
+        } else {
+            finishWorkout()
+        }
+    }
+
+    private var elapsedActiveDuration: TimeInterval {
+        activeDuration + (activeSegmentStartedAt.map {
+            max(0, Date().timeIntervalSince($0))
+        } ?? 0)
     }
 
     private var currentSnapshot: ActiveWorkoutSnapshot {
         ActiveWorkoutSnapshot(
             routineID: routine.id,
             startedAt: startedAt,
+            activeDuration: elapsedActiveDuration,
             exercises: drafts.map { draft in
                 ActiveExerciseSnapshot(
                     exerciseID: draft.id,
@@ -323,10 +482,25 @@ struct ActiveWorkoutView: View {
     }
 
     private func discardWorkout() {
+        didEndSession = true
         ActiveWorkoutStore.clear()
         UIApplication.shared.isIdleTimerDisabled = false
         Task { await WorkoutLiveActivityController.end() }
         dismiss()
+    }
+
+    private func saveAndClose() {
+        pauseActiveDuration()
+        persistDraft()
+        UIApplication.shared.isIdleTimerDisabled = false
+        Task { await WorkoutLiveActivityController.end() }
+        dismiss()
+    }
+
+    private func pauseActiveDuration() {
+        guard let activeSegmentStartedAt else { return }
+        activeDuration += max(0, Date().timeIntervalSince(activeSegmentStartedAt))
+        self.activeSegmentStartedAt = nil
     }
 
     private func isExerciseComplete(_ draft: ExerciseDraft) -> Bool {
@@ -381,7 +555,7 @@ struct ActiveWorkoutView: View {
         let record = WorkoutRecord(
             date: startedAt,
             routineName: routine.name,
-            duration: Date().timeIntervalSince(startedAt)
+            duration: elapsedActiveDuration
         )
 
         record.exercises = drafts.enumerated().map { exerciseIndex, draft in
@@ -418,6 +592,7 @@ struct ActiveWorkoutView: View {
         modelContext.insert(record)
         do {
             try modelContext.save()
+            didEndSession = true
             ActiveWorkoutStore.clear()
             restEnd = nil
             UIApplication.shared.isIdleTimerDisabled = false
@@ -479,7 +654,7 @@ struct ActiveWorkoutView: View {
         let exercise = currentExerciseName
         let activeRestEnd = restEnd
         let routineName = routine.name
-        let sessionStart = startedAt
+        let sessionStart = Date().addingTimeInterval(-elapsedActiveDuration)
 
         Task {
             if startIfNeeded {
@@ -758,7 +933,7 @@ private struct CompletionHeader: View {
                             .fill(InkPalette.cinnabar)
                     }
                 Text("SESSION COMPLETE")
-                    .font(.system(size: 11, weight: .semibold, design: .serif))
+                    .font(.system(.caption, design: .serif, weight: .semibold))
                     .tracking(1.6)
                     .foregroundStyle(InkPalette.ink)
                 Spacer()
@@ -912,6 +1087,7 @@ private struct ActiveWorkoutHeader: View {
     let index: String
     let progress: String
     let close: () -> Void
+    let requestDiscard: () -> Void
 
     var body: some View {
         HStack(spacing: 0) {
@@ -921,11 +1097,11 @@ private struct ActiveWorkoutHeader: View {
                     .frame(width: 52, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("SESSION IN PROGRESS")
-                        .font(.system(size: 10, weight: .semibold, design: .serif))
+                        .font(.system(.caption, design: .serif, weight: .semibold))
                         .tracking(1.5)
                         .foregroundStyle(InkPalette.ink)
                     Text(progress)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(.caption2, design: .monospaced))
                         .foregroundStyle(InkPalette.softInk.opacity(0.76))
                         .monospacedDigit()
                 }
@@ -934,10 +1110,21 @@ private struct ActiveWorkoutHeader: View {
                 Spacer()
 
                 Button("Close", action: close)
-                    .font(.system(size: 13, weight: .regular, design: .serif))
+                    .font(.system(.subheadline, design: .serif))
                     .foregroundStyle(InkPalette.ink)
-                    .frame(width: 72, height: 56)
+                    .frame(width: 58, height: 56)
                     .buttonStyle(PressableButtonStyle())
+
+                Menu {
+                    Button("Discard session", role: .destructive, action: requestDiscard)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(InkPalette.ink)
+                        .frame(width: 44, height: 56)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Session options")
         }
         .background(InkPalette.paper)
         .overlay(alignment: .top) { InkDivider() }
@@ -950,6 +1137,7 @@ private struct ExerciseLoggingCard: View {
     let previous: ExercisePerformance?
     let recommendation: ProgressionRecommendation?
     let isExpanded: Bool
+    @FocusState.Binding var focusedInput: WorkoutInputField?
     let toggleExpanded: () -> Void
     let didUpdateSet: (Bool, SetKind) -> Void
 
@@ -1017,7 +1205,7 @@ private struct ExerciseLoggingCard: View {
 
                     HStack {
                         Text("TYPE")
-                            .frame(width: 36, alignment: .leading)
+                            .frame(width: 40, alignment: .leading)
                         Text(draft.template.recordsLoad ? draft.template.loadLabel : "LOAD")
                             .frame(maxWidth: .infinity)
                         Text(draft.template.recordsTime ? "SEC" : "REPS")
@@ -1032,12 +1220,40 @@ private struct ExerciseLoggingCard: View {
 
                     ForEach($draft.sets) { $set in
                         SetLoggingRow(
+                            exerciseID: draft.id,
                             index: setNumber(for: set.id),
                             measurement: draft.template.measurement,
                             set: $set,
+                            focusedInput: $focusedInput,
+                            canDelete: draft.sets.count > draft.template.sets
+                                || set.kind == .warmup,
+                            delete: {
+                                focusedInput = nil
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    draft.sets.removeAll { $0.id == set.id }
+                                }
+                            },
                             didToggleCompletion: didUpdateSet
                         )
                     }
+                    .padding(.horizontal, 10)
+
+                    Button(action: applyFirstWorkingSetToRemaining) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.down.doc")
+                            Text("Apply first set to remaining")
+                        }
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .tracking(0.7)
+                        .textCase(.uppercase)
+                        .foregroundStyle(InkPalette.cinnabar)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 42)
+                        .overlay { Rectangle().stroke(InkPalette.cinnabar, lineWidth: 1) }
+                    }
+                    .buttonStyle(PressableButtonStyle())
+                    .disabled(!canApplyFirstWorkingSet)
+                    .opacity(canApplyFirstWorkingSet ? 1 : 0.4)
                     .padding(.horizontal, 10)
 
                     Button {
@@ -1101,6 +1317,30 @@ private struct ExerciseLoggingCard: View {
     private func setNumber(for id: UUID) -> Int {
         guard let index = draft.sets.firstIndex(where: { $0.id == id }) else { return 1 }
         return draft.sets.prefix(index + 1).filter { $0.kind == .working }.count
+    }
+
+    private var canApplyFirstWorkingSet: Bool {
+        guard let firstIndex = draft.sets.firstIndex(where: { $0.kind == .working }) else {
+            return false
+        }
+        return draft.sets.indices.contains(where: { index in
+            index > firstIndex
+                && draft.sets[index].kind == .working
+                && !draft.sets[index].completed
+        })
+    }
+
+    private func applyFirstWorkingSetToRemaining() {
+        guard let firstIndex = draft.sets.firstIndex(where: { $0.kind == .working }) else {
+            return
+        }
+        let reference = draft.sets[firstIndex]
+        for index in draft.sets.indices where index > firstIndex
+            && draft.sets[index].kind == .working
+            && !draft.sets[index].completed {
+            draft.sets[index].weight = reference.weight
+            draft.sets[index].repetitions = reference.repetitions
+        }
     }
 
     private var statusText: String {
@@ -1190,9 +1430,13 @@ private struct LastPerformanceSummary: View {
 }
 
 private struct SetLoggingRow: View {
+    let exerciseID: String
     let index: Int
     let measurement: ExerciseTemplate.Measurement
     @Binding var set: SetDraft
+    @FocusState.Binding var focusedInput: WorkoutInputField?
+    let canDelete: Bool
+    let delete: () -> Void
     let didToggleCompletion: (Bool, SetKind) -> Void
 
     var body: some View {
@@ -1209,14 +1453,22 @@ private struct SetLoggingRow: View {
                         }
                     }
                 }
+                if canDelete {
+                    Divider()
+                    Button("Delete set", role: .destructive, action: delete)
+                }
             } label: {
-                Text(set.kind == .warmup ? set.kind.shortTitle : "\(index)")
-                    .font(.system(.body, design: .serif, weight: .semibold))
-                    .foregroundStyle(set.kind == .warmup ? InkPalette.raisedPaper : InkPalette.cinnabar)
-                    .frame(width: 36, height: 44)
-                    .background(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.raisedPaper)
-                    .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
-                    .contentShape(Rectangle())
+                HStack(spacing: 2) {
+                    Text(set.kind == .warmup ? set.kind.shortTitle : "\(index)")
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 7, weight: .bold))
+                }
+                .font(.system(.body, design: .serif, weight: .semibold))
+                .foregroundStyle(set.kind == .warmup ? InkPalette.raisedPaper : InkPalette.cinnabar)
+                .frame(width: 40, height: 44)
+                .background(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.raisedPaper)
+                .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+                .contentShape(Rectangle())
             }
             .tint(InkPalette.ink)
             .accessibilityLabel("Set type: \(set.kind.title)")
@@ -1227,6 +1479,14 @@ private struct SetLoggingRow: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
                     .inkInput()
+                    .focused(
+                        $focusedInput,
+                        equals: WorkoutInputField(
+                            exerciseID: exerciseID,
+                            setID: set.id,
+                            value: .load
+                        )
+                    )
             } else {
                     Text("BODY")
                     .font(.caption.weight(.semibold))
@@ -1242,6 +1502,14 @@ private struct SetLoggingRow: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .inkInput()
+                .focused(
+                    $focusedInput,
+                    equals: WorkoutInputField(
+                        exerciseID: exerciseID,
+                        setID: set.id,
+                        value: .repetitions
+                    )
+                )
 
             Button {
                 set.completed.toggle()
@@ -1295,6 +1563,7 @@ extension View {
 
 private struct RestTimer: View {
     let end: Date
+    let adjust: (Int) -> Void
     let cancel: () -> Void
 
     var body: some View {
@@ -1311,6 +1580,23 @@ private struct RestTimer: View {
                         .foregroundStyle(InkPalette.ink)
                 }
                 Spacer()
+
+                Button("−30") {
+                    adjust(-30)
+                }
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(InkPalette.ink)
+                .frame(width: 44, height: 44)
+                .accessibilityLabel("Subtract 30 seconds")
+
+                Button("+30") {
+                    adjust(30)
+                }
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(InkPalette.ink)
+                .frame(width: 44, height: 44)
+                .accessibilityLabel("Add 30 seconds")
+
                 Button("Skip", action: cancel)
                     .font(.system(.subheadline, design: .serif, weight: .semibold))
                     .foregroundStyle(InkPalette.ink)

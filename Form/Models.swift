@@ -166,6 +166,7 @@ struct ActiveCardioSnapshot: Codable, Equatable {
 struct ActiveWorkoutSnapshot: Codable, Equatable {
     var routineID: String
     var startedAt: Date
+    var activeDuration: TimeInterval?
     var exercises: [ActiveExerciseSnapshot]
     var cardio: [ActiveCardioSnapshot]
     var expandedExerciseID: String?
@@ -190,7 +191,7 @@ enum ActiveWorkoutStore {
     }
 }
 
-struct CardioDraft: Identifiable {
+struct CardioDraft: Identifiable, Equatable {
     let id: UUID
     var kind: CardioKind
     var durationMinutes: Double
