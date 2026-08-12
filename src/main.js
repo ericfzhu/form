@@ -4,27 +4,27 @@ import "./roman.css";
 const routines = {
   A: {
     focus: "Squat / press / pull",
-    title: "The First Labour",
+    title: "The First Course",
     exercise: "Barbell Back Squat",
     target: "3 × 6–10",
     image: "/assets/barbell-back-squat.png",
-    progress: "Appointed load · 62.5 kg",
+    progress: "Weight appointed · 62.5 kg",
   },
   B: {
     focus: "Hinge / incline / unilateral",
-    title: "The Second Labour",
+    title: "The Second Course",
     exercise: "Conventional Deadlift",
     target: "3 × 5–6",
     image: "/assets/conventional-deadlift.png",
-    progress: "Appointed load · 90 kg × 6",
+    progress: "Weight appointed · 90 kg × 6",
   },
   C: {
     focus: "Squat / shoulders / carry",
-    title: "The Third Labour",
+    title: "The Third Course",
     exercise: "Dumbbell Shoulder Press",
     target: "3 × 8–12",
     image: "/assets/shoulder-press.png",
-    progress: "Former load · 22 kg / hand",
+    progress: "Weight borne before · 22 kg / hand",
   },
 };
 
@@ -42,32 +42,33 @@ document.querySelector("#app").innerHTML = `
       <span>FORM</span>
     </a>
     <nav class="masthead-links" aria-label="Primary navigation">
-      <a href="#rotation">ORDER</a>
-      <a href="#logging">LEDGER</a>
-      <a href="#progress">RECORD</a>
-      <a href="#setup">INSTALL</a>
+      <a href="#rotation">THE COURSE</a>
+      <a href="#logging">THE TALLY</a>
+      <a href="#progress">THE WITNESS</a>
+      <a href="#setup">THE MAKING</a>
     </nav>
     <span class="masthead-meta">IPHONE / IOS 17+</span>
   </header>
 
   <main id="top">
     <section class="hero" data-hero>
-      <div class="hero-index" aria-hidden="true">FORM / IOS</div>
+      <div class="hero-index" aria-hidden="true">THE PROEM / FORM</div>
       <div class="hero-copy reveal">
-        <p class="kicker">THE ORDER / A · B · C</p>
-        <h1>Take up the work<br /><span>where you left it.</span></h1>
+        <p class="kicker">THE PROEM / OF STRENGTH KEPT IN ORDER</p>
+        <h1>Tell, Muse,<br /><span>of strength remembered.</span></h1>
         <p class="hero-lede">
-          Each session follows the one before it. Form keeps your place and brings
-          the measure of your former effort into the work ahead.
+          Tell how one task followed another, and how no former deed was lost;
+          for Form keeps the returning course, and sets beside each labour of the
+          hands the weight that those same hands bore before.
         </p>
         <a class="raw-button" href="#rotation">
-          <span>SEE THE ORDER</span>
+          <span>ENTER THE ACCOUNT</span>
           <span aria-hidden="true">↓</span>
         </a>
       </div>
 
       <div class="hero-stage reveal delay-1" aria-label="Form app workout preview">
-        <span class="device-note note-left">YOUR PLACE<br />IN THE ORDER</span>
+        <span class="device-note note-left">THE DEED<br />APPOINTED</span>
         <div class="phone phone-hero">
           <div class="phone-screen">
             <img
@@ -79,31 +80,33 @@ document.querySelector("#app").innerHTML = `
             />
           </div>
         </div>
-        <span class="device-note note-right">FORMER<br />LOAD</span>
+        <span class="device-note note-right">THE DEED<br />REMEMBERED</span>
       </div>
     </section>
 
-    <div class="ticker" aria-label="Product summary">
+    <div class="geometric-band" aria-hidden="true"></div>
+    <div class="ticker" aria-label="The three matters kept by Form">
       <div class="ticker-track">
-        <span><b>I</b> THE ORDER / A · B · C</span>
-        <span><b>II</b> FORMER LOAD / HELD IN MEMORY</span>
-        <span><b>III</b> REST / THE COUNT ENDURES</span>
+        <span><b>I</b> OF THE COURSE THAT EVER RETURNS</span>
+        <span><b>II</b> OF THE WEIGHT THAT MEMORY KEEPS</span>
+        <span><b>III</b> OF REST WHOSE NUMBER FAILS NOT</span>
       </div>
     </div>
 
     <section class="feature feature-routines" id="rotation">
       <div class="section-label">
-        <span>01</span>
-        <span>THE ORDER</span>
-        <span>A → B → C →</span>
+        <span>I</span>
+        <span>THE RETURNING COURSE</span>
+        <span>A → B → C → A</span>
       </div>
       <div class="feature-grid">
         <div class="feature-copy">
-          <p class="kicker">THE THREE LABOURS</p>
-          <h2>Finish the work before you.<br />Then take up the next.</h2>
+          <p class="kicker">THUS THE COURSE RETURNS</p>
+          <h2>One task yields,<br />and another rises.</h2>
           <p>
-            A gives way to B, and B to C. Form remembers your place, even when many
-            days lie between one session and the next.
+            First comes A, and after A comes B, and C follows B in its appointed
+            hour. Then the course bends homeward to A; and though many dawns pass,
+            Form forgets not where the athlete ceased.
           </p>
           <div class="routine-tabs" role="tablist" aria-label="Choose a workout">
             ${Object.keys(routines)
@@ -122,7 +125,7 @@ document.querySelector("#app").innerHTML = `
               .join("")}
           </div>
           <div class="rotation-timing" aria-hidden="true">
-            <span class="rotation-next">NEXT LABOUR · B</span>
+            <span class="rotation-next">THEREAFTER · B</span>
             <span class="rotation-meter"><i></i></span>
           </div>
         </div>
@@ -168,17 +171,18 @@ document.querySelector("#app").innerHTML = `
 
     <section class="feature feature-log" id="logging">
       <div class="section-label light-label">
-        <span>02</span>
-        <span>THE LEDGER</span>
-        <span>FORMER → PRESENT</span>
+        <span>II</span>
+        <span>THE TALLY OF DEEDS</span>
+        <span>WHAT WAS → WHAT IS</span>
       </div>
       <div class="log-grid">
         <div class="log-copy">
-          <p class="kicker">WHAT CAME BEFORE</p>
-          <h2>Let the former effort<br />stand beside the present.</h2>
+          <p class="kicker">THE BRONZE-FAST MEMORY</p>
+          <h2>Let no weight once borne<br />fall into darkness.</h2>
           <p>
-            The last weight and repetitions return when the exercise comes again.
-            Preparatory sets remain apart from the work itself.
+            When the iron-laden bar returns to the hands, the former weight returns
+            beside it, and the repetitions are called again by number. The lighter
+            preparation stands apart, but the true work is cut into the tally.
           </p>
         </div>
 
@@ -188,7 +192,7 @@ document.querySelector("#app").innerHTML = `
             <span>3 × 6–10</span>
           </div>
           <div class="ledger-head">
-            <span>SET</span><span>FORMER</span><span>KG</span><span>REPS</span><span>DONE</span>
+            <span>SET</span><span>BEFORE</span><span>KG</span><span>REPS</span><span>SEALED</span>
           </div>
           <div class="ledger-row warmup-row">
             <span class="set-type">W</span><span>40 × 8</span><strong>40</strong><strong>8</strong><i>✓</i>
@@ -203,8 +207,8 @@ document.querySelector("#app").innerHTML = `
             <span class="set-type working">3</span><span>60 × 7</span><strong>62.5</strong><strong>—</strong><i></i>
           </div>
           <div class="ledger-foot">
-            <span>W / WARM-UP</span>
-            <span>APPOINTED NEXT / 62.5 KG × 8</span>
+            <span>W / MAKING READY</span>
+            <span>WEIGHT APPOINTED / 62.5 KG × 8</span>
           </div>
         </div>
       </div>
@@ -212,9 +216,9 @@ document.querySelector("#app").innerHTML = `
 
     <section class="feature feature-timer" id="timer">
       <div class="section-label dark-label">
-        <span>03</span>
-        <span>REST</span>
-        <span>SCREEN LOCKED / COUNT UNBROKEN</span>
+        <span>III</span>
+        <span>THE NUMBERED REST</span>
+        <span>IN DARKNESS / THE COUNT ENDURES</span>
       </div>
       <div class="timer-grid">
         <div class="timer-demo" aria-label="Rest timer Live Activity preview">
@@ -230,11 +234,12 @@ document.querySelector("#app").innerHTML = `
           <div class="giant-clock" aria-hidden="true">01<span>:</span>30</div>
         </div>
         <div class="timer-copy">
-          <p class="kicker">THE MEASURE OF REST</p>
-          <h2>Rest without<br />losing the count.</h2>
+          <p class="kicker">WHEN THE LIMBS GROW HEAVY</p>
+          <h2>Rest now;<br />the number keeps watch.</h2>
           <p>
-            While you record the work, the screen remains wakeful. Lock it, and the
-            count continues in the Live Activity and Dynamic Island.
+            While the deeds are marked, the bright screen keeps vigil. Bid it sleep,
+            and still the count goes onward in the Live Activity and upon the dark
+            island, until the hour of strength returns.
           </p>
         </div>
       </div>
@@ -242,22 +247,23 @@ document.querySelector("#app").innerHTML = `
 
     <section class="feature feature-progress" id="progress">
       <div class="section-label">
-        <span>04</span>
-        <span>THE RECORD</span>
-        <span>SESSION → WEEK → BLOCK</span>
+        <span>IV</span>
+        <span>THE WITNESS OF DAYS</span>
+        <span>SESSION → WEEK → SEASON</span>
       </div>
       <div class="progress-heading">
-        <p class="kicker">DEEDS KEPT IN ORDER</p>
-        <h2>Read what has been done.<br />Judge what comes next.</h2>
+        <p class="kicker">NOTHING DONE IS LOST</p>
+        <h2>Let the days bear witness<br />to the strength that grew.</h2>
         <p>
-          Every session takes its place in the record. Across the weeks, the figures
-          reveal whether load, repetitions and volume are rising or standing still.
+          Each session stands in its own place, and week answers unto week. There the
+          numbers declare whether the burden rose, whether the hands endured more
+          repetitions, and whether the whole labour waxed or stood still.
         </p>
       </div>
 
       <div class="progress-board">
         <div class="calendar-panel">
-          <div class="panel-head"><span>JUL / 2026</span><span>9 SESSIONS</span></div>
+          <div class="panel-head"><span>JUL / 2026</span><span>NINE SESSIONS</span></div>
           <div class="calendar-week"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
           <div class="calendar-grid">${calendarDays}</div>
         </div>
@@ -287,18 +293,19 @@ document.querySelector("#app").innerHTML = `
 
     <section class="feature feature-setup" id="setup">
       <div class="section-label">
-        <span>05</span>
-        <span>INSTALLATION</span>
+        <span>V</span>
+        <span>THE MAKING READY</span>
         <span>MAC → XCODE → IPHONE</span>
       </div>
 
       <div class="setup-grid">
         <div class="setup-intro">
-          <p class="kicker">BRING IT TO YOUR DEVICE</p>
-          <h2>Install Form on<br />your iPhone.</h2>
+          <p class="kicker">HOW THE INSTRUMENT COMES TO THE HAND</p>
+          <h2>Make ready Form,<br />and bear it with you.</h2>
           <p>
-            Form comes to the iPhone through Xcode. You will need a Mac, an Apple
-            Account and an iPhone running iOS 17 or later.
+            These are the rites of its making. Provide first a Mac and an Apple
+            Account; provide also an iPhone bearing iOS 17 or any later issue; and
+            through Xcode shall Form be brought forth upon the device.
           </p>
           <a
             class="raw-button setup-source"
@@ -306,7 +313,7 @@ document.querySelector("#app").innerHTML = `
             target="_blank"
             rel="noreferrer"
           >
-            <span>OPEN THE SOURCE</span>
+            <span>TAKE UP THE SOURCE</span>
             <span aria-hidden="true">↗</span>
           </a>
         </div>
@@ -316,65 +323,69 @@ document.querySelector("#app").innerHTML = `
             <li>
               <span class="setup-numeral">I</span>
               <div>
-                <p class="setup-step-label">SOURCE</p>
-                <h3>Download the project.</h3>
+                <p class="setup-step-label">THE SOURCE</p>
+                <h3>Take up the work at its beginning.</h3>
                 <p>
-                  Install Xcode 16 or later from the Mac App Store. Download Form from
-                  GitHub, then open <code>Form.xcodeproj</code>.
+                  First install Xcode 16 or a later issue from the Mac App Store; then
+                  draw Form down from GitHub, and open <code>Form.xcodeproj</code>.
                 </p>
               </div>
             </li>
             <li>
               <span class="setup-numeral">II</span>
               <div>
-                <p class="setup-step-label">SIGNING</p>
-                <h3>Choose your Personal Team.</h3>
+                <p class="setup-step-label">THE SEAL</p>
+                <h3>Set your name upon the work.</h3>
                 <p>
-                  In the Form target, open Signing &amp; Capabilities and select your
-                  Apple Account. If Xcode asks, give the app a unique bundle identifier.
+                  In the Form target open Signing &amp; Capabilities, and choose your
+                  Personal Team. If Xcode requires it, bestow upon the app a bundle
+                  identifier that belongs to no other.
                 </p>
               </div>
             </li>
             <li>
               <span class="setup-numeral">III</span>
               <div>
-                <p class="setup-step-label">DEVICE</p>
-                <h3>Connect your iPhone.</h3>
+                <p class="setup-step-label">THE JOINING</p>
+                <h3>Bind the iPhone to the Mac.</h3>
                 <p>
-                  Connect it to the Mac, approve Trust, and select it as the run
-                  destination. Enable Developer Mode under Privacy &amp; Security if prompted.
+                  Join them by the cable, grant Trust, and name the iPhone as the run
+                  destination. If the gate remains shut, awaken Developer Mode beneath
+                  Privacy &amp; Security.
                 </p>
               </div>
             </li>
             <li>
               <span class="setup-numeral">IV</span>
               <div>
-                <p class="setup-step-label">INSTALL</p>
-                <h3>Press Run in Xcode.</h3>
+                <p class="setup-step-label">THE AWAKENING</p>
+                <h3>Give the command to Run.</h3>
                 <p>
-                  Xcode builds and installs Form. If iOS reports an untrusted developer,
-                  approve your Apple Account under VPN &amp; Device Management.
+                  Xcode shall build Form and set it upon the iPhone. If iOS calls its
+                  maker untrusted, approve your Apple Account beneath VPN &amp; Device
+                  Management.
                 </p>
               </div>
             </li>
             <li>
               <span class="setup-numeral">V</span>
               <div>
-                <p class="setup-step-label">HEALTH</p>
-                <h3>Connect Apple Health.</h3>
+                <p class="setup-step-label">THE BODY'S RECORD</p>
+                <h3>Open the way to Apple Health.</h3>
                 <p>
-                  In Form, open Train and press Connect under Apple Health. Allow workout
-                  writing and body-weight reading.
+                  In Form enter Train, and beneath Apple Health press Connect. Grant it
+                  leave to write workouts and to read the measure of body weight.
                 </p>
               </div>
             </li>
           </ol>
 
           <div class="signing-note">
-            <span>FREE SIGNING</span>
+            <span>THE SEVEN-DAY LAW</span>
             <p>
-              A Personal Team installation expires after seven days. Reconnect your
-              iPhone and press Run in Xcode to renew it; your on-device data remains in place.
+              Seven days are allotted to a Personal Team installation; when they have
+              passed, join the iPhone once more and command Xcode to Run. The records
+              already held upon the device shall remain where they were laid.
             </p>
           </div>
         </div>
@@ -383,10 +394,10 @@ document.querySelector("#app").innerHTML = `
 
     <section class="end-mark">
       <div class="end-signature">
-        <p>FORM</p>
+        <p>So the course returns.</p>
         <span class="end-year">© <span id="year"></span></span>
       </div>
-      <a class="raw-button inverted" href="#top"><span>RETURN TO THE BEGINNING</span><span aria-hidden="true">↑</span></a>
+      <a class="raw-button inverted" href="#top"><span>RETURN TO THE PROEM</span><span aria-hidden="true">↑</span></a>
     </section>
   </main>
 `;
@@ -439,7 +450,7 @@ function scheduleCarousel() {
 
 function updateRoutineSelection(key) {
   const nextIndex = (routineKeys.indexOf(key) + 1) % routineKeys.length;
-  rotationNext.textContent = `NEXT LABOUR · ${routineKeys[nextIndex]}`;
+  rotationNext.textContent = `THEREAFTER · ${routineKeys[nextIndex]}`;
   tabButtons.forEach((button) => {
     const selected = button.dataset.routine === key;
     button.classList.toggle("active", selected);
@@ -470,7 +481,7 @@ function finishSlide() {
 
   isSliding = false;
   if (announceAfterSlide) {
-    routineStatus.textContent = `Labour ${currentRoutine} selected`;
+    routineStatus.textContent = `Course ${currentRoutine} shown`;
     announceAfterSlide = false;
   }
   if (pendingSelection) {
