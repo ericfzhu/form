@@ -4,27 +4,27 @@ import "./roman.css";
 const routines = {
   A: {
     focus: "Squat / press / pull",
-    title: "Workout A",
+    title: "The First Labour",
     exercise: "Barbell Back Squat",
     target: "3 × 6–10",
     image: "/assets/barbell-back-squat.png",
-    progress: "Target · 62.5 kg",
+    progress: "Appointed load · 62.5 kg",
   },
   B: {
     focus: "Hinge / incline / unilateral",
-    title: "Workout B",
+    title: "The Second Labour",
     exercise: "Conventional Deadlift",
     target: "3 × 5–6",
     image: "/assets/conventional-deadlift.png",
-    progress: "Target · 90 kg × 6",
+    progress: "Appointed load · 90 kg × 6",
   },
   C: {
     focus: "Squat / shoulders / carry",
-    title: "Workout C",
+    title: "The Third Labour",
     exercise: "Dumbbell Shoulder Press",
     target: "3 × 8–12",
     image: "/assets/shoulder-press.png",
-    progress: "Previous · 22 kg / hand",
+    progress: "Former load · 22 kg / hand",
   },
 };
 
@@ -42,10 +42,10 @@ document.querySelector("#app").innerHTML = `
       <span>FORM</span>
     </a>
     <nav class="masthead-links" aria-label="Primary navigation">
-      <a href="#rotation">ROTATION</a>
-      <a href="#logging">LOGGING</a>
-      <a href="#progress">PROGRESS</a>
-      <a href="#setup">SETUP</a>
+      <a href="#rotation">ORDER</a>
+      <a href="#logging">LEDGER</a>
+      <a href="#progress">RECORD</a>
+      <a href="#setup">INSTALL</a>
     </nav>
     <span class="masthead-meta">IPHONE / IOS 17+</span>
   </header>
@@ -54,20 +54,20 @@ document.querySelector("#app").innerHTML = `
     <section class="hero" data-hero>
       <div class="hero-index" aria-hidden="true">FORM / IOS</div>
       <div class="hero-copy reveal">
-        <p class="kicker">SESSION ROTATION / A · B · C</p>
-        <h1>Your training,<br /><span>in order.</span></h1>
+        <p class="kicker">THE ORDER / A · B · C</p>
+        <h1>Take up the work<br /><span>where you left it.</span></h1>
         <p class="hero-lede">
-          Form keeps your place in the rotation and carries your previous performance
-          into the next session.
+          Each session follows the one before it. Form keeps your place and brings
+          the measure of your former effort into the work ahead.
         </p>
         <a class="raw-button" href="#rotation">
-          <span>VIEW THE ROTATION</span>
+          <span>SEE THE ORDER</span>
           <span aria-hidden="true">↓</span>
         </a>
       </div>
 
       <div class="hero-stage reveal delay-1" aria-label="Form app workout preview">
-        <span class="device-note note-left">CURRENT<br />SEQUENCE</span>
+        <span class="device-note note-left">YOUR PLACE<br />IN THE ORDER</span>
         <div class="phone phone-hero">
           <div class="phone-screen">
             <img
@@ -79,30 +79,31 @@ document.querySelector("#app").innerHTML = `
             />
           </div>
         </div>
-        <span class="device-note note-right">PREVIOUS<br />LOAD</span>
+        <span class="device-note note-right">FORMER<br />LOAD</span>
       </div>
     </section>
 
     <div class="ticker" aria-label="Product summary">
       <div class="ticker-track">
-        <span><b>I</b> ROTATION / A · B · C</span>
-        <span><b>II</b> PREVIOUS LOAD / VISIBLE</span>
-        <span><b>III</b> REST TIMER / LIVE</span>
+        <span><b>I</b> THE ORDER / A · B · C</span>
+        <span><b>II</b> FORMER LOAD / HELD IN MEMORY</span>
+        <span><b>III</b> REST / THE COUNT ENDURES</span>
       </div>
     </div>
 
     <section class="feature feature-routines" id="rotation">
       <div class="section-label">
         <span>01</span>
-        <span>ROTATION</span>
+        <span>THE ORDER</span>
         <span>A → B → C →</span>
       </div>
       <div class="feature-grid">
         <div class="feature-copy">
-          <p class="kicker">THE SEQUENCE</p>
-          <h2>Complete a session.<br />Continue the sequence.</h2>
+          <p class="kicker">THE THREE LABOURS</p>
+          <h2>Finish the work before you.<br />Then take up the next.</h2>
           <p>
-            Form keeps your place in the A, B and C rotation.
+            A gives way to B, and B to C. Form remembers your place, even when many
+            days lie between one session and the next.
           </p>
           <div class="routine-tabs" role="tablist" aria-label="Choose a workout">
             ${Object.keys(routines)
@@ -121,7 +122,7 @@ document.querySelector("#app").innerHTML = `
               .join("")}
           </div>
           <div class="rotation-timing" aria-hidden="true">
-            <span class="rotation-next">NEXT · B</span>
+            <span class="rotation-next">NEXT LABOUR · B</span>
             <span class="rotation-meter"><i></i></span>
           </div>
         </div>
@@ -168,16 +169,16 @@ document.querySelector("#app").innerHTML = `
     <section class="feature feature-log" id="logging">
       <div class="section-label light-label">
         <span>02</span>
-        <span>LOGGING</span>
-        <span>PREVIOUS → CURRENT</span>
+        <span>THE LEDGER</span>
+        <span>FORMER → PRESENT</span>
       </div>
       <div class="log-grid">
         <div class="log-copy">
-          <p class="kicker">PREVIOUS PERFORMANCE</p>
-          <h2>Begin from<br />your last result.</h2>
+          <p class="kicker">WHAT CAME BEFORE</p>
+          <h2>Let the former effort<br />stand beside the present.</h2>
           <p>
-            Weight and reps carry into the next session. Warm-up and working sets remain
-            separate.
+            The last weight and repetitions return when the exercise comes again.
+            Preparatory sets remain apart from the work itself.
           </p>
         </div>
 
@@ -187,7 +188,7 @@ document.querySelector("#app").innerHTML = `
             <span>3 × 6–10</span>
           </div>
           <div class="ledger-head">
-            <span>SET</span><span>PREVIOUS</span><span>KG</span><span>REPS</span><span>DONE</span>
+            <span>SET</span><span>FORMER</span><span>KG</span><span>REPS</span><span>DONE</span>
           </div>
           <div class="ledger-row warmup-row">
             <span class="set-type">W</span><span>40 × 8</span><strong>40</strong><strong>8</strong><i>✓</i>
@@ -203,7 +204,7 @@ document.querySelector("#app").innerHTML = `
           </div>
           <div class="ledger-foot">
             <span>W / WARM-UP</span>
-            <span>NEXT TARGET / 62.5 KG × 8</span>
+            <span>APPOINTED NEXT / 62.5 KG × 8</span>
           </div>
         </div>
       </div>
@@ -213,7 +214,7 @@ document.querySelector("#app").innerHTML = `
       <div class="section-label dark-label">
         <span>03</span>
         <span>REST</span>
-        <span>SCREEN LOCKED / TIMER LIVE</span>
+        <span>SCREEN LOCKED / COUNT UNBROKEN</span>
       </div>
       <div class="timer-grid">
         <div class="timer-demo" aria-label="Rest timer Live Activity preview">
@@ -229,11 +230,11 @@ document.querySelector("#app").innerHTML = `
           <div class="giant-clock" aria-hidden="true">01<span>:</span>30</div>
         </div>
         <div class="timer-copy">
-          <p class="kicker">REST TIMER</p>
-          <h2>Rest time<br />stays visible.</h2>
+          <p class="kicker">THE MEASURE OF REST</p>
+          <h2>Rest without<br />losing the count.</h2>
           <p>
-            The screen stays awake while you log. After you lock it, the timer remains
-            visible in the Live Activity and Dynamic Island.
+            While you record the work, the screen remains wakeful. Lock it, and the
+            count continues in the Live Activity and Dynamic Island.
           </p>
         </div>
       </div>
@@ -242,15 +243,15 @@ document.querySelector("#app").innerHTML = `
     <section class="feature feature-progress" id="progress">
       <div class="section-label">
         <span>04</span>
-        <span>PROGRESSION</span>
+        <span>THE RECORD</span>
         <span>SESSION → WEEK → BLOCK</span>
       </div>
       <div class="progress-heading">
-        <p class="kicker">PROGRESSION</p>
-        <h2>Review the record.<br />Set the next target.</h2>
+        <p class="kicker">DEEDS KEPT IN ORDER</p>
+        <h2>Read what has been done.<br />Judge what comes next.</h2>
         <p>
-          Review each session and follow your consistency over time. Trends show how
-          your load, reps and volume are changing.
+          Every session takes its place in the record. Across the weeks, the figures
+          reveal whether load, repetitions and volume are rising or standing still.
         </p>
       </div>
 
@@ -293,11 +294,11 @@ document.querySelector("#app").innerHTML = `
 
       <div class="setup-grid">
         <div class="setup-intro">
-          <p class="kicker">INSTALL IT YOURSELF</p>
-          <h2>Put Form on<br />your iPhone.</h2>
+          <p class="kicker">BRING IT TO YOUR DEVICE</p>
+          <h2>Install Form on<br />your iPhone.</h2>
           <p>
-            Form is installed directly from Xcode. You need a Mac, an Apple Account,
-            and an iPhone running iOS 17 or later.
+            Form comes to the iPhone through Xcode. You will need a Mac, an Apple
+            Account and an iPhone running iOS 17 or later.
           </p>
           <a
             class="raw-button setup-source"
@@ -385,7 +386,7 @@ document.querySelector("#app").innerHTML = `
         <p>FORM</p>
         <span class="end-year">© <span id="year"></span></span>
       </div>
-      <a class="raw-button inverted" href="#top"><span>BACK TO TOP</span><span aria-hidden="true">↑</span></a>
+      <a class="raw-button inverted" href="#top"><span>RETURN TO THE BEGINNING</span><span aria-hidden="true">↑</span></a>
     </section>
   </main>
 `;
@@ -438,7 +439,7 @@ function scheduleCarousel() {
 
 function updateRoutineSelection(key) {
   const nextIndex = (routineKeys.indexOf(key) + 1) % routineKeys.length;
-  rotationNext.textContent = `NEXT · ${routineKeys[nextIndex]}`;
+  rotationNext.textContent = `NEXT LABOUR · ${routineKeys[nextIndex]}`;
   tabButtons.forEach((button) => {
     const selected = button.dataset.routine === key;
     button.classList.toggle("active", selected);
@@ -469,7 +470,7 @@ function finishSlide() {
 
   isSliding = false;
   if (announceAfterSlide) {
-    routineStatus.textContent = `Workout ${currentRoutine} selected`;
+    routineStatus.textContent = `Labour ${currentRoutine} selected`;
     announceAfterSlide = false;
   }
   if (pendingSelection) {
