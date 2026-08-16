@@ -8,9 +8,7 @@ struct CoachingReport: Transferable {
 
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(exportedContentType: .plainText) { report in
-            let date = report.generatedAt.formatted(
-                .iso8601.year().month().day()
-            )
+            let date = report.generatedAt.formatted(.iso8601.year().month().day())
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("Form Coaching Report \(date)")
                 .appendingPathExtension("md")
@@ -25,8 +23,7 @@ enum CoachingReportBuilder {
         from workouts: [WorkoutRecord],
         generatedAt: Date = Date()
     ) -> CoachingReport {
-        let calendar = Calendar.current
-        let periodStart = calendar.date(byAdding: .weekOfYear, value: -12, to: generatedAt)
+        let periodStart = ProgressPeriod.twelveWeeks.startDate(relativeTo: generatedAt)
             ?? .distantPast
         let included = workouts
             .filter { $0.date >= periodStart && $0.date <= generatedAt }
@@ -40,7 +37,7 @@ enum CoachingReportBuilder {
             "- Completed sessions: \(included.count)",
             "- Training time: \(totalMinutes(included)) minutes",
             "- Working sets: \(workingSetCount(included))",
-            "- Recorded volume: \(weight(totalVolume(included))) kg",
+            "- Recorded volume: \(WorkoutValueFormatter.weight(totalVolume(included))) kg",
             ""
         ]
 
@@ -55,17 +52,12 @@ enum CoachingReportBuilder {
     }
 
     private static func programSection() -> [String] {
-        var lines = [
-            "## Current programme",
-            ""
-        ]
-
+        var lines = ["## Current programme", ""]
         for routine in WorkoutCatalog.routines {
             lines.append("### \(routine.name) — \(routine.focus)")
             for exercise in routine.exercises {
                 lines.append(
-                    "- \(exercise.name) (`\(exercise.id)`): "
-                        + "\(exercise.targetText), \(restText(exercise.restSeconds)) rest"
+                    "- \(exercise.name) (`\(exercise.id)`): \(exercise.targetText), \(WorkoutValueFormatter.rest(exercise.restSeconds)) rest"
                 )
             }
             lines.append("")
@@ -74,11 +66,7 @@ enum CoachingReportBuilder {
     }
 
     private static func progressionSection(_ workouts: [WorkoutRecord]) -> [String] {
-        var lines = [
-            "## Exercise summary",
-            ""
-        ]
-
+        var lines = ["## Exercise summary", ""]
         for template in uniqueExercises {
             let appearances = workouts.compactMap { workout -> (Date, ExerciseRecord)? in
                 guard let record = workout.exercises.first(where: {
@@ -97,25 +85,19 @@ enum CoachingReportBuilder {
             let latestSets = latest.1.sets
                 .filter { $0.kind == .working }
                 .sorted { $0.order < $1.order }
-                .map { setDescription($0, measurement: template.measurement) }
+                .map { WorkoutValueFormatter.setText($0, template: template) }
                 .joined(separator: "; ")
 
             lines.append(
-                "- \(template.name) (`\(template.id)`): "
-                    + "\(appearances.count) sessions; latest \(shortDate(latest.0)) — \(latestSets)"
+                "- \(template.name) (`\(template.id)`): \(appearances.count) sessions; latest \(shortDate(latest.0)) — \(latestSets)"
             )
         }
-
         lines.append("")
         return lines
     }
 
     private static func sessionSection(_ workouts: [WorkoutRecord]) -> [String] {
-        var lines = [
-            "## Sessions",
-            ""
-        ]
-
+        var lines = ["## Sessions", ""]
         guard !workouts.isEmpty else {
             lines.append("No completed sessions in this period.")
             lines.append("")
@@ -123,51 +105,39 @@ enum CoachingReportBuilder {
         }
 
         for workout in workouts {
-            lines.append(
-                "### \(shortDate(workout.date)) — \(workout.routineName)"
-            )
-            lines.append(
-                "- Duration: \(max(1, Int(workout.duration / 60))) minutes"
-            )
+            lines.append("### \(shortDate(workout.date)) — \(workout.displayName)")
+            lines.append("- Duration: \(max(1, Int(workout.duration / 60))) minutes")
 
             for exercise in workout.exercises.sorted(by: { $0.order < $1.order }) {
                 let exerciseID = WorkoutCatalog.stableExerciseID(for: exercise)
                 let template = WorkoutCatalog.exercise(for: exercise)
                 let sets = exercise.sets.sorted { $0.order < $1.order }
-
                 if sets.isEmpty {
                     lines.append("- \(exercise.name) (`\(exerciseID)`): skipped")
                     continue
                 }
-
-                let setText = sets.map { set in
+                let text = sets.map { set in
                     let kind = set.kind == .warmup ? "warm-up" : "working"
-                    let measurement = template?.measurement
-                        ?? (set.weight > 0 ? .weighted : .bodyweight)
-                    return "\(kind) \(setDescription(set, measurement: measurement))"
-                }
-                .joined(separator: "; ")
-
-                lines.append("- \(exercise.name) (`\(exerciseID)`): \(setText)")
+                    return "\(kind) \(WorkoutValueFormatter.setText(set, template: template))"
+                }.joined(separator: "; ")
+                lines.append("- \(exercise.name) (`\(exerciseID)`): \(text)")
             }
 
             for cardio in workout.cardioEntries.sorted(by: { $0.order < $1.order }) {
-                var values = ["\(number(cardio.durationMinutes)) min"]
+                var values = ["\(WorkoutValueFormatter.decimal(cardio.durationMinutes)) min"]
                 if cardio.distanceKilometers > 0 {
-                    values.append("\(number(cardio.distanceKilometers)) km")
+                    values.append("\(WorkoutValueFormatter.decimal(cardio.distanceKilometers)) km")
                 }
                 if cardio.averageSpeed > 0 {
-                    values.append("\(number(cardio.averageSpeed)) km/h")
+                    values.append("\(WorkoutValueFormatter.decimal(cardio.averageSpeed)) km/h")
                 }
                 if cardio.kind.supportsIncline, cardio.incline > 0 {
-                    values.append("\(number(cardio.incline))% incline")
+                    values.append("\(WorkoutValueFormatter.decimal(cardio.incline))% incline")
                 }
                 lines.append("- Cardio — \(cardio.kind.title): \(values.joined(separator: ", "))")
             }
-
             lines.append("")
         }
-
         return lines
     }
 
@@ -179,9 +149,9 @@ enum CoachingReportBuilder {
     }
 
     private static func workingSetCount(_ workouts: [WorkoutRecord]) -> Int {
-        workouts.reduce(0) { workoutTotal, workout in
-            workoutTotal + workout.exercises.reduce(0) { exerciseTotal, exercise in
-                exerciseTotal + exercise.sets.filter { $0.kind == .working }.count
+        workouts.reduce(0) { total, workout in
+            total + workout.exercises.reduce(0) {
+                $0 + $1.sets.filter { $0.kind == .working }.count
             }
         }
     }
@@ -203,46 +173,11 @@ enum CoachingReportBuilder {
         }
     }
 
-    private static func setDescription(
-        _ set: SetRecord,
-        measurement: ExerciseTemplate.Measurement
-    ) -> String {
-        switch measurement {
-        case .weighted:
-            "\(weight(set.weight)) kg × \(set.repetitions)"
-        case .weightedTimed:
-            "\(weight(set.weight)) kg / hand × \(set.repetitions) sec"
-        case .bodyweight:
-            "\(set.repetitions) reps"
-        case .timed:
-            "\(set.repetitions) sec"
-        }
-    }
-
-    private static func restText(_ seconds: Int) -> String {
-        if seconds % 60 == 0 {
-            return "\(seconds / 60) min"
-        }
-        return "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
-    }
-
     private static func shortDate(_ date: Date) -> String {
         date.formatted(.dateTime.year().month(.abbreviated).day())
     }
 
     private static func dateTime(_ date: Date) -> String {
-        date.formatted(
-            .dateTime.year().month(.abbreviated).day().hour().minute()
-        )
-    }
-
-    private static func weight(_ value: Double) -> String {
-        value.formatted(
-            .number.precision(.fractionLength(value.rounded() == value ? 0 : 1))
-        )
-    }
-
-    private static func number(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1)))
+        date.formatted(.dateTime.year().month(.abbreviated).day().hour().minute())
     }
 }

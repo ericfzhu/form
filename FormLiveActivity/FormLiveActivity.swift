@@ -94,13 +94,23 @@ struct FormWorkoutLiveActivity: Widget {
                     .font(.title3.monospacedDigit().weight(.semibold))
                     .foregroundStyle(ink)
             }
-        } else {
+        } else if let timerStartedAt = context.state.sessionTimerStartedAt {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("SESSION")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .tracking(1)
                     .foregroundStyle(softInk)
-                Text(context.attributes.startedAt, style: .timer)
+                Text(timerStartedAt, style: .timer)
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(ink)
+            }
+        } else {
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("PAUSED")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(cinnabar)
+                Text(duration(context.state.pausedDuration))
                     .font(.title3.monospacedDigit().weight(.semibold))
                     .foregroundStyle(ink)
             }
@@ -116,6 +126,10 @@ struct FormWorkoutLiveActivity: Widget {
                 .font(.caption.monospacedDigit().weight(.semibold))
                 .foregroundStyle(cinnabar)
                 .frame(width: 44)
+        } else if context.state.sessionTimerStartedAt == nil {
+            Image(systemName: "pause.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(cinnabar)
         } else {
             Text("\(context.state.completedMovements)/\(context.state.totalMovements)")
                 .font(.caption.monospacedDigit().weight(.semibold))
@@ -128,6 +142,11 @@ struct FormWorkoutLiveActivity: Widget {
     ) -> some View {
         Text("\(state.completedMovements) of \(state.totalMovements) movements")
             .font(.system(.caption, design: .monospaced))
+    }
+
+    private func duration(_ interval: TimeInterval) -> String {
+        let seconds = max(0, Int(interval.rounded()))
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 
     private var activityMark: some View {

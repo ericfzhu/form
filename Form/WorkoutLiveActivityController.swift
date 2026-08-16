@@ -7,28 +7,12 @@ enum WorkoutLiveActivityController {
         Activity<WorkoutActivityAttributes>.activities.first
     }
 
-    static func begin(
-        routineName: String,
-        startedAt: Date,
-        completedMovements: Int,
-        totalMovements: Int,
-        currentExercise: String,
-        restEnd: Date?
-    ) async {
+    static func begin(session: WorkoutSessionState) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-
-        let state = WorkoutActivityAttributes.ContentState(
-            completedMovements: completedMovements,
-            totalMovements: totalMovements,
-            currentExercise: currentExercise,
-            restEnd: activeRestEnd(restEnd)
-        )
-        let content = ActivityContent(state: state, staleDate: restEnd)
+        let content = activityContent(session: session)
 
         if let currentActivity {
-            let isSameWorkout = currentActivity.attributes.routineName == routineName
-                && abs(currentActivity.attributes.startedAt.timeIntervalSince(startedAt)) < 1
-            if isSameWorkout {
+            if currentActivity.attributes.sessionID == session.sessionID {
                 await currentActivity.update(content)
                 return
             }
@@ -38,41 +22,85 @@ enum WorkoutLiveActivityController {
         do {
             _ = try Activity.request(
                 attributes: WorkoutActivityAttributes(
-                    routineName: routineName,
-                    startedAt: startedAt
+                    sessionID: session.sessionID,
+                    routineName: session.routine.name,
+                    startedAt: session.startedAt
                 ),
                 content: content,
                 pushType: nil
             )
         } catch {
-            // A denied or unavailable Live Activity must never interrupt workout logging.
+            // Live Activity availability must never interrupt workout logging.
         }
     }
 
-    static func update(
-        completedMovements: Int,
-        totalMovements: Int,
-        currentExercise: String,
-        restEnd: Date?
-    ) async {
+    static func update(session: WorkoutSessionState) async {
+        guard let currentActivity else {
+            await begin(session: session)
+            return
+        }
+        guard currentActivity.attributes.sessionID == session.sessionID else {
+            await begin(session: session)
+            return
+        }
+        await currentActivity.update(activityContent(session: session))
+    }
+
+    static func pause(snapshot: ActiveWorkoutSnapshot) async {
         guard let currentActivity else { return }
+        let routine = WorkoutCatalog.routine(id: snapshot.routineID)
+        let completed = snapshot.exercises.filter { exercise in
+            guard let template = WorkoutCatalog.exercise(id: exercise.exerciseID) else {
+                return exercise.sets.contains(where: \.completed)
+            }
+            return exercise.sets.filter {
+                $0.completed && ($0.kind ?? .working) == .working
+            }.count >= template.sets
+        }.count
+        let currentExercise = snapshot.expandedExerciseID
+            .flatMap(WorkoutCatalog.exercise(id:))?.name
+            ?? routine?.exercises.first(where: { exercise in
+                guard let saved = snapshot.exercises.first(where: {
+                    $0.exerciseID == exercise.id
+                }) else { return true }
+                return saved.sets.filter {
+                    $0.completed && ($0.kind ?? .working) == .working
+                }.count < exercise.sets
+            })?.name
+            ?? routine?.name
+            ?? currentActivity.attributes.routineName
+
         let state = WorkoutActivityAttributes.ContentState(
-            completedMovements: completedMovements,
-            totalMovements: totalMovements,
+            completedMovements: completed,
+            totalMovements: routine?.exercises.count ?? snapshot.exercises.count,
             currentExercise: currentExercise,
-            restEnd: activeRestEnd(restEnd)
+            restEnd: activeRestEnd(snapshot.restEnd),
+            sessionTimerStartedAt: nil,
+            pausedDuration: max(0, snapshot.activeDuration ?? 0)
         )
         await currentActivity.update(
-            ActivityContent(state: state, staleDate: restEnd)
+            ActivityContent(state: state, staleDate: activeRestEnd(snapshot.restEnd))
         )
     }
 
+    /// Finishes a completed/discarded session. If a resumable snapshot remains,
+    /// the Live Activity is paused instead of dismissed.
     static func end() async {
+        if let snapshot = ActiveWorkoutStore.load() {
+            await pause(snapshot: snapshot)
+            return
+        }
+        await forceEnd()
+    }
+
+    static func forceEnd() async {
         let finalState = WorkoutActivityAttributes.ContentState(
             completedMovements: 0,
             totalMovements: 0,
             currentExercise: "",
-            restEnd: nil
+            restEnd: nil,
+            sessionTimerStartedAt: nil,
+            pausedDuration: 0
         )
         for activity in Activity<WorkoutActivityAttributes>.activities {
             await activity.end(
@@ -80,6 +108,21 @@ enum WorkoutLiveActivityController {
                 dismissalPolicy: .immediate
             )
         }
+    }
+
+    private static func activityContent(
+        session: WorkoutSessionState
+    ) -> ActivityContent<WorkoutActivityAttributes.ContentState> {
+        let restEnd = activeRestEnd(session.restEnd)
+        let state = WorkoutActivityAttributes.ContentState(
+            completedMovements: session.completedMovementCount,
+            totalMovements: session.drafts.count,
+            currentExercise: session.currentExerciseName,
+            restEnd: restEnd,
+            sessionTimerStartedAt: session.sessionTimerStartedAt,
+            pausedDuration: max(0, session.elapsedActiveDuration)
+        )
+        return ActivityContent(state: state, staleDate: restEnd)
     }
 
     private static func activeRestEnd(_ date: Date?) -> Date? {

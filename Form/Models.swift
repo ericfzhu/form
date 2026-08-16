@@ -5,43 +5,108 @@ import SwiftData
 final class WorkoutRecord {
     var healthSyncIdentifier: UUID = UUID()
     var healthKitWorkoutUUID: UUID?
-    var date: Date
-    var routineName: String
-    var duration: TimeInterval
+    var healthSyncStatusRawValue: String = HealthSyncStatus.notRequested.rawValue
+    var healthSyncLastAttemptAt: Date?
+    var healthSyncLastError: String?
+    var date: Date = Date()
+    var routineID: String = ""
+    var routineName: String = ""
+    var sessionTitle: String?
+    var duration: TimeInterval = 0
 
-    @Relationship(deleteRule: .cascade, inverse: \ExerciseRecord.workout)
-    var exercises: [ExerciseRecord]
+    @Relationship(
+        deleteRule: .cascade,
+        originalName: "exercises",
+        inverse: \ExerciseRecord.workout
+    )
+    var storedExercises: [ExerciseRecord]? = []
 
-    @Relationship(deleteRule: .cascade, inverse: \CardioRecord.workout)
-    var cardioEntries: [CardioRecord]
+    @Relationship(
+        deleteRule: .cascade,
+        originalName: "cardioEntries",
+        inverse: \CardioRecord.workout
+    )
+    var storedCardioEntries: [CardioRecord]? = []
+
+    var exercises: [ExerciseRecord] {
+        get { storedExercises ?? [] }
+        set { storedExercises = newValue }
+    }
+
+    var cardioEntries: [CardioRecord] {
+        get { storedCardioEntries ?? [] }
+        set { storedCardioEntries = newValue }
+    }
+
+    var healthSyncStatus: HealthSyncStatus {
+        get { HealthSyncStatus(rawValue: healthSyncStatusRawValue) ?? .notRequested }
+        set { healthSyncStatusRawValue = newValue.rawValue }
+    }
+
+    var displayName: String {
+        let trimmed = sessionTitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? routineName : trimmed
+    }
 
     init(
         date: Date,
+        routineID: String = "",
         routineName: String,
+        sessionTitle: String? = nil,
         duration: TimeInterval,
         exercises: [ExerciseRecord] = [],
         cardioEntries: [CardioRecord] = []
     ) {
         healthSyncIdentifier = UUID()
         healthKitWorkoutUUID = nil
+        healthSyncStatusRawValue = HealthSyncStatus.notRequested.rawValue
         self.date = date
+        self.routineID = routineID
         self.routineName = routineName
+        self.sessionTitle = sessionTitle
         self.duration = duration
-        self.exercises = exercises
-        self.cardioEntries = cardioEntries
+        storedExercises = exercises
+        storedCardioEntries = cardioEntries
+    }
+}
+
+enum HealthSyncStatus: String, Codable, CaseIterable {
+    case notRequested
+    case pending
+    case syncing
+    case synced
+    case failed
+
+    var title: String {
+        switch self {
+        case .notRequested: "Local only"
+        case .pending: "Apple Health pending"
+        case .syncing: "Saving to Apple Health"
+        case .synced: "Saved to Apple Health"
+        case .failed: "Apple Health needs retry"
+        }
     }
 }
 
 @Model
 final class ExerciseRecord {
     var exerciseID: String = ""
-    var name: String
-    var assetName: String
-    var order: Int
+    var name: String = ""
+    var assetName: String = ""
+    var order: Int = 0
     var workout: WorkoutRecord?
 
-    @Relationship(deleteRule: .cascade, inverse: \SetRecord.exercise)
-    var sets: [SetRecord]
+    @Relationship(
+        deleteRule: .cascade,
+        originalName: "sets",
+        inverse: \SetRecord.exercise
+    )
+    var storedSets: [SetRecord]? = []
+
+    var sets: [SetRecord] {
+        get { storedSets ?? [] }
+        set { storedSets = newValue }
+    }
 
     init(
         exerciseID: String,
@@ -54,17 +119,46 @@ final class ExerciseRecord {
         self.name = name
         self.assetName = assetName
         self.order = order
-        self.sets = sets
+        storedSets = sets
     }
 }
 
-enum ExerciseIdentityMigration {
+enum WorkoutDataMigration {
     static func backfillLegacyRecords(in modelContext: ModelContext) throws {
-        let records = try modelContext.fetch(FetchDescriptor<ExerciseRecord>())
         var changed = false
+        let workouts = try modelContext.fetch(FetchDescriptor<WorkoutRecord>())
 
-        for record in records where record.exerciseID.isEmpty {
-            record.exerciseID = WorkoutCatalog.stableExerciseID(for: record)
+        for workout in workouts {
+            if workout.routineID.isEmpty {
+                workout.routineID = WorkoutCatalog.routineID(
+                    forLegacyName: workout.routineName,
+                    exerciseIDs: workout.exercises.map {
+                        WorkoutCatalog.stableExerciseID(for: $0)
+                    }
+                ) ?? "custom"
+                changed = true
+            }
+
+            if let routine = WorkoutCatalog.routine(id: workout.routineID),
+               workout.routineName != routine.name {
+                if workout.sessionTitle?.isEmpty ?? true,
+                   !workout.routineName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    workout.sessionTitle = workout.routineName
+                }
+                workout.routineName = routine.name
+                changed = true
+            }
+
+            if workout.healthKitWorkoutUUID != nil,
+               workout.healthSyncStatus != .synced {
+                workout.healthSyncStatus = .synced
+                changed = true
+            }
+        }
+
+        let exercises = try modelContext.fetch(FetchDescriptor<ExerciseRecord>())
+        for exercise in exercises where exercise.exerciseID.isEmpty {
+            exercise.exerciseID = WorkoutCatalog.stableExerciseID(for: exercise)
             changed = true
         }
 
@@ -74,11 +168,18 @@ enum ExerciseIdentityMigration {
     }
 }
 
+/// Keeps the existing RootView migration call source-compatible.
+enum ExerciseIdentityMigration {
+    static func backfillLegacyRecords(in modelContext: ModelContext) throws {
+        try WorkoutDataMigration.backfillLegacyRecords(in: modelContext)
+    }
+}
+
 @Model
 final class SetRecord {
-    var order: Int
-    var weight: Double
-    var repetitions: Int
+    var order: Int = 0
+    var weight: Double = 0
+    var repetitions: Int = 0
     var kindRawValue: String = SetKind.working.rawValue
     var exercise: ExerciseRecord?
 
@@ -164,6 +265,7 @@ struct ActiveCardioSnapshot: Codable, Equatable {
 }
 
 struct ActiveWorkoutSnapshot: Codable, Equatable {
+    var sessionID: UUID? = nil
     var routineID: String
     var startedAt: Date
     var activeDuration: TimeInterval?
@@ -173,25 +275,7 @@ struct ActiveWorkoutSnapshot: Codable, Equatable {
     var restEnd: Date?
 }
 
-enum ActiveWorkoutStore {
-    private static let key = "active-workout-snapshot-v1"
-
-    static func load() -> ActiveWorkoutSnapshot? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(ActiveWorkoutSnapshot.self, from: data)
-    }
-
-    static func save(_ snapshot: ActiveWorkoutSnapshot) throws {
-        let data = try JSONEncoder().encode(snapshot)
-        UserDefaults.standard.set(data, forKey: key)
-    }
-
-    static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
-    }
-}
-
-struct CardioDraft: Identifiable, Equatable {
+struct CardioDraft: Identifiable, Equatable, Codable {
     let id: UUID
     var kind: CardioKind
     var durationMinutes: Double
@@ -227,12 +311,12 @@ struct CardioDraft: Identifiable, Equatable {
 
 @Model
 final class CardioRecord {
-    var kindRawValue: String
-    var order: Int
-    var durationMinutes: Double
-    var distanceKilometers: Double
-    var averageSpeed: Double
-    var incline: Double
+    var kindRawValue: String = CardioKind.other.rawValue
+    var order: Int = 0
+    var durationMinutes: Double = 0
+    var distanceKilometers: Double = 0
+    var averageSpeed: Double = 0
+    var incline: Double = 0
     var workout: WorkoutRecord?
 
     var kind: CardioKind {
@@ -254,5 +338,13 @@ final class CardioRecord {
         self.distanceKilometers = distanceKilometers
         self.averageSpeed = averageSpeed
         self.incline = incline
+    }
+}
+
+extension WorkoutRecord {
+    var hasTrainingData: Bool {
+        exercises.contains { exercise in
+            exercise.sets.contains { $0.kind == .working }
+        } || cardioEntries.contains { $0.durationMinutes > 0 }
     }
 }

@@ -49,6 +49,15 @@ struct ExerciseTemplate: Identifiable, Hashable {
     var loadLabel: String {
         usesPerHandLoad ? "KG / HAND" : "KG"
     }
+
+    var progressionMeasurement: ProgressionMeasurement {
+        switch measurement {
+        case .weighted: .weighted
+        case .weightedTimed: .weightedTimed
+        case .bodyweight: .bodyweight
+        case .timed: .timed
+        }
+    }
 }
 
 struct RoutineTemplate: Identifiable, Hashable {
@@ -195,29 +204,57 @@ enum WorkoutCatalog {
     ]
 
     static func exercise(named name: String) -> ExerciseTemplate? {
-        routines
-            .flatMap(\.exercises)
-            .first { $0.name == name }
+        routines.flatMap(\.exercises).first { $0.name == name }
     }
 
     static func exercise(id: String) -> ExerciseTemplate? {
-        routines
-            .flatMap(\.exercises)
-            .first { $0.id == id }
+        routines.flatMap(\.exercises).first { $0.id == id }
     }
 
     static func exercise(for record: ExerciseRecord) -> ExerciseTemplate? {
-        exercise(id: stableExerciseID(for: record))
-            ?? exercise(named: record.name)
+        exercise(id: stableExerciseID(for: record)) ?? exercise(named: record.name)
     }
 
     static func stableExerciseID(for record: ExerciseRecord) -> String {
-        if !record.exerciseID.isEmpty {
-            return record.exerciseID
-        }
+        if !record.exerciseID.isEmpty { return record.exerciseID }
         return exercise(named: record.name)?.id
             ?? exercise(id: record.assetName)?.id
             ?? record.assetName
+    }
+
+    static func routine(id: String) -> RoutineTemplate? {
+        routines.first { $0.id == id }
+    }
+
+    static func routineID(forLegacyName name: String) -> String? {
+        routines.first { $0.name == name }?.id
+    }
+
+    static func routineID(
+        forLegacyName name: String,
+        exerciseIDs: [String]
+    ) -> String? {
+        if let direct = routineID(forLegacyName: name) { return direct }
+        let recorded = Set(exerciseIDs)
+        guard !recorded.isEmpty else { return nil }
+        return routines
+            .map { routine in
+                (routine.id, recorded.intersection(Set(routine.exercises.map(\.id))).count)
+            }
+            .filter { $0.1 > 0 }
+            .max { $0.1 < $1.1 }?.0
+    }
+
+    static func nextRoutine(after workout: WorkoutRecord?) -> RoutineTemplate {
+        guard let workout else { return routines[0] }
+        let stableID = workout.routineID.isEmpty
+            ? routineID(forLegacyName: workout.routineName)
+            : workout.routineID
+        guard let stableID,
+              let index = routines.firstIndex(where: { $0.id == stableID }) else {
+            return routines[0]
+        }
+        return routines[(index + 1) % routines.count]
     }
 
     private static func exercise(
@@ -260,7 +297,12 @@ enum WorkoutCatalog {
         )
     }
 
-    private static func timed(_ asset: String, _ name: String, _ sets: Int, rest: Int) -> ExerciseTemplate {
+    private static func timed(
+        _ asset: String,
+        _ name: String,
+        _ sets: Int,
+        rest: Int
+    ) -> ExerciseTemplate {
         ExerciseTemplate(
             id: asset,
             name: name,

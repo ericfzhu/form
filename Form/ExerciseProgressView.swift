@@ -1,331 +1,6 @@
-import SwiftUI
-import SwiftData
 import Charts
-
-struct PerformanceSetValue: Hashable {
-    let weight: Double
-    let repetitions: Int
-}
-
-struct ExercisePerformance: Identifiable, Hashable {
-    let id: PersistentIdentifier
-    let date: Date
-    let sets: [PerformanceSetValue]
-
-    var topSet: PerformanceSetValue? {
-        sets.max {
-            if $0.weight == $1.weight {
-                return $0.repetitions < $1.repetitions
-            }
-            return $0.weight < $1.weight
-        }
-    }
-
-    var bestRepetitions: Int {
-        sets.map(\.repetitions).max() ?? 0
-    }
-
-    var totalVolume: Double {
-        sets.reduce(0) { $0 + $1.weight * Double($1.repetitions) }
-    }
-
-    var estimatedOneRepMax: Double {
-        sets
-            .filter { $0.weight > 0 && $0.repetitions > 0 }
-            .map { $0.weight * (1 + Double($0.repetitions) / 30) }
-            .max() ?? 0
-    }
-}
-
-enum ProgressRecord: String, Identifiable {
-    case load
-    case estimatedOneRepMax
-    case volume
-    case repetitions
-    case time
-
-    var id: String { rawValue }
-
-    var shortTitle: String {
-        switch self {
-        case .load: "LOAD PR"
-        case .estimatedOneRepMax: "1RM PR"
-        case .volume: "VOLUME PR"
-        case .repetitions: "REP PR"
-        case .time: "TIME PR"
-        }
-    }
-}
-
-struct ProgressionRecommendation {
-    let title: String
-    let detail: String
-}
-
-enum ProgressionEngine {
-    static var loadIncrement: Double {
-        let stored = UserDefaults.standard.double(forKey: "progression-load-increment")
-        return stored > 0 ? stored : 2.5
-    }
-
-    static func performances(
-        for template: ExerciseTemplate,
-        in workouts: [WorkoutRecord]
-    ) -> [ExercisePerformance] {
-        performances(
-            forExerciseID: template.id,
-            legacyName: template.name,
-            in: workouts
-        )
-    }
-
-    static func performances(
-        for record: ExerciseRecord,
-        in workouts: [WorkoutRecord]
-    ) -> [ExercisePerformance] {
-        performances(
-            forExerciseID: WorkoutCatalog.stableExerciseID(for: record),
-            legacyName: record.name,
-            in: workouts
-        )
-    }
-
-    private static func performances(
-        forExerciseID exerciseID: String,
-        legacyName: String,
-        in workouts: [WorkoutRecord]
-    ) -> [ExercisePerformance] {
-        workouts.compactMap { workout in
-            guard let exercise = workout.exercises.first(where: {
-                WorkoutCatalog.stableExerciseID(for: $0) == exerciseID
-                    || ($0.exerciseID.isEmpty && $0.name == legacyName)
-            }),
-                  !exercise.sets.isEmpty else { return nil }
-
-            let sets = exercise.sets
-                .filter { $0.kind == .working }
-                .sorted { $0.order < $1.order }
-                .map { PerformanceSetValue(weight: $0.weight, repetitions: $0.repetitions) }
-
-            guard !sets.isEmpty else { return nil }
-
-            return ExercisePerformance(id: workout.persistentModelID, date: workout.date, sets: sets)
-        }
-        .sorted { $0.date > $1.date }
-    }
-
-    static func latestCompleted(
-        for template: ExerciseTemplate,
-        in workouts: [WorkoutRecord]
-    ) -> ExercisePerformance? {
-        performances(for: template, in: workouts).first
-    }
-
-    static func recommendedLoad(
-        for template: ExerciseTemplate,
-        after performance: ExercisePerformance?
-    ) -> Double? {
-        guard template.recordsLoad,
-              let performance,
-              performance.sets.count >= template.sets else { return nil }
-
-        let prescribedSets = performance.sets.prefix(template.sets)
-        guard prescribedSets.allSatisfy({
-            $0.weight > 0 && $0.repetitions >= template.maximumRepetitions
-        }), let currentLoad = prescribedSets.map(\.weight).max() else { return nil }
-
-        return currentLoad + loadIncrement
-    }
-
-    static func recommendation(
-        for template: ExerciseTemplate,
-        performances: [ExercisePerformance]
-    ) -> ProgressionRecommendation? {
-        guard let latest = performances.first else { return nil }
-
-        switch template.measurement {
-        case .weighted:
-            let prescribed = Array(latest.sets.prefix(template.sets))
-            guard !prescribed.isEmpty else { return nil }
-            let currentLoad = prescribed.map(\.weight).max() ?? 0
-            let load = currentLoad.formatted(.number.precision(.fractionLength(0...2)))
-
-            if prescribed.count >= template.sets,
-               prescribed.allSatisfy({ $0.repetitions >= template.maximumRepetitions }) {
-                let next = (currentLoad + loadIncrement)
-                    .formatted(.number.precision(.fractionLength(0...2)))
-                return ProgressionRecommendation(
-                    title: "Increase to \(next) kg\(template.usesPerHandLoad ? " / hand" : "")",
-                    detail: "You reached the top of the target range across every prescribed set."
-                )
-            }
-
-            let repeatedShortfall = performances.prefix(2).count == 2
-                && performances.prefix(2).allSatisfy { performance in
-                    let sets = Array(performance.sets.prefix(template.sets))
-                    return sets.count < template.sets
-                        || sets.contains { $0.repetitions < template.minimumRepetitions }
-                }
-
-            if repeatedShortfall, currentLoad > 0 {
-                let reduced = max(0, currentLoad - loadIncrement)
-                    .formatted(.number.precision(.fractionLength(0...2)))
-                return ProgressionRecommendation(
-                    title: "Consider \(reduced) kg\(template.usesPerHandLoad ? " / hand" : "")",
-                    detail: "The minimum target was missed in two consecutive sessions."
-                )
-            }
-
-            return ProgressionRecommendation(
-                title: "Keep \(load) kg\(template.usesPerHandLoad ? " / hand" : "")",
-                detail: "Aim to add one repetition while staying inside the target range."
-            )
-        case .weightedTimed:
-            let prescribed = Array(latest.sets.prefix(template.sets))
-            guard !prescribed.isEmpty else { return nil }
-            let currentLoad = prescribed.map(\.weight).max() ?? 0
-            guard currentLoad > 0 else {
-                return ProgressionRecommendation(
-                    title: "Record the dumbbell load",
-                    detail: "Enter the weight of one dumbbell and carry for \(template.minimumRepetitions)–\(template.maximumRepetitions) seconds."
-                )
-            }
-            let load = currentLoad.formatted(
-                .number.precision(.fractionLength(0...2))
-            )
-
-            if prescribed.count >= template.sets,
-               prescribed.allSatisfy({
-                   $0.weight == currentLoad
-                       && $0.repetitions >= template.maximumRepetitions
-               }) {
-                let next = (currentLoad + loadIncrement).formatted(
-                    .number.precision(.fractionLength(0...2))
-                )
-                return ProgressionRecommendation(
-                    title: "Increase to \(next) kg / hand",
-                    detail: "You held the current load for the full target time across every set."
-                )
-            }
-
-            let repeatedShortfall = performances.prefix(2).count == 2
-                && performances.prefix(2).allSatisfy { performance in
-                    let sets = Array(performance.sets.prefix(template.sets))
-                    return sets.count < template.sets
-                        || sets.contains {
-                            $0.weight <= 0
-                                || $0.repetitions < template.minimumRepetitions
-                        }
-                }
-
-            if repeatedShortfall {
-                let reduced = max(0, currentLoad - loadIncrement).formatted(
-                    .number.precision(.fractionLength(0...2))
-                )
-                return ProgressionRecommendation(
-                    title: "Consider \(reduced) kg / hand",
-                    detail: "The minimum carry time was missed in two consecutive sessions."
-                )
-            }
-
-            return ProgressionRecommendation(
-                title: "Keep \(load) kg / hand",
-                detail: "Build every set toward \(template.maximumRepetitions) seconds before increasing the load."
-            )
-        case .bodyweight:
-            return ProgressionRecommendation(
-                title: "Add one repetition",
-                detail: "Keep the same movement quality and build toward \(template.maximumRepetitions) reps."
-            )
-        case .timed:
-            return ProgressionRecommendation(
-                title: "Add a few seconds",
-                detail: "Keep the same position and build toward \(template.maximumRepetitions) seconds."
-            )
-        }
-    }
-
-    static func comparison(
-        for current: ExercisePerformance,
-        measurement: ExerciseTemplate.Measurement,
-        among performances: [ExercisePerformance]
-    ) -> String? {
-        guard let previous = performances
-            .filter({ $0.date < current.date })
-            .max(by: { $0.date < $1.date }) else { return nil }
-
-        switch measurement {
-        case .weighted:
-            let loadDelta = (current.topSet?.weight ?? 0) - (previous.topSet?.weight ?? 0)
-            if loadDelta != 0 {
-                return "\(loadDelta > 0 ? "+" : "")\(loadDelta.formatted(.number.precision(.fractionLength(0...2)))) kg"
-            }
-            let volumeDelta = current.totalVolume - previous.totalVolume
-            if volumeDelta != 0 {
-                return "\(volumeDelta > 0 ? "+" : "")\(Int(volumeDelta)) kg volume"
-            }
-            let repDelta = current.bestRepetitions - previous.bestRepetitions
-            if repDelta != 0 {
-                return "\(repDelta > 0 ? "+" : "")\(repDelta) reps"
-            }
-            return "Matched previous"
-        case .weightedTimed:
-            let loadDelta = (current.topSet?.weight ?? 0) - (previous.topSet?.weight ?? 0)
-            if loadDelta != 0 {
-                return "\(loadDelta > 0 ? "+" : "")\(loadDelta.formatted(.number.precision(.fractionLength(0...2)))) kg / hand"
-            }
-            let timeDelta = current.bestRepetitions - previous.bestRepetitions
-            if timeDelta != 0 {
-                return "\(timeDelta > 0 ? "+" : "")\(timeDelta) sec"
-            }
-            return "Matched previous"
-        case .bodyweight, .timed:
-            let delta = current.bestRepetitions - previous.bestRepetitions
-            if delta == 0 { return "Matched previous" }
-            return "\(delta > 0 ? "+" : "")\(delta) \(measurement == .timed ? "sec" : "reps")"
-        }
-    }
-
-    static func personalRecords(
-        for performance: ExercisePerformance,
-        measurement: ExerciseTemplate.Measurement,
-        among performances: [ExercisePerformance]
-    ) -> [ProgressRecord] {
-        let previous = performances.filter { $0.date < performance.date }
-        guard !previous.isEmpty else { return [] }
-
-        switch measurement {
-        case .weighted:
-            var records: [ProgressRecord] = []
-            let previousLoad = previous.compactMap { $0.topSet?.weight }.max() ?? 0
-            let currentLoad = performance.topSet?.weight ?? 0
-            if currentLoad > previousLoad {
-                records.append(.load)
-            }
-            if performance.estimatedOneRepMax > (previous.map(\.estimatedOneRepMax).max() ?? 0) {
-                records.append(.estimatedOneRepMax)
-            }
-            if performance.totalVolume > (previous.map(\.totalVolume).max() ?? 0) {
-                records.append(.volume)
-            }
-            return records
-        case .weightedTimed:
-            var records: [ProgressRecord] = []
-            let previousLoad = previous.compactMap { $0.topSet?.weight }.max() ?? 0
-            if (performance.topSet?.weight ?? 0) > previousLoad {
-                records.append(.load)
-            }
-            let previousBestTime = previous.map(\.bestRepetitions).max() ?? 0
-            if performance.bestRepetitions > previousBestTime {
-                records.append(.time)
-            }
-            return records
-        case .bodyweight, .timed:
-            let previousBest = previous.map(\.bestRepetitions).max() ?? 0
-            return performance.bestRepetitions > previousBest ? [.repetitions] : []
-        }
-    }
-}
+import SwiftData
+import SwiftUI
 
 struct ExerciseProgressView: View {
     let exercise: ExerciseTemplate
@@ -333,9 +8,14 @@ struct ExerciseProgressView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var selectedMetric: TrendMetric = .load
+    @State private var selectedPeriod: ProgressPeriod = .twelveWeeks
+
+    private var allPerformances: [ExercisePerformance] {
+        ProgressionEngine.performances(for: exercise, in: workouts)
+    }
 
     private var performances: [ExercisePerformance] {
-        ProgressionEngine.performances(for: exercise, in: workouts)
+        allPerformances.filter { selectedPeriod.includes($0.date) }
     }
 
     private var availableMetrics: [TrendMetric] {
@@ -349,33 +29,28 @@ struct ExerciseProgressView: View {
     var body: some View {
         ZStack {
             PaperBackground()
-
             ScrollView {
                 LazyVStack(spacing: 18) {
-                    RawScreenTitle(index: "03", title: "Progress", detail: "12 WEEKS")
-                        .padding(.horizontal, -20)
-                        .padding(.bottom, 2)
+                    RawScreenTitle(
+                        index: "03",
+                        title: "Progress",
+                        detail: selectedPeriod.headerTitle
+                    )
+                    .padding(.horizontal, -20)
+                    .padding(.bottom, 2)
 
+                    periodControl
                     exerciseOverview
 
-                    if let recommendation {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("NEXT SESSION")
-                                .font(.caption2.weight(.semibold))
-                                .tracking(1.6)
-                                .foregroundStyle(InkPalette.softInk)
-                            Text(recommendation.title)
-                                .font(.system(.headline, design: .serif, weight: .semibold))
-                                .foregroundStyle(InkPalette.cinnabar)
-                            Text(recommendation.detail)
-                                .font(.system(.caption, design: .serif))
-                                .foregroundStyle(InkPalette.softInk)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let recommendation = ProgressionEngine.recommendation(
+                        for: exercise,
+                        performances: allPerformances
+                    ) {
+                        recommendationView(recommendation)
                     }
 
                     if performances.isEmpty {
-                        EmptyExerciseRecord()
+                        EmptyExerciseRecord(period: selectedPeriod)
                     } else {
                         summary
                         if performances.count == 1 {
@@ -392,11 +67,13 @@ struct ExerciseProgressView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .background {
-            InteractivePopGestureBridge(isEnabled: true)
-        }
+        .background { InteractivePopGestureBridge(isEnabled: true) }
         .safeAreaInset(edge: .top, spacing: 0) {
-            progressHeader
+            InkTextHeader(
+                title: exercise.name.uppercased(),
+                leadingTitle: "Back",
+                leadingAction: { dismiss() }
+            )
         }
         .onAppear {
             if !availableMetrics.contains(selectedMetric) {
@@ -405,16 +82,27 @@ struct ExerciseProgressView: View {
         }
     }
 
-    private var recommendation: ProgressionRecommendation? {
-        ProgressionEngine.recommendation(for: exercise, performances: performances)
-    }
-
-    private var progressHeader: some View {
-        InkTextHeader(
-            title: exercise.name.uppercased(),
-            leadingTitle: "Back",
-            leadingAction: { dismiss() }
-        )
+    private var periodControl: some View {
+        HStack(spacing: 0) {
+            ForEach(ProgressPeriod.allCases) { period in
+                Button {
+                    selectedPeriod = period
+                } label: {
+                    Text(period.title.uppercased())
+                        .font(.system(size: 9, weight: .semibold, design: .serif))
+                        .tracking(0.8)
+                        .foregroundStyle(selectedPeriod == period
+                            ? InkPalette.raisedPaper
+                            : InkPalette.softInk)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(selectedPeriod == period
+                            ? InkPalette.cinnabar
+                            : InkPalette.raisedPaper)
+                }
+                .buttonStyle(PressableButtonStyle())
+            }
+        }
+        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
     }
 
     private var exerciseOverview: some View {
@@ -422,7 +110,6 @@ struct ExerciseProgressView: View {
             HStack(spacing: 16) {
                 DemonstrationImage(assetName: exercise.assetName, outlined: false)
                     .frame(width: 132, height: 118)
-
                 VStack(alignment: .leading, spacing: 8) {
                     Text("TARGET")
                         .font(.caption2.weight(.semibold))
@@ -430,10 +117,8 @@ struct ExerciseProgressView: View {
                         .foregroundStyle(InkPalette.softInk)
                     Text(exercise.targetText)
                         .font(.system(.title3, design: .serif, weight: .semibold))
-                        .foregroundStyle(InkPalette.ink)
                         .monospacedDigit()
-
-                    if let latest = performances.first {
+                    if let latest = allPerformances.first {
                         Text("Last · \(sessionSummary(latest))")
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(InkPalette.cinnabar)
@@ -446,12 +131,10 @@ struct ExerciseProgressView: View {
 
             if !exercise.formCues.isEmpty {
                 InkDivider()
-
                 Text("FORM")
                     .font(.caption2.weight(.semibold))
                     .tracking(1.5)
                     .foregroundStyle(InkPalette.softInk)
-
                 VStack(alignment: .leading, spacing: 11) {
                     ForEach(Array(exercise.formCues.enumerated()), id: \.offset) { index, cue in
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -461,14 +144,30 @@ struct ExerciseProgressView: View {
                                 .frame(width: 20, alignment: .leading)
                             Text(cue)
                                 .font(.system(.subheadline, design: .serif))
-                                .foregroundStyle(InkPalette.ink)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
             }
         }
-        .padding(.bottom, 2)
+    }
+
+    private func recommendationView(
+        _ recommendation: ProgressionRecommendation
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("NEXT SESSION")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.6)
+                .foregroundStyle(InkPalette.softInk)
+            Text(recommendation.title)
+                .font(.system(.headline, design: .serif, weight: .semibold))
+                .foregroundStyle(InkPalette.cinnabar)
+            Text(recommendation.detail)
+                .font(.system(.caption, design: .serif))
+                .foregroundStyle(InkPalette.softInk)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var summary: some View {
@@ -495,7 +194,6 @@ struct ExerciseProgressView: View {
             Text(value)
                 .font(.system(.subheadline, design: .serif, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(InkPalette.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
@@ -506,20 +204,19 @@ struct ExerciseProgressView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 ForEach(availableMetrics, id: \.self) { metric in
-                    Button {
-                        selectedMetric = metric
-                    } label: {
+                    Button { selectedMetric = metric } label: {
                         Text(metric.title(for: exercise.measurement))
                             .font(.system(.caption, design: .serif, weight: selectedMetric == metric ? .semibold : .regular))
                             .padding(.horizontal, 12)
                             .frame(minHeight: 40)
                             .background {
                                 if selectedMetric == metric {
-                                    Rectangle()
-                                        .fill(InkPalette.cinnabar)
+                                    Rectangle().fill(InkPalette.cinnabar)
                                 }
                             }
-                            .foregroundStyle(selectedMetric == metric ? InkPalette.raisedPaper : InkPalette.softInk)
+                            .foregroundStyle(selectedMetric == metric
+                                ? InkPalette.raisedPaper
+                                : InkPalette.softInk)
                             .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
                     }
                     .buttonStyle(PressableButtonStyle())
@@ -529,14 +226,20 @@ struct ExerciseProgressView: View {
             Chart(performances.reversed()) { performance in
                 LineMark(
                     x: .value("Date", performance.date),
-                    y: .value(selectedMetric.axisLabel(for: exercise.measurement), selectedMetric.value(for: performance))
+                    y: .value(
+                        selectedMetric.axisLabel(for: exercise.measurement),
+                        selectedMetric.value(for: performance)
+                    )
                 )
                 .foregroundStyle(InkPalette.cinnabar)
                 .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .square, lineJoin: .bevel))
 
                 PointMark(
                     x: .value("Date", performance.date),
-                    y: .value(selectedMetric.axisLabel(for: exercise.measurement), selectedMetric.value(for: performance))
+                    y: .value(
+                        selectedMetric.axisLabel(for: exercise.measurement),
+                        selectedMetric.value(for: performance)
+                    )
                 )
                 .foregroundStyle(InkPalette.bronze)
                 .symbolSize(42)
@@ -572,12 +275,11 @@ struct ExerciseProgressView: View {
                 Spacer()
                 Text(sessionSummary(performances[0]))
                     .font(.subheadline.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(InkPalette.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
             .frame(minHeight: 48)
-            Text("A trend will appear after the next recorded session.")
+            Text("A trend will appear after the next recorded session in this period.")
                 .font(.system(.caption, design: .serif))
                 .foregroundStyle(InkPalette.softInk.opacity(0.78))
         }
@@ -597,15 +299,11 @@ struct ExerciseProgressView: View {
                         .font(.system(.subheadline, design: .serif))
                         .foregroundStyle(InkPalette.softInk)
                         .frame(width: 64, alignment: .leading)
-
                     Text(sessionSummary(performance))
                         .font(.subheadline.monospacedDigit().weight(.medium))
-                        .foregroundStyle(InkPalette.ink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-
                     Spacer(minLength: 0)
-
                     if !records(for: performance).isEmpty {
                         Text("PR")
                             .font(.caption2.weight(.bold))
@@ -614,31 +312,23 @@ struct ExerciseProgressView: View {
                     }
                 }
                 .frame(minHeight: 48)
-
-                if performance.id != performances.last?.id {
-                    InkDivider()
-                }
+                if performance.id != performances.last?.id { InkDivider() }
             }
         }
     }
 
     private var bestSummary: String {
         switch exercise.measurement {
-        case .weighted:
-            let best = performances.compactMap(\.topSet).max {
+        case .weighted, .weightedTimed:
+            guard let best = performances.compactMap(\.topSet).max(by: {
                 if $0.weight == $1.weight { return $0.repetitions < $1.repetitions }
                 return $0.weight < $1.weight
-            }
-            guard let best else { return "—" }
-            return "\(weightText(best.weight)) × \(best.repetitions)"
-        case .weightedTimed:
-            guard let best = performances.compactMap(\.topSet).max(by: {
-                if $0.weight == $1.weight {
-                    return $0.repetitions < $1.repetitions
-                }
-                return $0.weight < $1.weight
             }) else { return "—" }
-            return "\(weightText(best.weight)) kg · \(best.repetitions) sec"
+            return WorkoutValueFormatter.setText(
+                weight: best.weight,
+                repetitions: best.repetitions,
+                template: exercise
+            )
         case .bodyweight:
             return "\(performances.map(\.bestRepetitions).max() ?? 0) reps"
         case .timed:
@@ -647,15 +337,14 @@ struct ExerciseProgressView: View {
     }
 
     private var bestOneRepMax: String {
-        let value = performances.map(\.estimatedOneRepMax).max() ?? 0
-        return "\(weightText(value)) kg"
+        "\(WorkoutValueFormatter.weight(performances.map(\.estimatedOneRepMax).max() ?? 0)) kg"
     }
 
     private func records(for performance: ExercisePerformance) -> [ProgressRecord] {
         ProgressionEngine.personalRecords(
             for: performance,
             measurement: exercise.measurement,
-            among: performances
+            among: allPerformances
         )
     }
 
@@ -663,10 +352,14 @@ struct ExerciseProgressView: View {
         switch exercise.measurement {
         case .weighted:
             guard let topSet = performance.topSet else { return "—" }
-            return "\(weightText(topSet.weight)) kg × \(topSet.repetitions)  ·  \(Int(performance.totalVolume)) kg"
+            return "\(WorkoutValueFormatter.setText(weight: topSet.weight, repetitions: topSet.repetitions, template: exercise)) · \(Int(performance.totalVolume)) kg volume"
         case .weightedTimed:
             guard let topSet = performance.topSet else { return "—" }
-            return "\(weightText(topSet.weight)) kg / hand · \(topSet.repetitions) sec"
+            return WorkoutValueFormatter.setText(
+                weight: topSet.weight,
+                repetitions: topSet.repetitions,
+                template: exercise
+            )
         case .bodyweight:
             return "Best \(performance.bestRepetitions) reps"
         case .timed:
@@ -677,61 +370,5 @@ struct ExerciseProgressView: View {
     private func shortDate(_ date: Date) -> String {
         date.formatted(.dateTime.day().month(.abbreviated))
     }
-
-    private func weightText(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(value.rounded() == value ? 0 : 1)))
-    }
 }
 
-private enum TrendMetric: Hashable {
-    case load
-    case estimatedOneRepMax
-    case repetitions
-    case volume
-
-    func title(for measurement: ExerciseTemplate.Measurement) -> String {
-        switch self {
-        case .load: "Load"
-        case .estimatedOneRepMax: "1RM"
-        case .repetitions:
-            measurement == .timed || measurement == .weightedTimed ? "Time" : "Reps"
-        case .volume: "Volume"
-        }
-    }
-
-    func axisLabel(for measurement: ExerciseTemplate.Measurement) -> String {
-        switch self {
-        case .load: "Kilograms"
-        case .estimatedOneRepMax: "Estimated 1RM"
-        case .repetitions:
-            measurement == .timed || measurement == .weightedTimed ? "Seconds" : "Repetitions"
-        case .volume: "Kilograms"
-        }
-    }
-
-    func value(for performance: ExercisePerformance) -> Double {
-        switch self {
-        case .load: performance.topSet?.weight ?? 0
-        case .estimatedOneRepMax: performance.estimatedOneRepMax
-        case .repetitions: Double(performance.bestRepetitions)
-        case .volume: performance.totalVolume
-        }
-    }
-}
-
-private struct EmptyExerciseRecord: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("No completed sets yet")
-                .font(.system(.headline, design: .serif, weight: .semibold))
-                .foregroundStyle(InkPalette.ink)
-            Text("Complete this movement in a session to begin its record.")
-                .font(.system(.subheadline, design: .serif))
-                .foregroundStyle(InkPalette.softInk)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 38)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-    }
-}

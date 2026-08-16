@@ -7,8 +7,11 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var totalMovements: Int
         var currentExercise: String
         var restEnd: Date?
+        var sessionTimerStartedAt: Date?
+        var pausedDuration: TimeInterval
     }
 
+    var sessionID: UUID
     var routineName: String
     var startedAt: Date
 }

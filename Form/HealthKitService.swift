@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import HealthKit
 
@@ -6,13 +7,6 @@ enum HealthAccessState: Equatable {
     case notConnected
     case connected
     case denied
-}
-
-enum HealthWorkoutSyncState: Equatable {
-    case notConnected
-    case syncing
-    case saved
-    case failed
 }
 
 @MainActor
@@ -76,6 +70,11 @@ final class HealthKitService: ObservableObject {
             return
         }
 
+        if accessState == .connected {
+            await refresh()
+            return
+        }
+
         do {
             try await healthStore.requestAuthorization(
                 toShare: workoutShareTypes,
@@ -93,15 +92,28 @@ final class HealthKitService: ObservableObject {
     }
 
     func saveWorkout(
-        from record: WorkoutRecord,
+        from payload: HealthWorkoutPayload,
         replacing previousWorkoutUUID: UUID? = nil
     ) async throws -> UUID? {
-        guard canWriteWorkouts, record.hasTrainingData else { return nil }
+        guard canWriteWorkouts, payload.hasTrainingData else { return nil }
 
-        let endDate = record.date.addingTimeInterval(max(1, record.duration))
+        let loggedCardioDuration = payload.cardio.reduce(0) {
+            $0 + max(0, $1.durationMinutes * 60)
+        }
+        let endDate = payload.startedAt.addingTimeInterval(
+            max(1, payload.duration, loggedCardioDuration)
+        )
         let configuration = HKWorkoutConfiguration()
-        configuration.activityType = record.healthActivityType
+        configuration.activityType = payload.healthActivityType
         configuration.locationType = .indoor
+
+        var replacedUUIDs = Set(
+            try await workouts(withExternalIdentifier: payload.syncIdentifier)
+                .map(\.uuid)
+        )
+        if let previousWorkoutUUID {
+            replacedUUIDs.insert(previousWorkoutUUID)
+        }
 
         let builder = HKWorkoutBuilder(
             healthStore: healthStore,
@@ -110,26 +122,15 @@ final class HealthKitService: ObservableObject {
         )
 
         do {
-            try await builder.beginCollection(at: record.date)
+            try await builder.beginCollection(at: payload.startedAt)
             try await builder.addMetadata([
                 HKMetadataKeyIndoorWorkout: true,
-                HKMetadataKeyExternalUUID: record.healthSyncIdentifier.uuidString
+                HKMetadataKeyExternalUUID: payload.syncIdentifier.uuidString
             ])
 
-            if let distance = record.healthDistance,
-               let distanceType = record.healthDistanceType,
-               healthStore.authorizationStatus(for: distanceType) == .sharingAuthorized {
-                let sampleStart = min(
-                    endDate,
-                    record.date.addingTimeInterval(min(1, max(1, record.duration) / 2))
-                )
-                let distanceSample = HKQuantitySample(
-                    type: distanceType,
-                    quantity: distance,
-                    start: sampleStart,
-                    end: endDate
-                )
-                try await builder.addSamples([distanceSample])
+            let samples = distanceSamples(for: payload, workoutEnd: endDate)
+            if !samples.isEmpty {
+                try await builder.addSamples(samples)
             }
 
             try await builder.endCollection(at: endDate)
@@ -137,8 +138,8 @@ final class HealthKitService: ObservableObject {
                 throw HealthKitError.operationFailed
             }
 
-            if let previousWorkoutUUID, previousWorkoutUUID != workout.uuid {
-                try? await deleteWorkout(with: previousWorkoutUUID)
+            for replacedUUID in replacedUUIDs where replacedUUID != workout.uuid {
+                try await deleteWorkout(with: replacedUUID)
             }
 
             return workout.uuid
@@ -148,29 +149,93 @@ final class HealthKitService: ObservableObject {
         }
     }
 
-    func deleteWorkout(with uuid: UUID?) async throws {
-        guard let uuid, HKHealthStore.isHealthDataAvailable() else { return }
+    func deleteWorkout(
+        with uuid: UUID?,
+        externalIdentifier: UUID? = nil
+    ) async throws {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
 
-        let predicate = HKQuery.predicateForObject(with: uuid)
+        let predicate: NSPredicate?
+        if let uuid {
+            predicate = HKQuery.predicateForObject(with: uuid)
+        } else if let externalIdentifier {
+            predicate = HKQuery.predicateForObjects(
+                withMetadataKey: HKMetadataKeyExternalUUID,
+                allowedValues: [externalIdentifier.uuidString]
+            )
+        } else {
+            return
+        }
+
         let objects = try await samples(
             of: workoutType,
             predicate: predicate,
-            limit: 1,
+            limit: HKObjectQueryNoLimit,
             sortDescriptors: nil
         )
         guard !objects.isEmpty else { return }
+        try await delete(objects)
+    }
 
-        try await withCheckedThrowingContinuation {
-            (continuation: CheckedContinuation<Void, Error>) in
-            healthStore.delete(objects) { success, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: HealthKitError.operationFailed)
-                }
+    private func workouts(
+        withExternalIdentifier identifier: UUID
+    ) async throws -> [HKWorkout] {
+        let predicate = HKQuery.predicateForObjects(
+            withMetadataKey: HKMetadataKeyExternalUUID,
+            allowedValues: [identifier.uuidString]
+        )
+        return try await samples(
+            of: workoutType,
+            predicate: predicate,
+            limit: HKObjectQueryNoLimit,
+            sortDescriptors: nil
+        ).compactMap { $0 as? HKWorkout }
+    }
+
+    private func distanceSamples(
+        for payload: HealthWorkoutPayload,
+        workoutEnd: Date
+    ) -> [HKQuantitySample] {
+        let eligible = payload.cardio.compactMap {
+            entry -> (HealthCardioPayload, HKQuantityType)? in
+            guard entry.distanceKilometers > 0,
+                  let type = distanceType(for: entry.kind),
+                  healthStore.authorizationStatus(for: type) == .sharingAuthorized else {
+                return nil
             }
+            return (entry, type)
+        }
+        let windows = HealthDistanceWindowPlanner.plan(
+            entryDurations: eligible.map { max(1, $0.0.durationMinutes * 60) },
+            workoutDuration: workoutEnd.timeIntervalSince(payload.startedAt)
+        )
+
+        return zip(eligible, windows).map { item, window in
+            HKQuantitySample(
+                type: item.1,
+                quantity: HKQuantity(
+                    unit: .meterUnit(with: .kilo),
+                    doubleValue: item.0.distanceKilometers
+                ),
+                start: payload.startedAt.addingTimeInterval(window.startOffset),
+                end: payload.startedAt.addingTimeInterval(window.endOffset)
+            )
+        }
+    }
+
+    private func distanceType(for kind: CardioKind) -> HKQuantityType? {
+        switch kind {
+        case .treadmillWalk, .treadmillRun:
+            return HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)
+        case .cycling:
+            return HKObjectType.quantityType(forIdentifier: .distanceCycling)
+        case .rowing:
+            if #available(iOS 18.0, *) {
+                return HKObjectType.quantityType(forIdentifier: .distanceRowing)
+            }
+            return nil
+        case .elliptical, .other:
+            return nil
         }
     }
 
@@ -230,63 +295,39 @@ final class HealthKitService: ObservableObject {
         }
     }
 
+    private func delete(_ objects: [HKObject]) async throws {
+        try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<Void, Error>) in
+            healthStore.delete(objects) { success, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.operationFailed)
+                }
+            }
+        }
+    }
 }
 
 private enum HealthKitError: Error {
     case operationFailed
 }
 
-private extension WorkoutRecord {
-    var hasTrainingData: Bool {
-        exercises.contains { !$0.sets.isEmpty }
-            || cardioEntries.contains { $0.durationMinutes > 0 }
-    }
-
+private extension HealthWorkoutPayload {
     var healthActivityType: HKWorkoutActivityType {
-        if exercises.contains(where: { !$0.sets.isEmpty }) {
+        if hasStrengthTraining {
             return .traditionalStrengthTraining
         }
 
-        switch cardioEntries.sorted(by: { $0.order < $1.order }).first?.kind {
-        case .treadmillWalk:
-            return .walking
-        case .treadmillRun:
-            return .running
-        case .cycling:
-            return .cycling
-        case .elliptical:
-            return .elliptical
-        case .rowing:
-            return .rowing
-        case .other, .none:
-            return .other
-        }
-    }
-
-    var healthDistance: HKQuantity? {
-        let kilometers = cardioEntries.reduce(0) {
-            $0 + max(0, $1.distanceKilometers)
-        }
-        guard kilometers > 0 else { return nil }
-        return HKQuantity(
-            unit: .meterUnit(with: .kilo),
-            doubleValue: kilometers
-        )
-    }
-
-    var healthDistanceType: HKQuantityType? {
-        switch cardioEntries.sorted(by: { $0.order < $1.order }).first?.kind {
-        case .treadmillWalk, .treadmillRun:
-            return HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)
-        case .cycling:
-            return HKObjectType.quantityType(forIdentifier: .distanceCycling)
-        case .rowing:
-            if #available(iOS 18.0, *) {
-                return HKObjectType.quantityType(forIdentifier: .distanceRowing)
-            }
-            return nil
-        case .elliptical, .other, .none:
-            return nil
+        switch cardio.first?.kind {
+        case .treadmillWalk: return .walking
+        case .treadmillRun: return .running
+        case .cycling: return .cycling
+        case .elliptical: return .elliptical
+        case .rowing: return .rowing
+        case .other, .none: return .other
         }
     }
 }
