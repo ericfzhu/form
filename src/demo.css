@@ -21,35 +21,3 @@
   ::selection { color: #f2ecdf; background: #713229; }
   :focus-visible { outline: 2px solid #713229; outline-offset: 4px; }
 }
-
-@layer components {
-  /* Give the tally its own field so it cannot visually merge with Course I's dark card. */
-  #tally > header {
-    color: #201b17;
-    border-color: #201b17;
-    background: #d3c6b4;
-  }
-
-  #tally > header > span:first-child { color: #713229; }
-
-  #tally > div {
-    color: #201b17;
-    background: #d3c6b4;
-  }
-
-  #tally > div > div:first-child {
-    border-color: #201b17;
-  }
-
-  #tally > div > div:first-child > p:first-child { color: #713229; }
-  #tally > div > div:first-child > p:not(:first-child) { color: #5b5147; }
-  #tally blockquote { border-color: #8a7447; }
-
-  /* Keep the ledger in the same paper / ink family as the rest of the page. */
-  #tally > div > div:last-child > div {
-    color: #201b17;
-    border-color: #201b17;
-    outline-color: #8a7447;
-    background: #f2ecdf;
-  }
-}
