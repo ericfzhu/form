@@ -4,22 +4,25 @@ import tailwindcss from "@tailwindcss/vite";
 
 const demoArtwork = {
   name: "form-demo-artwork",
-  transformIndexHtml(_html, context) {
-    const filename = context?.filename?.replaceAll("\\", "/") ?? "";
-    if (!filename.endsWith("/demo/index.html")) return;
+  transformIndexHtml: {
+    order: "pre",
+    handler(_html, context) {
+      const filename = context?.filename?.replaceAll("\\", "/") ?? "";
+      if (!filename.endsWith("/demo/index.html")) return;
 
-    return [
-      {
-        tag: "link",
-        attrs: { rel: "stylesheet", href: "/src/demo-artwork.css" },
-        injectTo: "head",
-      },
-      {
-        tag: "script",
-        attrs: { type: "module", src: "/src/demo-artwork.js" },
-        injectTo: "head",
-      },
-    ];
+      return [
+        {
+          tag: "link",
+          attrs: { rel: "stylesheet", href: "/src/demo-artwork.css" },
+          injectTo: "head",
+        },
+        {
+          tag: "script",
+          attrs: { type: "module", src: "/src/demo-artwork.js" },
+          injectTo: "head",
+        },
+      ];
+    },
   },
 };
 
