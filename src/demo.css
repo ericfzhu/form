@@ -15,7 +15,7 @@
 }
 
 @layer base {
-  html { scroll-behavior: smooth; background: #201b17; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; background: #201b17; }
   body { min-width: 320px; margin: 0; overflow-x: hidden; color: #201b17; background: #e8e1d3; font-family: Georgia, "Times New Roman", serif; }
   * { box-sizing: border-box; }
   ::selection { color: #f2ecdf; background: #713229; }
