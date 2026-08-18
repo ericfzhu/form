@@ -280,8 +280,10 @@ private struct HealthIntegrationSection: View {
 
     private func performAction() {
         switch health.accessState {
-        case .notConnected, .connected:
+        case .notConnected:
             Task { await health.requestAccess() }
+        case .connected:
+            Task { await health.refresh() }
         case .denied:
             guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
             UIApplication.shared.open(url)
