@@ -3,14 +3,14 @@ import SwiftData
 
 @MainActor
 enum AppModelContainer {
-    static let cloudContainerIdentifier = "iCloud.com.eric.form"
-
     enum StorageMode: Equatable {
         case iCloud
         case localFallback(String)
     }
 
-    private(set) static var storageMode: StorageMode = .iCloud
+    private(set) static var storageMode: StorageMode = .localFallback(
+        "iCloud is unavailable with Personal Team signing."
+    )
 
     static func make() -> ModelContainer {
         let schema = Schema([
@@ -20,37 +20,20 @@ enum AppModelContainer {
             CardioRecord.self
         ])
         let storeURL = persistentStoreURL()
-        let cloudConfiguration = ModelConfiguration(
-            "FormCloud",
+        let localConfiguration = ModelConfiguration(
+            "FormLocalFallback",
             schema: schema,
             url: storeURL,
-            cloudKitDatabase: .private(cloudContainerIdentifier)
+            cloudKitDatabase: .none
         )
 
         do {
-            storageMode = .iCloud
             return try ModelContainer(
                 for: schema,
-                configurations: [cloudConfiguration]
+                configurations: [localConfiguration]
             )
         } catch {
-            // A local fallback keeps workouts usable if the selected signing team
-            // cannot access the configured CloudKit container.
-            storageMode = .localFallback(error.localizedDescription)
-            let localConfiguration = ModelConfiguration(
-                "FormLocalFallback",
-                schema: schema,
-                url: storeURL,
-                cloudKitDatabase: .none
-            )
-            do {
-                return try ModelContainer(
-                    for: schema,
-                    configurations: [localConfiguration]
-                )
-            } catch {
-                fatalError("Form could not open its workout store: \(error)")
-            }
+            fatalError("Form could not open its workout store: \(error)")
         }
     }
 

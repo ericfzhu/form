@@ -113,4 +113,4 @@ struct CardioEntryEditor: View {
         }
         .frame(maxWidth: .infinity)
     }
-
+}
