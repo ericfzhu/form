@@ -15,7 +15,7 @@ struct EmptyHistoryView: View {
                     endPoint: .trailing
                 ))
             Text("No sessions recorded")
-                .font(.system(size: 30, weight: .semibold, design: .serif))
+                .font(AtelierType.script(29))
             InkDivider().frame(width: 120)
             Text("Completed sessions will appear here.")
                 .font(.system(.body, design: .serif))
@@ -33,23 +33,30 @@ struct HistoryCard: View {
     let workout: WorkoutRecord
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(spacing: 2) {
-                Text(workout.date.formatted(.dateTime.day()))
-                    .font(.system(size: 31, weight: .medium, design: .serif))
-                Text(workout.date.formatted(.dateTime.month(.abbreviated)).uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.4)
-                    .foregroundStyle(InkPalette.softInk)
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(InkPalette.paper)
+                    .frame(width: 22, height: 22)
+                Circle()
+                    .trim(from: 0.08, to: 0.82)
+                    .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                    .rotationEffect(.degrees(-34))
+                    .frame(width: 18, height: 18)
             }
-            .frame(width: 62)
-            Rectangle().fill(InkPalette.ink.opacity(0.18)).frame(width: 1, height: 58)
+
             VStack(alignment: .leading, spacing: 6) {
+                Text(workout.date.formatted(.dateTime.day().month(.abbreviated).year()))
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .tracking(1.15)
+                    .foregroundStyle(InkPalette.mineral)
+                    .textCase(.uppercase)
                 Text(workout.displayName)
-                    .font(.system(.title3, design: .serif, weight: .semibold))
+                    .font(AtelierType.script(22))
+                    .foregroundStyle(InkPalette.ink)
                 Text(detailText)
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(InkPalette.softInk)
+                    .font(.system(.caption2, design: .serif))
+                    .foregroundStyle(InkPalette.softInk.opacity(0.8))
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
                 if workout.healthSyncStatus == .failed || workout.healthSyncStatus == .pending {
@@ -59,13 +66,26 @@ struct HistoryCard: View {
                         .foregroundStyle(InkPalette.cinnabar)
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let assetName = workout.exercises.sorted(by: { $0.order < $1.order }).first?.assetName,
+               !assetName.isEmpty {
+                DemonstrationImage(assetName: assetName, outlined: false)
+                    .frame(width: 78, height: 78)
+                    .rotationEffect(.degrees(workout.date.timeIntervalSinceReferenceDate
+                        .truncatingRemainder(dividingBy: 2) - 0.5))
+            }
+
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(InkPalette.bronze.opacity(0.72))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(InkPalette.softInk.opacity(0.55))
         }
-        .padding(16)
-        .inkCard()
+        .padding(.leading, 7)
+        .padding(.trailing, 3)
+        .padding(.vertical, 10)
+        .frame(minHeight: 106)
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
+        .contentShape(Rectangle())
     }
 
     private var detailText: String {
@@ -89,11 +109,8 @@ struct HistoryWeeklySummary: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("THIS WEEK")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.8)
-                .foregroundStyle(InkPalette.softInk)
+        VStack(alignment: .leading, spacing: 16) {
+            RecordSectionHeading(title: "This week")
             HStack(spacing: 0) {
                 metric("\(weeklyWorkouts.count)", "SESSIONS")
                 metric("\(minutes)", "MINUTES")
@@ -108,8 +125,9 @@ struct HistoryWeeklySummary: View {
             .foregroundStyle(InkPalette.cinnabar)
             .monospacedDigit()
         }
-        .padding(15)
-        .inkCard()
+        .padding(.horizontal, 7)
+        .padding(.bottom, 16)
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
     }
 
     private var minutes: Int {
@@ -156,3 +174,24 @@ struct HistoryWeeklySummary: View {
     }
 }
 
+struct RecordSectionHeading: View {
+    let title: String
+    var detail: String = ""
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(AtelierType.script(22))
+                .foregroundStyle(InkPalette.ink)
+            Spacer()
+            if !detail.isEmpty {
+                Text(detail)
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(InkPalette.softInk.opacity(0.72))
+            }
+        }
+        .frame(minHeight: 38)
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
+    }
+}

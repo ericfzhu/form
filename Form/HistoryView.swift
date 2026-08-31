@@ -18,71 +18,90 @@ struct HistoryView: View {
             PaperBackground()
             if workouts.isEmpty {
                 VStack(spacing: 0) {
-                    RawScreenTitle(index: "02", title: "Record", detail: "12 WEEKS")
+                    HistoryHeader()
                     EmptyHistoryView(showRestore: { showingBackupImporter = true })
                         .frame(maxHeight: .infinity)
                 }
             } else {
                 List {
-                    RawScreenTitle(index: "02", title: "Record", detail: "12 WEEKS")
+                    HistoryHeader()
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets())
 
                     HistorySectionControl(selection: $selectedSection)
-                        .historyRow(top: 8, bottom: 8)
+                        .historyRow(bottom: 4)
 
                     Button { showingExerciseIndex = true } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .stroke(InkPalette.softInk.opacity(0.64), lineWidth: 1)
+                                    .frame(width: 18, height: 18)
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 10, weight: .regular))
+                                    .foregroundStyle(InkPalette.mineral)
+                            }
                             Text("Find exercise progress")
+                                .font(AtelierType.script(20))
+                                .foregroundStyle(InkPalette.ink)
                             Spacer()
                         }
-                        .font(.system(.subheadline, design: .serif, weight: .semibold))
-                        .padding(.horizontal, 15)
-                        .frame(minHeight: 50)
-                        .background(InkPalette.raisedPaper)
-                        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+                        .padding(.horizontal, 7)
+                        .frame(minHeight: 58)
+                        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(PressableButtonStyle())
-                    .historyRow(bottom: 10)
+                    .historyRow(bottom: 16)
 
                     if selectedSection == .overview {
                         HistoryWeeklySummary(workouts: workouts)
-                            .historyRow(top: 10, bottom: 14)
+                            .historyRow(bottom: 18)
                         HistoryConsistencyView(workouts: workouts)
-                            .historyRow(bottom: 14)
+                            .historyRow(bottom: 18)
                         CoachingReportShareRow(workouts: workouts)
-                            .historyRow(bottom: 14)
+                            .historyRow(bottom: 8)
                         BackupManagementView(
                             workouts: workouts,
                             restore: { showingBackupImporter = true }
                         )
-                        .historyRow(bottom: 18)
+                        .historyRow(bottom: 28)
                     } else {
-                        ForEach(workouts) { workout in
-                            Button { openWorkout(workout) } label: {
-                                HistoryCard(workout: workout)
-                            }
-                            .buttonStyle(PressableButtonStyle())
-                            .historyRow(top: 7, bottom: 7)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) { delete(workout) } label: {
-                                    Label("Delete", systemImage: "trash")
+                        Section {
+                            ForEach(workouts) { workout in
+                                Button { openWorkout(workout) } label: {
+                                    HistoryCard(workout: workout)
                                 }
-                                .tint(InkPalette.cinnabar)
-                            }
-                            .contextMenu {
-                                Button("Delete session", role: .destructive) {
-                                    delete(workout)
+                                .buttonStyle(PressableButtonStyle())
+                                .historyRow()
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) { delete(workout) } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .tint(InkPalette.cinnabar)
+                                }
+                                .contextMenu {
+                                    Button("Delete session", role: .destructive) {
+                                        delete(workout)
+                                    }
                                 }
                             }
                         }
+                        .listRowBackground(Color.clear)
+                        .overlay(alignment: .leading) {
+                            Rectangle()
+                                .fill(InkPalette.bronze.opacity(0.62))
+                                .frame(width: 1)
+                                .padding(.leading, 36)
+                                .padding(.vertical, 34)
+                                .accessibilityHidden(true)
+                            }
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .contentMargins(.vertical, 15, for: .scrollContent)
+                .contentMargins(.bottom, 18, for: .scrollContent)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -147,6 +166,21 @@ struct HistoryView: View {
     }
 }
 
+private struct HistoryHeader: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Record")
+                .font(AtelierType.script(34))
+                .foregroundStyle(InkPalette.ink)
+            InkDivider().opacity(0.5)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 22)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 private extension View {
     func historyRow(top: CGFloat = 0, bottom: CGFloat = 0) -> some View {
         listRowBackground(Color.clear)
@@ -166,25 +200,29 @@ private struct HistorySectionControl: View {
     @Binding var selection: HistorySection
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 30) {
             ForEach(HistorySection.allCases) { section in
                 Button { selection = section } label: {
-                    Text(section.title.uppercased())
-                        .font(.system(.caption, design: .serif, weight: .semibold))
-                        .tracking(1.2)
+                    Text(section.title)
+                        .font(AtelierType.script(18))
                         .foregroundStyle(selection == section
-                            ? InkPalette.raisedPaper
-                            : InkPalette.softInk)
-                        .frame(maxWidth: .infinity, minHeight: 46)
-                        .background(selection == section
-                            ? InkPalette.cinnabar
-                            : InkPalette.raisedPaper)
+                            ? InkPalette.ink
+                            : InkPalette.softInk.opacity(0.68))
+                        .frame(minWidth: 84, minHeight: 46)
+                        .overlay(alignment: .bottom) {
+                            if selection == section {
+                                Rectangle()
+                                    .fill(InkPalette.mineral)
+                                    .frame(width: 62, height: 1.5)
+                            }
+                        }
                 }
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityAddTraits(selection == section ? .isSelected : [])
             }
+            Spacer(minLength: 0)
         }
-        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+        .padding(.horizontal, 7)
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
     }
 }
-

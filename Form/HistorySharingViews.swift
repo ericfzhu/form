@@ -17,20 +17,29 @@ struct ExerciseIndexView: View {
                 List(exercises) { exercise in
                     NavigationLink(value: exercise) {
                         HStack(spacing: 14) {
-                            DemonstrationImage(assetName: exercise.assetName)
-                                .frame(width: 64, height: 64)
+                            Circle()
+                                .trim(from: 0.08, to: 0.82)
+                                .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+                                .rotationEffect(.degrees(-32))
+                                .frame(width: 18, height: 18)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(exercise.name)
-                                    .font(.system(.headline, design: .serif, weight: .semibold))
+                                    .font(AtelierType.script(20))
                                 Text(exercise.targetText)
-                                    .font(.subheadline.monospacedDigit())
-                                    .foregroundStyle(InkPalette.softInk)
+                                    .font(.system(.caption2, design: .serif))
+                                    .foregroundStyle(InkPalette.softInk.opacity(0.8))
                             }
+                            Spacer()
+                            DemonstrationImage(assetName: exercise.assetName, outlined: false)
+                                .frame(width: 72, height: 64)
                         }
-                        .padding(.vertical, 5)
+                        .padding(.vertical, 8)
+                        .overlay(alignment: .bottom) { InkDivider().opacity(0.36) }
                     }
-                    .listRowBackground(InkPalette.raisedPaper)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
+                .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .searchable(text: $searchText, prompt: "Exercise")
             }
@@ -58,8 +67,7 @@ struct CoachingReportShareRow: View {
             preview: SharePreview("Form coaching report")
         ) {
             recordAction(
-                index: "03",
-                title: "COACHING REPORT",
+                title: "Coaching report",
                 detail: "12 WEEKS · \(includedSessionCount) SESSIONS",
                 action: "SHARE"
             )
@@ -83,26 +91,21 @@ struct BackupManagementView: View {
                 preview: SharePreview("Form workout backup")
             ) {
                 recordAction(
-                    index: "04",
-                    title: "WORKOUT BACKUP",
+                    title: "Workout backup",
                     detail: "JSON · \(workouts.count) SESSIONS",
                     action: "EXPORT"
                 )
             }
             .buttonStyle(PressableButtonStyle())
 
-            InkDivider()
-
             Button(action: restore) {
                 HStack(spacing: 14) {
-                    Text("↥")
-                        .font(.system(size: 22, weight: .regular, design: .serif))
-                        .foregroundStyle(InkPalette.cinnabar)
-                        .frame(width: 30)
+                    Circle()
+                        .stroke(InkPalette.softInk.opacity(0.64), lineWidth: 1)
+                        .frame(width: 18, height: 18)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("RESTORE BACKUP")
-                            .font(.system(.caption, design: .serif, weight: .semibold))
-                            .tracking(1.5)
+                        Text("Restore backup")
+                            .font(AtelierType.script(20))
                         Text("Existing sessions are never duplicated")
                             .font(.system(.caption2, design: .monospaced))
                             .foregroundStyle(InkPalette.softInk)
@@ -114,30 +117,28 @@ struct BackupManagementView: View {
                         .foregroundStyle(InkPalette.cinnabar)
                 }
                 .padding(.horizontal, 15)
-                .frame(minHeight: 64)
+                .frame(minHeight: 72)
+                .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
             }
             .buttonStyle(PressableButtonStyle())
         }
-        .background(InkPalette.raisedPaper)
-        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
     }
 }
 
 private func recordAction(
-    index: String,
     title: String,
     detail: String,
     action: String
 ) -> some View {
     HStack(spacing: 14) {
-        Text(index)
-            .font(.system(size: 24, weight: .regular, design: .serif))
-            .foregroundStyle(InkPalette.cinnabar)
-            .monospacedDigit()
+        Circle()
+            .trim(from: 0.08, to: 0.82)
+            .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
+            .rotationEffect(.degrees(-32))
+            .frame(width: 18, height: 18)
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.system(.caption, design: .serif, weight: .semibold))
-                .tracking(1.5)
+                .font(AtelierType.script(20))
             Text(detail)
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(InkPalette.softInk)
@@ -150,9 +151,7 @@ private func recordAction(
             .foregroundStyle(InkPalette.cinnabar)
     }
     .padding(.horizontal, 15)
-    .frame(minHeight: 68)
-    .background(InkPalette.raisedPaper)
-    .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+    .frame(minHeight: 72)
+    .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
     .contentShape(Rectangle())
 }
-

@@ -10,7 +10,11 @@ struct HistoryConsistencyView: View {
     private var calendar: Calendar { .current }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
+            RecordSectionHeading(
+                title: "Consistency",
+                detail: "\(activeWeekCount) ACTIVE · \(twelveWeekSessionCount) SESSIONS"
+            )
             calendarHeader
             LazyVGrid(columns: columns, spacing: 0) {
                 ForEach(weekdaySymbols, id: \.self) { symbol in
@@ -22,30 +26,39 @@ struct HistoryConsistencyView: View {
             LazyVGrid(columns: columns, spacing: 7) {
                 ForEach(monthCells) { cell in dayCell(cell.date) }
             }
-            InkDivider()
-            HStack(alignment: .firstTextBaseline) {
-                Text("12-WEEK CONSISTENCY")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.6)
-                    .foregroundStyle(InkPalette.softInk)
-                Spacer()
-                Text("\(activeWeekCount) active · \(twelveWeekSessionCount) sessions")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(InkPalette.softInk)
-            }
+            Text("TWELVE WEEKS")
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .tracking(1.5)
+                .foregroundStyle(InkPalette.softInk.opacity(0.72))
             HStack(alignment: .bottom, spacing: 7) {
                 ForEach(weeklyCounts) { week in
-                    Rectangle()
-                        .fill(week.count > 0 ? InkPalette.cinnabar : InkPalette.washedInk.opacity(0.58))
-                        .frame(height: week.count == 0 ? 5 : min(42, 10 + Double(week.count) * 9))
-                        .frame(maxWidth: .infinity, alignment: .bottom)
-                        .accessibilityLabel("Week of \(week.id.formatted(date: .abbreviated, time: .omitted)), \(week.count) sessions")
+                    weekMark(week)
                 }
             }
             .frame(height: 48, alignment: .bottom)
         }
-        .padding(15)
-        .inkCard()
+        .padding(.horizontal, 7)
+        .padding(.bottom, 16)
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
+    }
+
+    private func weekMark(_ week: WeekCount) -> some View {
+        let height: CGFloat = week.count == 0
+            ? 5
+            : min(42, CGFloat(10 + week.count * 9))
+        let color = week.count > 0
+            ? InkPalette.cinnabar
+            : InkPalette.washedInk.opacity(0.58)
+        let angle = Double(week.count % 3) - 1
+
+        return Rectangle()
+            .fill(color)
+            .frame(width: 2, height: height)
+            .frame(maxWidth: .infinity, alignment: .bottom)
+            .rotationEffect(.degrees(angle))
+            .accessibilityLabel(
+                "Week of \(week.id.formatted(date: .abbreviated, time: .omitted)), \(week.count) sessions"
+            )
     }
 
     private var calendarHeader: some View {
@@ -55,7 +68,7 @@ struct HistoryConsistencyView: View {
             }
             Spacer()
             Text(displayedMonth.formatted(.dateTime.month(.wide).year()))
-                .font(.system(.headline, design: .serif, weight: .semibold))
+                .font(AtelierType.script(20))
             Spacer()
             Button { changeMonth(by: 1) } label: {
                 Image(systemName: "chevron.right").frame(width: 44, height: 44)
@@ -70,10 +83,17 @@ struct HistoryConsistencyView: View {
         let count = date.map(sessionCount(on:)) ?? 0
         return Text(date?.formatted(.dateTime.day()) ?? "")
             .font(.caption.monospacedDigit().weight(count > 0 ? .semibold : .regular))
-            .foregroundStyle(count > 0 ? InkPalette.raisedPaper : InkPalette.softInk)
+            .foregroundStyle(count > 0 ? InkPalette.mineral : InkPalette.softInk)
             .frame(maxWidth: .infinity, minHeight: 38)
-            .background(count > 0 ? InkPalette.cinnabar : Color.clear)
-            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.36), lineWidth: 0.5) }
+            .background {
+                if count > 0 {
+                    Circle()
+                        .trim(from: 0.05, to: 0.86)
+                        .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+                        .rotationEffect(.degrees(-30))
+                        .frame(width: 31, height: 31)
+                }
+            }
             .accessibilityHidden(date == nil)
     }
 
@@ -132,4 +152,3 @@ struct HistoryConsistencyView: View {
     private struct CalendarCell: Identifiable { let id: Int; let date: Date? }
     private struct WeekCount: Identifiable { let id: Date; let count: Int }
 }
-
