@@ -13,7 +13,7 @@ struct DemonstrationImage: View {
             .overlay {
                 if outlined { Rectangle().stroke(.black.opacity(0.10), lineWidth: 1) }
             }
-            .accessibilityLabel("Mosaic illustration demonstrating the exercise")
+            .accessibilityLabel("Illustration demonstrating the exercise")
     }
 }
 
