@@ -5,6 +5,7 @@ import SwiftUI
 struct RoutineDetailView: View {
     let routine: RoutineTemplate
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var workoutLaunch: WorkoutLaunch?
     @State private var startConflict: ActiveWorkoutSnapshot?
     @State private var shouldReturnToTrain = false
@@ -13,38 +14,73 @@ struct RoutineDetailView: View {
         ZStack {
             PaperBackground()
             ScrollView {
-                LazyVStack(spacing: 14) {
-                    RawScreenTitle(
-                        index: routine.id,
-                        title: routine.name,
-                        detail: "\(routine.exercises.count) MOVEMENTS"
-                    )
-                    .padding(.horizontal, -20)
-                    .padding(.bottom, 6)
+                LazyVStack(spacing: 0) {
+                    HStack {
+                        Button("Back") { dismiss() }
+                            .font(.system(.subheadline, design: .serif))
+                            .foregroundStyle(InkPalette.ink)
+                            .frame(minWidth: 50, minHeight: 44, alignment: .leading)
+                            .buttonStyle(PressableButtonStyle())
+
+                        Spacer()
+
+                        if let firstExercise = routine.exercises.first {
+                            NavigationLink(value: firstExercise) {
+                                Text("Exercise progress")
+                                    .font(.system(.subheadline, design: .serif))
+                                    .foregroundStyle(InkPalette.mineral)
+                                    .frame(minWidth: 116, minHeight: 44, alignment: .trailing)
+                            }
+                            .buttonStyle(PressableButtonStyle())
+                        }
+                    }
+
+                    ZStack(alignment: .topTrailing) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(routine.name)
+                                .font(AtelierType.script(33))
+                                .foregroundStyle(InkPalette.ink)
+                            Text(isNextRoutine ? "next in the rotation" : "in the training rotation")
+                                .font(.system(.caption, design: .serif))
+                                .foregroundStyle(InkPalette.mineral)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+
+                        if let firstExercise = routine.exercises.first {
+                            DemonstrationImage(assetName: firstExercise.assetName, outlined: false)
+                                .frame(width: 220, height: 172)
+                                .rotationEffect(.degrees(0.5))
+                                .offset(x: 12, y: 12)
+                        }
+                    }
+                    .frame(minHeight: 194)
+
+                    if let firstExercise = routine.exercises.first,
+                       let topSet = latestTopSet(for: firstExercise) {
+                        Text("previous · \(WorkoutValueFormatter.setText(weight: topSet.weight, repetitions: topSet.repetitions, template: firstExercise))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundStyle(InkPalette.washedInk)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.bottom, 8)
+                    }
 
                     ForEach(Array(routine.exercises.enumerated()), id: \.element.id) { index, exercise in
                         NavigationLink(value: exercise) {
-                            ExercisePreviewRow(index: index + 1, exercise: exercise)
+                            ExercisePatternRow(index: index + 1, exercise: exercise)
                         }
                         .buttonStyle(PressableButtonStyle())
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 14)
+                .padding(.top, 8)
                 .padding(.bottom, 104)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .background { InteractivePopGestureBridge(isEnabled: true) }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            InkTextHeader(
-                title: routine.name.uppercased(),
-                leadingTitle: "Back",
-                leadingAction: { dismiss() }
-            )
-        }
         .safeAreaInset(edge: .bottom) {
-            InkPrimaryButton(title: "Begin session") { requestWorkoutStart() }
+            RoutineStartButton(title: "Begin \(routine.name)") { requestWorkoutStart() }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
                 .background(InkPalette.paper.opacity(0.94))
@@ -90,6 +126,14 @@ struct RoutineDetailView: View {
         return "\(activeRoutine.name) is already in progress"
     }
 
+    private var isNextRoutine: Bool {
+        WorkoutCatalog.nextRoutine(after: workouts.first).id == routine.id
+    }
+
+    private func latestTopSet(for exercise: ExerciseTemplate) -> PerformanceSetValue? {
+        ProgressionEngine.latestCompleted(for: exercise, in: workouts)?.topSet
+    }
+
     private func requestWorkoutStart() {
         guard let snapshot = ActiveWorkoutStore.load() else {
             workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
@@ -120,7 +164,7 @@ private struct WorkoutLaunch: Identifiable {
     let snapshot: ActiveWorkoutSnapshot?
 }
 
-private struct ExercisePreviewRow: View {
+private struct ExercisePatternRow: View {
     let index: Int
     let exercise: ExerciseTemplate
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
@@ -130,31 +174,59 @@ private struct ExercisePreviewRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            DemonstrationImage(assetName: exercise.assetName)
-                .frame(width: 106, height: 106)
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: "%02d", index))
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(InkPalette.softInk)
+        HStack(spacing: 10) {
+            Text(String(format: "%02d", index))
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(InkPalette.mineral)
+                .frame(width: 24, alignment: .leading)
+
+            Rectangle()
+                .fill(InkPalette.bronze.opacity(0.48))
+                .frame(width: 1)
+
+            VStack(alignment: .leading, spacing: 5) {
                 Text(exercise.name)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .font(.system(.subheadline, design: .serif))
+                    .foregroundStyle(InkPalette.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(exercise.targetText)
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(InkPalette.softInk)
-                if let previous, let topSet = previous.topSet {
-                    Text("Last · \(WorkoutValueFormatter.setText(weight: topSet.weight, repetitions: topSet.repetitions, template: exercise))")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(InkPalette.cinnabar)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
+                Text("\(exercise.targetText) · rest \(exercise.restSeconds) sec")
+                    .font(.system(size: 10, design: .serif))
+                    .foregroundStyle(InkPalette.softInk.opacity(0.82))
             }
+
             Spacer(minLength: 0)
+
+            if let previous, let topSet = previous.topSet {
+                Text(WorkoutValueFormatter.setText(
+                    weight: topSet.weight,
+                    repetitions: topSet.repetitions,
+                    template: exercise
+                ))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(InkPalette.washedInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            }
         }
-        .padding(10)
-        .inkCard()
+        .frame(minHeight: 54)
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
+        .contentShape(Rectangle())
     }
 }
 
+private struct RoutineStartButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(AtelierType.script(20))
+                .foregroundStyle(InkPalette.paper)
+                .frame(maxWidth: .infinity, minHeight: 54)
+                .background(InkPalette.ink)
+                .shadow(color: InkPalette.mineral.opacity(0.26), radius: 0, x: 3, y: 3)
+        }
+        .buttonStyle(PressableButtonStyle())
+    }
+}

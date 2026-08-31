@@ -3,14 +3,21 @@ import SwiftUI
 import UIKit
 
 enum InkPalette {
-    static let ink = Color(red: 0.114, green: 0.102, blue: 0.082)
-    static let softInk = Color(red: 0.35, green: 0.32, blue: 0.27)
-    static let paper = Color(red: 0.925, green: 0.906, blue: 0.855)
-    static let raisedPaper = Color(red: 0.961, green: 0.945, blue: 0.902)
-    static let washedInk = Color(red: 0.68, green: 0.64, blue: 0.55)
-    static let cinnabar = Color(red: 0.43, green: 0.16, blue: 0.13)
-    static let bronze = Color(red: 0.50, green: 0.42, blue: 0.27)
-    static let acid = bronze
+    static let ink = Color(red: 0.145, green: 0.151, blue: 0.139)
+    static let softInk = Color(red: 0.39, green: 0.39, blue: 0.35)
+    static let paper = Color(red: 0.949, green: 0.941, blue: 0.902)
+    static let raisedPaper = Color(red: 0.972, green: 0.961, blue: 0.918)
+    static let washedInk = Color(red: 0.69, green: 0.68, blue: 0.63)
+    static let mineral = Color(red: 0.247, green: 0.408, blue: 0.439)
+    static let cinnabar = mineral
+    static let bronze = Color(red: 0.53, green: 0.54, blue: 0.50)
+    static let acid = mineral
+}
+
+enum AtelierType {
+    static func script(_ size: CGFloat) -> Font {
+        .custom("Noteworthy", size: size)
+    }
 }
 
 struct PaperSurface: View {
@@ -19,11 +26,33 @@ struct PaperSurface: View {
 
 struct PaperBackground: View {
     var body: some View {
-        LinearGradient(
-            colors: [InkPalette.raisedPaper.opacity(0.48), InkPalette.paper],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        ZStack {
+            InkPalette.paper
+
+            Canvas { context, size in
+                var dots = Path()
+                let spacing: CGFloat = 18
+                var y: CGFloat = 9
+                while y < size.height {
+                    var x: CGFloat = 9
+                    while x < size.width {
+                        dots.addEllipse(in: CGRect(x: x, y: y, width: 1.1, height: 1.1))
+                        x += spacing
+                    }
+                    y += spacing
+                }
+                context.fill(dots, with: .color(InkPalette.ink.opacity(0.045)))
+            }
+            .accessibilityHidden(true)
+
+            LinearGradient(
+                colors: [.clear, InkPalette.ink.opacity(0.045), .clear],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 14)
+            .accessibilityHidden(true)
+        }
         .ignoresSafeArea()
     }
 }
@@ -210,4 +239,3 @@ struct InkPrimaryButton: View {
         .buttonStyle(PressableButtonStyle())
     }
 }
-

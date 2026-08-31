@@ -5,7 +5,7 @@ private enum AppTab: CaseIterable, Hashable {
     case train
     case history
 
-    var title: String { self == .train ? "Train" : "Record" }
+    var title: String { self == .train ? "Training" : "Record" }
 }
 
 struct RootView: View {
@@ -142,14 +142,9 @@ private struct InkTabBar: View {
                 Button {
                     withAnimation(.easeOut(duration: 0.24)) { selection = tab }
                 } label: {
-                    HStack(spacing: 9) {
-                        Text(tab == .train ? "I" : "II")
-                            .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.bronze)
-                        Text(tab.title.uppercased())
-                    }
-                    .font(.system(.caption, design: .serif, weight: .semibold))
-                    .tracking(1.5)
-                    .foregroundStyle(selection == tab ? InkPalette.cinnabar : InkPalette.softInk)
+                    Text(tab.title)
+                    .font(AtelierType.script(17))
+                    .foregroundStyle(selection == tab ? InkPalette.ink : InkPalette.softInk.opacity(0.74))
                     .frame(maxWidth: .infinity, minHeight: 56)
                     .background(InkPalette.paper)
                     .contentShape(Rectangle())
@@ -158,12 +153,13 @@ private struct InkTabBar: View {
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
                 .overlay(alignment: .top) {
                     if selection == tab {
-                        Rectangle().fill(InkPalette.cinnabar).frame(height: 2)
+                        Rectangle()
+                            .fill(InkPalette.mineral)
+                            .frame(width: 100, height: 1.5)
                     }
                 }
             }
         }
-        .overlay(alignment: .top) { ClassicalRule() }
+        .overlay(alignment: .top) { InkDivider().opacity(0.42) }
     }
 }
-

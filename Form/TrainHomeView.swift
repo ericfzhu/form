@@ -11,13 +11,10 @@ struct RoutineListView: View {
     @StateObject private var healthSync = HealthSyncCoordinator.shared
     @State private var resumeSnapshot: ActiveWorkoutSnapshot?
     @State private var showingResume = false
+    @State private var showingSettings = false
 
     private var nextRoutine: RoutineTemplate {
         WorkoutCatalog.nextRoutine(after: workouts.first)
-    }
-
-    private var remainingRoutines: [RoutineTemplate] {
-        WorkoutCatalog.routines.filter { $0.id != nextRoutine.id }
     }
 
     var body: some View {
@@ -25,79 +22,73 @@ struct RoutineListView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    RawScreenTitle(index: "01", title: "Train")
-                        .padding(.horizontal, -20)
-                        .padding(.bottom, 24)
-
-                    if let resumeRoutine {
-                        Button { showingResume = true } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text("SESSION IN PROGRESS")
-                                        .font(.system(.caption2, design: .serif, weight: .semibold))
-                                        .tracking(1.5)
-                                        .foregroundStyle(InkPalette.cinnabar)
-                                    Text(resumeRoutine.name)
-                                        .font(.system(.title3, design: .serif, weight: .semibold))
-                                    Text(resumeDetail)
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundStyle(InkPalette.softInk)
-                                }
-                                Spacer()
-                                Text("CONTINUE")
-                                    .font(.system(.caption, design: .serif, weight: .semibold))
-                                    .tracking(1.4)
-                                    .foregroundStyle(InkPalette.cinnabar)
-                                    .frame(minWidth: 54, minHeight: 44)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(InkPalette.raisedPaper)
-                            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
-                            .overlay(alignment: .top) {
-                                Rectangle().fill(InkPalette.cinnabar).frame(height: 3)
-                            }
-                        }
-                        .buttonStyle(PressableButtonStyle())
-                        .padding(.bottom, 24)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Training")
+                            .font(AtelierType.script(34))
+                            .foregroundStyle(InkPalette.ink)
+                        Spacer()
+                        Button("Settings") { showingSettings = true }
+                            .font(.system(.subheadline, design: .serif))
+                            .foregroundStyle(InkPalette.ink)
+                            .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
+                            .buttonStyle(PressableButtonStyle())
                     }
+                    .padding(.bottom, 16)
 
-                    RawSectionHeader(index: "01", title: "NEXT SESSION")
+                    InkDivider()
+                        .opacity(0.5)
                         .padding(.bottom, 10)
-                    NavigationLink(value: nextRoutine) {
-                        RoutineCard(
-                            routine: nextRoutine,
-                            isRecommended: true,
-                            lastCompleted: lastCompleted(nextRoutine)
-                        )
-                    }
-                    .buttonStyle(PressableButtonStyle())
-                    .padding(.bottom, 28)
 
-                    RawSectionHeader(index: "02", title: "ROTATION", trailing: "A → B → C")
-                        .padding(.bottom, 10)
-                    LazyVStack(spacing: 14) {
-                        ForEach(remainingRoutines) { routine in
+                    LazyVStack(spacing: 0) {
+                        ForEach(WorkoutCatalog.routines) { routine in
                             NavigationLink(value: routine) {
-                                RoutineCard(
+                                RoutineThreadRow(
                                     routine: routine,
+                                    isNext: routine.id == nextRoutine.id,
                                     lastCompleted: lastCompleted(routine)
                                 )
                             }
                             .buttonStyle(PressableButtonStyle())
                         }
                     }
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(InkPalette.bronze.opacity(0.62))
+                            .frame(width: 1)
+                            .padding(.leading, 16)
+                            .padding(.vertical, 38)
+                            .accessibilityHidden(true)
+                    }
 
-                    settings
-                        .padding(.top, 22)
-                    CloudIntegrationSection()
-                        .padding(.top, 14)
-                    HealthIntegrationSection(health: health, healthSync: healthSync)
-                        .padding(.top, 14)
+                    if let resumeRoutine {
+                        Button { showingResume = true } label: {
+                            HStack(alignment: .center, spacing: 16) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("\(resumeRoutine.name) remains open")
+                                        .font(.system(.body, design: .serif))
+                                        .foregroundStyle(InkPalette.ink)
+                                    Text(resumeDetail)
+                                        .font(.system(.caption2, design: .monospaced))
+                                        .foregroundStyle(InkPalette.softInk)
+                                }
+                                Spacer(minLength: 8)
+                                Text("Resume")
+                                    .font(.system(.subheadline, design: .serif))
+                                    .foregroundStyle(InkPalette.mineral)
+                                    .frame(minWidth: 58, minHeight: 44, alignment: .trailing)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(InkPalette.raisedPaper.opacity(0.74))
+                            .shadow(color: InkPalette.ink.opacity(0.035), radius: 5, y: 2)
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                        .padding(.top, 18)
+                    }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 30)
+                .padding(.top, 22)
+                .padding(.bottom, 36)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -105,6 +96,33 @@ struct RoutineListView: View {
         .task {
             await health.refresh()
             await healthSync.refreshPendingCount()
+        }
+        .sheet(isPresented: $showingSettings) {
+            ZStack {
+                PaperBackground()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Text("Settings")
+                                .font(AtelierType.script(32))
+                                .foregroundStyle(InkPalette.ink)
+                            Spacer()
+                            Button("Done") { showingSettings = false }
+                                .font(.system(.body, design: .serif))
+                                .foregroundStyle(InkPalette.mineral)
+                                .frame(minWidth: 50, minHeight: 44, alignment: .trailing)
+                                .buttonStyle(PressableButtonStyle())
+                        }
+                        .padding(.bottom, 6)
+
+                        settings
+                        CloudIntegrationSection()
+                        HealthIntegrationSection(health: health, healthSync: healthSync)
+                    }
+                    .padding(20)
+                }
+            }
+            .presentationDetents([.medium, .large])
         }
         .fullScreenCover(isPresented: $showingResume, onDismiss: {
             resumeSnapshot = ActiveWorkoutStore.load()
@@ -293,47 +311,66 @@ private struct HealthIntegrationSection: View {
     }
 }
 
-private struct RoutineCard: View {
+private struct RoutineThreadRow: View {
     let routine: RoutineTemplate
-    var isRecommended = false
+    let isNext: Bool
     var lastCompleted: Date?
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(routine.id)
-                    .font(.system(size: 58, weight: .regular, design: .serif))
-                    .tracking(-2)
-                    .foregroundStyle(isRecommended ? InkPalette.cinnabar : InkPalette.ink)
-                Text(routine.focus.replacingOccurrences(of: " · ", with: ", "))
-                    .font(.system(size: 15, weight: .medium, design: .serif))
-                    .foregroundStyle(InkPalette.softInk.opacity(0.82))
-                    .lineLimit(2)
-                Text(lastCompletedText)
-                    .font(.system(.caption, design: .serif))
-                    .foregroundStyle(InkPalette.softInk.opacity(0.72))
-                    .monospacedDigit()
-                HStack(spacing: 6) {
-                    Text("VIEW ROUTINE")
-                    Image(systemName: "arrow.right")
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(InkPalette.paper)
+                    .frame(width: 18, height: 18)
+                if isNext {
+                    Circle()
+                        .trim(from: 0.08, to: 0.79)
+                        .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .rotationEffect(.degrees(-40))
+                        .frame(width: 22, height: 22)
+                } else {
+                    Circle()
+                        .stroke(InkPalette.softInk.opacity(0.75), lineWidth: 1)
+                        .frame(width: 12, height: 12)
                 }
-                .font(.system(.caption2, design: .serif, weight: .semibold))
-                .tracking(1.1)
-                .foregroundStyle(InkPalette.cinnabar)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                if isNext {
+                    Text("NEXT")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundStyle(InkPalette.mineral)
+                }
+                Text(routine.name)
+                    .font(AtelierType.script(25))
+                    .foregroundStyle(isNext ? InkPalette.mineral : InkPalette.ink)
+                Text(lastCompletedText)
+                    .font(.system(.caption2, design: .serif))
+                    .foregroundStyle(InkPalette.softInk.opacity(0.78))
+                    .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
             DemonstrationImage(assetName: routine.exercises[0].assetName, outlined: false)
-                .frame(width: 136, height: 144)
+                .frame(width: 112, height: 102)
+                .rotationEffect(.degrees(isNext ? 0.8 : -0.45))
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 15)
-        .frame(minHeight: 174)
-        .background(InkPalette.raisedPaper)
-        .overlay {
-            Rectangle().stroke(InkPalette.bronze.opacity(isRecommended ? 0.9 : 0.52), lineWidth: 1)
+        .padding(.leading, 7)
+        .padding(.trailing, 2)
+        .padding(.vertical, 10)
+        .frame(minHeight: 122)
+        .background {
+            if isNext {
+                InkPalette.mineral.opacity(0.065)
+            }
         }
-        .overlay(alignment: .top) { if isRecommended { ClassicalRule() } }
-        .shadow(color: InkPalette.ink.opacity(0.055), radius: 8, y: 3)
+        .overlay(alignment: .leading) {
+            if isNext {
+                Rectangle().fill(InkPalette.mineral).frame(width: 2)
+            }
+        }
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
         .contentShape(Rectangle())
     }
 
