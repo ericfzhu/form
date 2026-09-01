@@ -19,9 +19,8 @@ struct WorkoutHistoryDetail: View {
             ScrollView {
                 LazyVStack(spacing: 14) {
                     HStack {
-                        Text(workout.date.formatted(date: .long, time: .omitted).uppercased())
-                            .font(.caption.weight(.semibold))
-                            .tracking(1.8)
+                        Text(workout.date.formatted(date: .long, time: .omitted).lowercased())
+                            .font(AtelierType.script(17))
                             .foregroundStyle(InkPalette.softInk)
                         Spacer()
                         Text(workout.healthSyncStatus.title.uppercased())
@@ -43,9 +42,8 @@ struct WorkoutHistoryDetail: View {
 
                     if !workout.cardioEntries.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("CARDIO")
-                                .font(.caption2.weight(.semibold))
-                                .tracking(1.8)
+                            Text("cardio")
+                                .font(AtelierType.script(20))
                                 .foregroundStyle(InkPalette.softInk)
                             ForEach(workout.cardioEntries.sorted { $0.order < $1.order }) {
                                 CardioHistoryCard(entry: $0)
@@ -62,7 +60,7 @@ struct WorkoutHistoryDetail: View {
         .background { InteractivePopGestureBridge(isEnabled: true) }
         .safeAreaInset(edge: .top, spacing: 0) {
             InkTextHeader(
-                title: workout.displayName.uppercased(),
+                title: workout.displayName.lowercased(),
                 leadingTitle: "Back",
                 leadingAction: { dismiss() },
                 trailingTitle: "Edit",
@@ -100,7 +98,7 @@ private struct HistoryExerciseCard: View {
                     .frame(width: 86, height: 86)
                 VStack(alignment: .leading, spacing: 7) {
                     Text(exercise.name)
-                        .font(.system(.headline, design: .serif, weight: .semibold))
+                        .font(AtelierType.script(21))
                     if !records.isEmpty {
                         HStack(spacing: 8) {
                             ForEach(records.prefix(2)) { record in
@@ -114,12 +112,12 @@ private struct HistoryExerciseCard: View {
                 }
                 Spacer()
             }
-            .padding(11)
+            .padding(.vertical, 11)
             InkDivider().padding(.horizontal, 14).padding(.vertical, 3)
             ForEach(exercise.sets.sorted { $0.order < $1.order }) { set in
                 HStack {
                     Text(set.kind == .warmup ? "Warm-up" : "Set \(workingSetNumber(for: set))")
-                        .font(.system(.body, design: .serif))
+                        .font(.system(.body, design: .monospaced))
                         .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
                     Spacer()
                     Text(WorkoutValueFormatter.setText(
@@ -146,7 +144,7 @@ private struct CardioHistoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Text(entry.kind.title)
-                .font(.system(.headline, design: .serif, weight: .semibold))
+                .font(.system(.headline, design: .monospaced, weight: .semibold))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), alignment: .leading)], spacing: 12) {
                 metric("\(WorkoutValueFormatter.decimal(entry.durationMinutes)) min", "TIME")
                 if entry.distanceKilometers > 0 {

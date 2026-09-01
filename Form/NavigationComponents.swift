@@ -9,10 +9,6 @@ struct DemonstrationImage: View {
         Image(assetName)
             .resizable()
             .scaledToFit()
-            .clipShape(Rectangle())
-            .overlay {
-                if outlined { Rectangle().stroke(.black.opacity(0.10), lineWidth: 1) }
-            }
             .accessibilityLabel("Illustration demonstrating the exercise")
     }
 }

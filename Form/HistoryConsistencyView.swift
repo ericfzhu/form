@@ -87,11 +87,10 @@ struct HistoryConsistencyView: View {
             .frame(maxWidth: .infinity, minHeight: 38)
             .background {
                 if count > 0 {
-                    Circle()
-                        .trim(from: 0.05, to: 0.86)
-                        .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
-                        .rotationEffect(.degrees(-30))
-                        .frame(width: 31, height: 31)
+                    Rectangle()
+                        .fill(InkPalette.mineral)
+                        .frame(width: 18, height: 1)
+                        .offset(y: 12)
                 }
             }
             .accessibilityHidden(date == nil)

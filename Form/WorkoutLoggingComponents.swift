@@ -8,23 +8,18 @@ struct ActiveWorkoutHeader: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Text(index)
-                .font(.system(size: 18, weight: .regular, design: .serif))
-                .foregroundStyle(InkPalette.cinnabar)
-                .frame(width: 52, height: 56)
             VStack(alignment: .leading, spacing: 2) {
-                Text("SESSION IN PROGRESS")
-                    .font(.system(.caption, design: .serif, weight: .semibold))
-                    .tracking(1.5)
+                Text("session in progress")
+                    .font(AtelierType.script(19))
                 Text(progress)
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(InkPalette.softInk.opacity(0.76))
                     .monospacedDigit()
             }
-            .padding(.leading, 12)
+            .padding(.leading, 20)
             Spacer()
             Button("Close", action: close)
-                .font(.system(.subheadline, design: .serif))
+                .font(AtelierType.script(16))
                 .frame(width: 58, height: 56)
                 .buttonStyle(PressableButtonStyle())
             Menu {
@@ -65,7 +60,7 @@ struct ExerciseLoggingCard: View {
                         .frame(width: 64, height: 64)
                     VStack(alignment: .leading, spacing: 6) {
                         Text(draft.template.name)
-                            .font(.system(.headline, design: .serif, weight: .semibold))
+                            .font(AtelierType.script(22))
                             .multilineTextAlignment(.leading)
                         Text(draft.template.targetText)
                             .font(.subheadline.monospacedDigit())
@@ -77,11 +72,10 @@ struct ExerciseLoggingCard: View {
                             .monospacedDigit()
                     }
                     Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(InkPalette.softInk.opacity(0.72))
-                        .frame(width: 44, height: 44)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    Text(isExpanded ? "−" : "+")
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(InkPalette.softInk)
+                    .frame(width: 44, height: 44)
                 }
                 .padding(8)
                 .contentShape(Rectangle())
@@ -136,13 +130,11 @@ struct ExerciseLoggingCard: View {
                     .padding(.horizontal, 10)
 
                     Button(action: applyFirstWorkingSetToRemaining) {
-                        Label("Apply first set to remaining", systemImage: "arrow.down.doc")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .tracking(0.7)
-                            .textCase(.uppercase)
+                        Text("apply first set to remaining")
+                            .font(AtelierType.script(16))
                             .foregroundStyle(InkPalette.cinnabar)
                             .frame(maxWidth: .infinity, minHeight: 42)
-                            .overlay { Rectangle().stroke(InkPalette.cinnabar, lineWidth: 1) }
+                            .overlay(alignment: .bottom) { InkDivider() }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .disabled(!canApplyFirstWorkingSet)
@@ -155,13 +147,10 @@ struct ExerciseLoggingCard: View {
                             repetitions: draft.sets.last?.repetitions ?? draft.template.minimumRepetitions
                         ))
                     } label: {
-                        Label("Add another set", systemImage: "plus")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .tracking(0.7)
-                            .textCase(.uppercase)
+                        Text("add another set")
+                            .font(AtelierType.script(16))
                             .frame(maxWidth: .infinity, minHeight: 46)
-                            .background(InkPalette.raisedPaper)
-                            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+                            .overlay(alignment: .bottom) { InkDivider() }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -177,12 +166,10 @@ struct ExerciseLoggingCard: View {
                         ), at: index)
                     } label: {
                         Text("Add warm-up set")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .tracking(0.7)
-                            .textCase(.uppercase)
+                            .font(AtelierType.script(16))
                             .foregroundStyle(InkPalette.cinnabar)
                             .frame(maxWidth: .infinity, minHeight: 42)
-                            .overlay { Rectangle().stroke(InkPalette.cinnabar, lineWidth: 1) }
+                            .overlay(alignment: .bottom) { InkDivider() }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -219,4 +206,3 @@ struct ExerciseLoggingCard: View {
         }
     }
 }
-

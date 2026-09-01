@@ -221,7 +221,7 @@ struct ActiveWorkoutView: View {
                     .padding(.vertical, 10)
                     .background(InkPalette.paper)
                     .overlay(alignment: .top) {
-                        Rectangle().fill(InkPalette.ink).frame(height: 1)
+                        InkDivider()
                     }
                 }
             }
@@ -260,7 +260,7 @@ struct ActiveWorkoutView: View {
                 dismissKeyboard()
                 focusedInput = nil
             }
-            .font(.system(.body, design: .serif, weight: .semibold))
+            .font(AtelierType.script(17))
             .foregroundStyle(InkPalette.cinnabar)
             .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
         }

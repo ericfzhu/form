@@ -5,7 +5,7 @@ private enum AppTab: CaseIterable, Hashable {
     case train
     case history
 
-    var title: String { self == .train ? "Training" : "Record" }
+    var title: String { self == .train ? "training" : "record" }
 }
 
 struct RootView: View {
@@ -71,6 +71,7 @@ struct RootView: View {
                     .allowsHitTesting(false)
             }
             .tint(InkPalette.ink)
+            .environment(\.font, .system(.body, design: .monospaced))
             .transaction { transaction in
                 if reduceMotion { transaction.animation = nil }
             }
@@ -115,14 +116,14 @@ private struct TrainingIntroductionView: View {
     private func row(_ index: String, _ title: String, _ detail: String) -> some View {
         HStack(alignment: .top, spacing: 16) {
             Text(index)
-                .font(.system(.title3, design: .serif))
-                .foregroundStyle(InkPalette.cinnabar)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(InkPalette.softInk)
                 .frame(width: 30, alignment: .leading)
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .font(AtelierType.script(20))
                 Text(detail)
-                    .font(.system(.body, design: .serif))
+                    .font(.system(.body, design: .monospaced))
                     .foregroundStyle(InkPalette.softInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -154,8 +155,8 @@ private struct InkTabBar: View {
                 .overlay(alignment: .top) {
                     if selection == tab {
                         Rectangle()
-                            .fill(InkPalette.mineral)
-                            .frame(width: 100, height: 1.5)
+                            .fill(InkPalette.ink)
+                            .frame(width: 32, height: 1)
                     }
                 }
             }

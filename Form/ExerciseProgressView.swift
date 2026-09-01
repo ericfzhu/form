@@ -33,7 +33,7 @@ struct ExerciseProgressView: View {
                 LazyVStack(spacing: 18) {
                     RawScreenTitle(
                         index: "03",
-                        title: "Progress",
+                        title: "progress",
                         detail: selectedPeriod.headerTitle
                     )
                     .padding(.horizontal, -20)
@@ -70,7 +70,7 @@ struct ExerciseProgressView: View {
         .background { InteractivePopGestureBridge(isEnabled: true) }
         .safeAreaInset(edge: .top, spacing: 0) {
             InkTextHeader(
-                title: exercise.name.uppercased(),
+                title: exercise.name.lowercased(),
                 leadingTitle: "Back",
                 leadingAction: { dismiss() }
             )
@@ -88,21 +88,20 @@ struct ExerciseProgressView: View {
                 Button {
                     selectedPeriod = period
                 } label: {
-                    Text(period.title.uppercased())
-                        .font(.system(size: 9, weight: .semibold, design: .serif))
-                        .tracking(0.8)
+                    Text(period.title.lowercased())
+                        .font(AtelierType.script(15))
                         .foregroundStyle(selectedPeriod == period
-                            ? InkPalette.raisedPaper
+                            ? InkPalette.verdigris
                             : InkPalette.softInk)
                         .frame(maxWidth: .infinity, minHeight: 42)
-                        .background(selectedPeriod == period
-                            ? InkPalette.cinnabar
-                            : InkPalette.raisedPaper)
+                        .overlay(alignment: .bottom) {
+                            if selectedPeriod == period { InkDivider() }
+                        }
                 }
                 .buttonStyle(PressableButtonStyle())
             }
         }
-        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+        .overlay(alignment: .bottom) { InkDivider().opacity(0.5) }
     }
 
     private var exerciseOverview: some View {
@@ -111,12 +110,11 @@ struct ExerciseProgressView: View {
                 DemonstrationImage(assetName: exercise.assetName, outlined: false)
                     .frame(width: 132, height: 118)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("TARGET")
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.5)
+                Text("target")
+                    .font(AtelierType.script(16))
                         .foregroundStyle(InkPalette.softInk)
                     Text(exercise.targetText)
-                        .font(.system(.title3, design: .serif, weight: .semibold))
+                        .font(.system(.title3, design: .monospaced, weight: .semibold))
                         .monospacedDigit()
                     if let latest = allPerformances.first {
                         Text("Last · \(sessionSummary(latest))")
@@ -131,9 +129,8 @@ struct ExerciseProgressView: View {
 
             if !exercise.formCues.isEmpty {
                 InkDivider()
-                Text("FORM")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.5)
+                Text("form")
+                    .font(AtelierType.script(17))
                     .foregroundStyle(InkPalette.softInk)
                 VStack(alignment: .leading, spacing: 11) {
                     ForEach(Array(exercise.formCues.enumerated()), id: \.offset) { index, cue in
@@ -143,7 +140,7 @@ struct ExerciseProgressView: View {
                                 .foregroundStyle(InkPalette.cinnabar)
                                 .frame(width: 20, alignment: .leading)
                             Text(cue)
-                                .font(.system(.subheadline, design: .serif))
+                                .font(.system(.subheadline, design: .monospaced))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -156,15 +153,14 @@ struct ExerciseProgressView: View {
         _ recommendation: ProgressionRecommendation
     ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("NEXT SESSION")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.6)
+            Text("next session")
+                .font(AtelierType.script(17))
                 .foregroundStyle(InkPalette.softInk)
             Text(recommendation.title)
-                .font(.system(.headline, design: .serif, weight: .semibold))
+                .font(.system(.headline, design: .monospaced, weight: .semibold))
                 .foregroundStyle(InkPalette.cinnabar)
             Text(recommendation.detail)
-                .font(.system(.caption, design: .serif))
+                .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(InkPalette.softInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -181,18 +177,17 @@ struct ExerciseProgressView: View {
             }
         }
         .padding(.vertical, 14)
-        .background(InkPalette.raisedPaper)
-        .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+        .overlay(alignment: .top) { InkDivider() }
+        .overlay(alignment: .bottom) { InkDivider() }
     }
 
     private func summaryItem(label: String, value: String) -> some View {
         VStack(spacing: 5) {
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .tracking(1.3)
+            Text(label.lowercased())
+                .font(AtelierType.script(14))
                 .foregroundStyle(InkPalette.softInk)
             Text(value)
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -206,18 +201,15 @@ struct ExerciseProgressView: View {
                 ForEach(availableMetrics, id: \.self) { metric in
                     Button { selectedMetric = metric } label: {
                         Text(metric.title(for: exercise.measurement))
-                            .font(.system(.caption, design: .serif, weight: selectedMetric == metric ? .semibold : .regular))
+                            .font(AtelierType.script(15))
                             .padding(.horizontal, 12)
                             .frame(minHeight: 40)
-                            .background {
-                                if selectedMetric == metric {
-                                    Rectangle().fill(InkPalette.cinnabar)
-                                }
-                            }
                             .foregroundStyle(selectedMetric == metric
-                                ? InkPalette.raisedPaper
+                                ? InkPalette.verdigris
                                 : InkPalette.softInk)
-                            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+                            .overlay(alignment: .bottom) {
+                                if selectedMetric == metric { InkDivider() }
+                            }
                     }
                     .buttonStyle(PressableButtonStyle())
                 }
@@ -264,13 +256,12 @@ struct ExerciseProgressView: View {
 
     private var baseline: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("BASELINE")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.8)
+            Text("baseline")
+                .font(AtelierType.script(19))
                 .foregroundStyle(InkPalette.softInk)
             HStack {
                 Text(shortDate(performances[0].date))
-                    .font(.system(.subheadline, design: .serif))
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(InkPalette.softInk)
                 Spacer()
                 Text(sessionSummary(performances[0]))
@@ -280,23 +271,22 @@ struct ExerciseProgressView: View {
             }
             .frame(minHeight: 48)
             Text("A trend will appear after the next recorded session in this period.")
-                .font(.system(.caption, design: .serif))
+                .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(InkPalette.softInk.opacity(0.78))
         }
     }
 
     private var sessionHistory: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("SESSIONS")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.8)
+            Text("sessions")
+                .font(AtelierType.script(19))
                 .foregroundStyle(InkPalette.softInk)
                 .padding(.bottom, 8)
 
             ForEach(performances) { performance in
                 HStack(spacing: 14) {
                     Text(shortDate(performance.date))
-                        .font(.system(.subheadline, design: .serif))
+                        .font(.system(.subheadline, design: .monospaced))
                         .foregroundStyle(InkPalette.softInk)
                         .frame(width: 64, alignment: .leading)
                     Text(sessionSummary(performance))
@@ -371,4 +361,3 @@ struct ExerciseProgressView: View {
         date.formatted(.dateTime.day().month(.abbreviated))
     }
 }
-

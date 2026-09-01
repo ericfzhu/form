@@ -17,16 +17,11 @@ struct ExerciseIndexView: View {
                 List(exercises) { exercise in
                     NavigationLink(value: exercise) {
                         HStack(spacing: 14) {
-                            Circle()
-                                .trim(from: 0.08, to: 0.82)
-                                .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
-                                .rotationEffect(.degrees(-32))
-                                .frame(width: 18, height: 18)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(exercise.name)
                                     .font(AtelierType.script(20))
                                 Text(exercise.targetText)
-                                    .font(.system(.caption2, design: .serif))
+                                    .font(.system(.caption2, design: .monospaced))
                                     .foregroundStyle(InkPalette.softInk.opacity(0.8))
                             }
                             Spacer()
@@ -100,9 +95,6 @@ struct BackupManagementView: View {
 
             Button(action: restore) {
                 HStack(spacing: 14) {
-                    Circle()
-                        .stroke(InkPalette.softInk.opacity(0.64), lineWidth: 1)
-                        .frame(width: 18, height: 18)
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Restore backup")
                             .font(AtelierType.script(20))
@@ -112,7 +104,7 @@ struct BackupManagementView: View {
                     }
                     Spacer()
                     Text("CHOOSE")
-                        .font(.system(.caption, design: .serif, weight: .semibold))
+                        .font(.system(.caption, design: .monospaced, weight: .semibold))
                         .tracking(1.3)
                         .foregroundStyle(InkPalette.cinnabar)
                 }
@@ -131,11 +123,6 @@ private func recordAction(
     action: String
 ) -> some View {
     HStack(spacing: 14) {
-        Circle()
-            .trim(from: 0.08, to: 0.82)
-            .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
-            .rotationEffect(.degrees(-32))
-            .frame(width: 18, height: 18)
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(AtelierType.script(20))
@@ -146,7 +133,7 @@ private func recordAction(
         }
         Spacer(minLength: 12)
         Text(action)
-            .font(.system(.caption, design: .serif, weight: .semibold))
+            .font(.system(.caption, design: .monospaced, weight: .semibold))
             .tracking(1.3)
             .foregroundStyle(InkPalette.cinnabar)
     }

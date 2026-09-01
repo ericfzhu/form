@@ -68,11 +68,10 @@ struct SetLoggingRow: View {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 7, weight: .bold))
                 }
-                .font(.system(.body, design: .serif, weight: .semibold))
-                .foregroundStyle(set.kind == .warmup ? InkPalette.raisedPaper : InkPalette.cinnabar)
+                .font(.system(.body, design: .monospaced, weight: .semibold))
+                .foregroundStyle(set.kind == .warmup ? InkPalette.plum : InkPalette.softInk)
                 .frame(width: 40, height: 44)
-                .background(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.raisedPaper)
-                .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.72), lineWidth: 1) }
+                .overlay(alignment: .bottom) { InkDivider() }
             }
             .tint(InkPalette.ink)
             .accessibilityLabel("Set type: \(set.kind.title)")
@@ -94,8 +93,7 @@ struct SetLoggingRow: View {
                     .foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
-                    .background(InkPalette.raisedPaper)
-                    .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+                    .overlay(alignment: .bottom) { InkDivider() }
             }
 
             TextField("0", value: $set.repetitions, format: .number)
@@ -115,14 +113,9 @@ struct SetLoggingRow: View {
                 dismissKeyboard()
                 didToggleCompletion(completed, set.kind)
             } label: {
-                ZStack {
-                    Rectangle().stroke(InkPalette.ink.opacity(set.completed ? 0 : 0.28), lineWidth: 1)
-                    Rectangle().fill(set.completed ? InkPalette.cinnabar : .clear)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(InkPalette.paper)
-                        .opacity(set.completed ? 1 : 0)
-                }
+                Image(systemName: set.completed ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundStyle(set.completed ? InkPalette.ink : InkPalette.softInk.opacity(0.55))
                 .frame(width: 42, height: 42)
                 .frame(width: 52, height: 52)
                 .contentShape(Rectangle())
@@ -132,7 +125,7 @@ struct SetLoggingRow: View {
         }
         .padding(.vertical, 2)
         .overlay(alignment: .bottom) {
-            Rectangle().fill(InkPalette.ink.opacity(0.18)).frame(height: 1)
+            InkDivider()
         }
     }
 }
@@ -143,12 +136,10 @@ struct InkInput: ViewModifier {
             .font(.body.monospacedDigit().weight(.medium))
             .foregroundStyle(InkPalette.ink)
             .frame(height: 42)
-            .background(InkPalette.raisedPaper)
-            .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+            .overlay(alignment: .bottom) { InkDivider() }
     }
 }
 
 extension View {
     func inkInput() -> some View { modifier(InkInput()) }
 }
-

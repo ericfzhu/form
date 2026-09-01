@@ -34,14 +34,9 @@ struct HistoryView: View {
 
                     Button { showingExerciseIndex = true } label: {
                         HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .stroke(InkPalette.softInk.opacity(0.64), lineWidth: 1)
-                                    .frame(width: 18, height: 18)
-                                Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 10, weight: .regular))
-                                    .foregroundStyle(InkPalette.mineral)
-                            }
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundStyle(InkPalette.softInk)
                             Text("Find exercise progress")
                                 .font(AtelierType.script(20))
                                 .foregroundStyle(InkPalette.ink)
@@ -90,9 +85,7 @@ struct HistoryView: View {
                         }
                         .listRowBackground(Color.clear)
                         .overlay(alignment: .leading) {
-                            Rectangle()
-                                .fill(InkPalette.bronze.opacity(0.62))
-                                .frame(width: 1)
+                            FieldThread()
                                 .padding(.leading, 36)
                                 .padding(.vertical, 34)
                                 .accessibilityHidden(true)
@@ -169,7 +162,7 @@ struct HistoryView: View {
 private struct HistoryHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Record")
+            Text("record")
                 .font(AtelierType.script(34))
                 .foregroundStyle(InkPalette.ink)
             InkDivider().opacity(0.5)
@@ -193,7 +186,7 @@ private enum HistorySection: String, CaseIterable, Identifiable {
     case sessions
     case overview
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+    var title: String { rawValue }
 }
 
 private struct HistorySectionControl: View {
@@ -211,9 +204,9 @@ private struct HistorySectionControl: View {
                         .frame(minWidth: 84, minHeight: 46)
                         .overlay(alignment: .bottom) {
                             if selection == section {
-                                Rectangle()
-                                    .fill(InkPalette.mineral)
-                                    .frame(width: 62, height: 1.5)
+                                InkDivider()
+                                    .frame(width: 62)
+                                    .colorMultiply(InkPalette.mineral)
                             }
                         }
                 }

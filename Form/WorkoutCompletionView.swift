@@ -27,9 +27,8 @@ struct WorkoutCompletionView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
-                    Text(record.date.formatted(date: .long, time: .shortened).uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(1.5)
+                    Text(record.date.formatted(date: .long, time: .shortened).lowercased())
+                        .font(AtelierType.script(17))
                         .foregroundStyle(InkPalette.softInk)
 
                     HStack(spacing: 0) {
@@ -38,15 +37,15 @@ struct WorkoutCompletionView: View {
                         summaryMetric("\(completedSetCount)", label: "SETS")
                     }
                     .padding(.vertical, 15)
-                    .background(InkPalette.raisedPaper)
-                    .overlay { Rectangle().stroke(InkPalette.ink, lineWidth: 1) }
+                    .overlay(alignment: .top) { InkDivider() }
+                    .overlay(alignment: .bottom) { InkDivider() }
 
                     if record.hasTrainingData {
                         HStack(spacing: 10) {
                             Image(systemName: record.healthSyncStatus == .synced ? "heart.fill" : "heart")
                                 .foregroundStyle(InkPalette.cinnabar)
                             Text(record.healthSyncStatus.title)
-                                .font(.system(.caption, design: .serif, weight: .semibold))
+                                .font(.system(.caption, design: .monospaced, weight: .semibold))
                                 .foregroundStyle(record.healthSyncStatus == .failed
                                     ? InkPalette.cinnabar
                                     : InkPalette.softInk)
@@ -55,10 +54,9 @@ struct WorkoutCompletionView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("MOVEMENTS")
-                            .font(.caption2.weight(.semibold))
-                            .tracking(1.8)
-                            .foregroundStyle(InkPalette.softInk)
+                        Text("movements")
+                            .font(AtelierType.script(21))
+                            .foregroundStyle(InkPalette.ink)
                             .padding(.bottom, 8)
 
                         ForEach(completedExercises) { exercise in
@@ -71,9 +69,8 @@ struct WorkoutCompletionView: View {
 
                     if cardioMinutes > 0 {
                         HStack {
-                            Text("CARDIO")
-                                .font(.caption2.weight(.semibold))
-                                .tracking(1.8)
+                            Text("cardio")
+                                .font(AtelierType.script(19))
                                 .foregroundStyle(InkPalette.softInk)
                             Spacer()
                             Text("\(cardioMinutes) min")
@@ -97,11 +94,10 @@ struct WorkoutCompletionView: View {
     private func summaryMetric(_ value: String, label: String) -> some View {
         VStack(spacing: 5) {
             Text(value)
-                .font(.system(.title2, design: .serif, weight: .semibold))
+                .font(AtelierType.script(27))
                 .monospacedDigit()
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .tracking(1.2)
+            Text(label.lowercased())
+                .font(AtelierType.script(14))
                 .foregroundStyle(InkPalette.softInk)
         }
         .frame(maxWidth: .infinity)
@@ -111,7 +107,7 @@ struct WorkoutCompletionView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(exercise.name)
-                    .font(.system(.body, design: .serif, weight: .semibold))
+                    .font(AtelierType.script(19))
                 Text(setSummary(exercise))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(InkPalette.softInk)
@@ -119,7 +115,7 @@ struct WorkoutCompletionView: View {
                     .minimumScaleFactor(0.72)
                 if let comparison = comparison(for: exercise) {
                     Text(comparison)
-                        .font(.system(.caption2, design: .serif, weight: .semibold))
+                        .font(.system(.caption2, design: .monospaced, weight: .semibold))
                         .foregroundStyle(InkPalette.cinnabar)
                 }
             }
@@ -179,14 +175,12 @@ struct WorkoutCompletionView: View {
 struct CompletionHeader: View {
     var body: some View {
         HStack(spacing: 10) {
-            Text("✓")
-                .font(.system(size: 15, weight: .semibold, design: .serif))
-                .foregroundStyle(InkPalette.raisedPaper)
+            Text("done")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(InkPalette.softInk)
                 .frame(width: 52, height: 52)
-                .background(Rectangle().fill(InkPalette.cinnabar))
-            Text("SESSION COMPLETE")
-                .font(.system(.caption, design: .serif, weight: .semibold))
-                .tracking(1.6)
+            Text("session complete")
+                .font(AtelierType.script(20))
             Spacer()
         }
         .padding(.trailing, 16)
@@ -194,4 +188,3 @@ struct CompletionHeader: View {
         .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }
-

@@ -100,7 +100,7 @@ struct WorkoutEditorView: View {
         .keyboardDismissToolbar()
         .safeAreaInset(edge: .top, spacing: 0) {
             InkTextHeader(
-                title: "EDIT SESSION",
+                title: "edit session",
                 leadingTitle: "Cancel",
                 leadingAction: requestCancel,
                 trailingTitle: "Save",
@@ -124,9 +124,8 @@ struct WorkoutEditorView: View {
 
     private var sessionDetails: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("SESSION")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.8)
+            Text("session")
+                .font(AtelierType.script(21))
                 .foregroundStyle(InkPalette.softInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("OPTIONAL TITLE")
@@ -136,7 +135,7 @@ struct WorkoutEditorView: View {
                 TextField(workout.routineName, text: $sessionTitle).inkInput()
             }
             DatePicker("Date and time", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                .font(.system(.body, design: .serif))
+                .font(.system(.body, design: .monospaced))
                 .tint(InkPalette.cinnabar)
             VStack(alignment: .leading, spacing: 5) {
                 Text("DURATION · MINUTES")
@@ -148,7 +147,7 @@ struct WorkoutEditorView: View {
                     .inkInput()
             }
         }
-        .padding(16)
+        .padding(.vertical, 12)
         .inkCard()
     }
 
@@ -167,10 +166,10 @@ struct WorkoutEditorView: View {
             }
         } label: {
             Text("Add exercise")
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .font(AtelierType.script(17))
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .background(InkPalette.raisedPaper)
-                .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+                .overlay(alignment: .top) { InkDivider() }
+                .overlay(alignment: .bottom) { InkDivider() }
         }
     }
 
@@ -275,14 +274,14 @@ private struct EditableExerciseCard: View {
                 DemonstrationImage(assetName: exercise.template.assetName)
                     .frame(width: 72, height: 72)
                 Text(exercise.template.name)
-                    .font(.system(.headline, design: .serif, weight: .semibold))
+                    .font(AtelierType.script(20))
                 Spacer()
                 Button("Remove", role: .destructive, action: remove)
-                    .font(.system(.caption, design: .serif, weight: .semibold))
+                    .font(.system(.caption, design: .monospaced, weight: .semibold))
                     .foregroundStyle(InkPalette.cinnabar)
                     .frame(minHeight: 44)
             }
-            .padding(11)
+            .padding(.vertical, 11)
             InkDivider().padding(.horizontal, 14).padding(.vertical, 4)
 
             ForEach($exercise.sets) { $set in
@@ -325,7 +324,7 @@ private struct EditableExerciseCard: View {
                 ))
             } label: {
                 Text("Add set")
-                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    .font(AtelierType.script(17))
                     .frame(maxWidth: .infinity, minHeight: 46)
             }
             .buttonStyle(PressableButtonStyle())

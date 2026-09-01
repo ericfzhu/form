@@ -18,10 +18,10 @@ struct EmptyHistoryView: View {
                 .font(AtelierType.script(29))
             InkDivider().frame(width: 120)
             Text("Completed sessions will appear here.")
-                .font(.system(.body, design: .serif))
+                .font(.system(.body, design: .monospaced))
                 .foregroundStyle(InkPalette.softInk)
             Button("Restore a backup", action: showRestore)
-                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
                 .foregroundStyle(InkPalette.cinnabar)
                 .frame(minHeight: 44)
         }
@@ -34,17 +34,6 @@ struct HistoryCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(InkPalette.paper)
-                    .frame(width: 22, height: 22)
-                Circle()
-                    .trim(from: 0.08, to: 0.82)
-                    .stroke(InkPalette.mineral, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                    .rotationEffect(.degrees(-34))
-                    .frame(width: 18, height: 18)
-            }
-
             VStack(alignment: .leading, spacing: 6) {
                 Text(workout.date.formatted(.dateTime.day().month(.abbreviated).year()))
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
@@ -55,7 +44,7 @@ struct HistoryCard: View {
                     .font(AtelierType.script(22))
                     .foregroundStyle(InkPalette.ink)
                 Text(detailText)
-                    .font(.system(.caption2, design: .serif))
+                    .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(InkPalette.softInk.opacity(0.8))
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
@@ -121,7 +110,7 @@ struct HistoryWeeklySummary: View {
                 Spacer()
                 Text("\(prCount) PR\(prCount == 1 ? "" : "s")")
             }
-            .font(.system(.caption, design: .serif, weight: .semibold))
+            .font(.system(.caption, design: .monospaced, weight: .semibold))
             .foregroundStyle(InkPalette.cinnabar)
             .monospacedDigit()
         }
@@ -163,7 +152,7 @@ struct HistoryWeeklySummary: View {
     private func metric(_ value: String, _ label: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(.title3, design: .serif, weight: .semibold))
+                .font(.system(.title3, design: .monospaced, weight: .semibold))
                 .monospacedDigit()
             Text(label)
                 .font(.caption2.weight(.semibold))

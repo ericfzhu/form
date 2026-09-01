@@ -6,10 +6,9 @@ struct CardioLoggingSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("CARDIO")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.8)
-                    .foregroundStyle(InkPalette.softInk)
+                Text("cardio")
+                    .font(AtelierType.script(21))
+                    .foregroundStyle(InkPalette.ink)
                 Spacer()
                 if !entries.isEmpty {
                     Text("\(Int(entries.reduce(0) { $0 + $1.durationMinutes })) MIN")
@@ -32,16 +31,13 @@ struct CardioLoggingSection: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "plus")
                     Text(entries.isEmpty ? "Add cardio" : "Add another cardio entry")
                 }
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .tracking(0.8)
-                .textCase(.uppercase)
+                .font(AtelierType.script(17))
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(InkPalette.raisedPaper)
-                .overlay { Rectangle().stroke(InkPalette.bronze.opacity(0.62), lineWidth: 1) }
+                .overlay(alignment: .top) { InkDivider() }
+                .overlay(alignment: .bottom) { InkDivider() }
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -62,7 +58,7 @@ struct CardioEntryEditor: View {
                 }
                 .pickerStyle(.menu)
                 .tint(InkPalette.ink)
-                .font(.system(.headline, design: .serif, weight: .semibold))
+                .font(AtelierType.script(19))
                 Spacer()
                 Button(action: delete) {
                     Image(systemName: "trash")
@@ -85,7 +81,7 @@ struct CardioEntryEditor: View {
                 }
             }
         }
-        .padding(14)
+        .padding(.vertical, 10)
         .inkCard()
         .animation(.easeOut(duration: 0.18), value: entry.kind)
     }

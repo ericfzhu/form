@@ -17,8 +17,8 @@ struct RoutineDetailView: View {
                 LazyVStack(spacing: 0) {
                     HStack {
                         Button("Back") { dismiss() }
-                            .font(.system(.subheadline, design: .serif))
-                            .foregroundStyle(InkPalette.ink)
+                            .font(AtelierType.script(16))
+                            .foregroundStyle(InkPalette.softInk)
                             .frame(minWidth: 50, minHeight: 44, alignment: .leading)
                             .buttonStyle(PressableButtonStyle())
 
@@ -27,7 +27,7 @@ struct RoutineDetailView: View {
                         if let firstExercise = routine.exercises.first {
                             NavigationLink(value: firstExercise) {
                                 Text("Exercise progress")
-                                    .font(.system(.subheadline, design: .serif))
+                                    .font(AtelierType.script(16))
                                     .foregroundStyle(InkPalette.mineral)
                                     .frame(minWidth: 116, minHeight: 44, alignment: .trailing)
                             }
@@ -41,7 +41,7 @@ struct RoutineDetailView: View {
                                 .font(AtelierType.script(33))
                                 .foregroundStyle(InkPalette.ink)
                             Text(isNextRoutine ? "next in the rotation" : "in the training rotation")
-                                .font(.system(.caption, design: .serif))
+                                .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(InkPalette.mineral)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,23 +174,19 @@ private struct ExercisePatternRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Text(String(format: "%02d", index))
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(InkPalette.mineral)
-                .frame(width: 24, alignment: .leading)
-
-            Rectangle()
-                .fill(InkPalette.bronze.opacity(0.48))
-                .frame(width: 1)
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(InkPalette.softInk)
+            .frame(width: 24, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(exercise.name)
-                    .font(.system(.subheadline, design: .serif))
+                    .font(AtelierType.script(18))
                     .foregroundStyle(InkPalette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("\(exercise.targetText) · rest \(exercise.restSeconds) sec")
-                    .font(.system(size: 10, design: .serif))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(InkPalette.softInk.opacity(0.82))
             }
 
@@ -207,8 +203,12 @@ private struct ExercisePatternRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
             }
+
+            DemonstrationImage(assetName: exercise.assetName, outlined: false)
+                .frame(width: 68, height: 62)
         }
-        .frame(minHeight: 54)
+        .padding(.vertical, 7)
+        .frame(minHeight: 76)
         .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
         .contentShape(Rectangle())
     }
@@ -220,12 +220,16 @@ private struct RoutineStartButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(AtelierType.script(20))
-                .foregroundStyle(InkPalette.paper)
-                .frame(maxWidth: .infinity, minHeight: 54)
-                .background(InkPalette.ink)
-                .shadow(color: InkPalette.mineral.opacity(0.26), radius: 0, x: 3, y: 3)
+            HStack {
+                Text(title)
+                    .font(AtelierType.script(21))
+                    .foregroundStyle(InkPalette.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 7)
+            .frame(maxWidth: .infinity, minHeight: 58)
+            .overlay(alignment: .top) { InkDivider() }
+            .overlay(alignment: .bottom) { InkDivider() }
         }
         .buttonStyle(PressableButtonStyle())
     }
