@@ -31,14 +31,6 @@ struct ExerciseProgressView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(spacing: 18) {
-                    RawScreenTitle(
-                        index: "03",
-                        title: "progress",
-                        detail: selectedPeriod.headerTitle
-                    )
-                    .padding(.horizontal, -20)
-                    .padding(.bottom, 2)
-
                     periodControl
                     exerciseOverview
 
@@ -101,7 +93,6 @@ struct ExerciseProgressView: View {
                 .buttonStyle(PressableButtonStyle())
             }
         }
-        .overlay(alignment: .bottom) { InkDivider().opacity(0.5) }
     }
 
     private var exerciseOverview: some View {
@@ -128,7 +119,6 @@ struct ExerciseProgressView: View {
             }
 
             if !exercise.formCues.isEmpty {
-                InkDivider()
                 Text("form")
                     .font(AtelierType.script(17))
                     .foregroundStyle(InkPalette.softInk)
@@ -177,8 +167,6 @@ struct ExerciseProgressView: View {
             }
         }
         .padding(.vertical, 14)
-        .overlay(alignment: .top) { InkDivider() }
-        .overlay(alignment: .bottom) { InkDivider() }
     }
 
     private func summaryItem(label: String, value: String) -> some View {
@@ -297,12 +285,10 @@ struct ExerciseProgressView: View {
                     if !records(for: performance).isEmpty {
                         Text("PR")
                             .font(.caption2.weight(.bold))
-                            .tracking(1)
                             .foregroundStyle(InkPalette.cinnabar)
                     }
                 }
                 .frame(minHeight: 48)
-                if performance.id != performances.last?.id { InkDivider() }
             }
         }
     }

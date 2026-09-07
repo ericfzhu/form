@@ -150,7 +150,7 @@ struct ActiveWorkoutView: View {
             PaperBackground()
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 18) {
                         ForEach($session.drafts) { $draft in
                             ExerciseLoggingCard(
                                 draft: $draft,
@@ -220,9 +220,6 @@ struct ActiveWorkoutView: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(InkPalette.paper)
-                    .overlay(alignment: .top) {
-                        InkDivider()
-                    }
                 }
             }
             .animation(.easeOut(duration: 0.16), value: isKeyboardVisible)

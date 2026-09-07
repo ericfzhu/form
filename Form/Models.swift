@@ -265,6 +265,7 @@ struct ActiveCardioSnapshot: Codable, Equatable {
 }
 
 struct ActiveWorkoutSnapshot: Codable, Equatable {
+    var routineTemplate: RoutineTemplate? = nil
     var sessionID: UUID? = nil
     var routineID: String
     var startedAt: Date

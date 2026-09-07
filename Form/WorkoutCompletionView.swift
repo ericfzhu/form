@@ -37,15 +37,13 @@ struct WorkoutCompletionView: View {
                         summaryMetric("\(completedSetCount)", label: "SETS")
                     }
                     .padding(.vertical, 15)
-                    .overlay(alignment: .top) { InkDivider() }
-                    .overlay(alignment: .bottom) { InkDivider() }
 
                     if record.hasTrainingData {
                         HStack(spacing: 10) {
                             Image(systemName: record.healthSyncStatus == .synced ? "heart.fill" : "heart")
                                 .foregroundStyle(InkPalette.cinnabar)
                             Text(record.healthSyncStatus.title)
-                                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                                .font(.system(.caption, design: .default, weight: .semibold))
                                 .foregroundStyle(record.healthSyncStatus == .failed
                                     ? InkPalette.cinnabar
                                     : InkPalette.softInk)
@@ -55,7 +53,7 @@ struct WorkoutCompletionView: View {
 
                     VStack(alignment: .leading, spacing: 0) {
                         Text("movements")
-                            .font(AtelierType.script(21))
+                            .font(.system(.body, design: .default))
                             .foregroundStyle(InkPalette.ink)
                             .padding(.bottom, 8)
 
@@ -70,7 +68,7 @@ struct WorkoutCompletionView: View {
                     if cardioMinutes > 0 {
                         HStack {
                             Text("cardio")
-                                .font(AtelierType.script(19))
+                                .font(.system(.body, design: .default))
                                 .foregroundStyle(InkPalette.softInk)
                             Spacer()
                             Text("\(cardioMinutes) min")
@@ -94,10 +92,10 @@ struct WorkoutCompletionView: View {
     private func summaryMetric(_ value: String, label: String) -> some View {
         VStack(spacing: 5) {
             Text(value)
-                .font(AtelierType.script(27))
+                .font(.system(.title2, design: .default))
                 .monospacedDigit()
             Text(label.lowercased())
-                .font(AtelierType.script(14))
+                .font(.system(.caption2, design: .default))
                 .foregroundStyle(InkPalette.softInk)
         }
         .frame(maxWidth: .infinity)
@@ -107,7 +105,7 @@ struct WorkoutCompletionView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(exercise.name)
-                    .font(AtelierType.script(19))
+                    .font(.system(.body, design: .default))
                 Text(setSummary(exercise))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(InkPalette.softInk)
@@ -115,7 +113,7 @@ struct WorkoutCompletionView: View {
                     .minimumScaleFactor(0.72)
                 if let comparison = comparison(for: exercise) {
                     Text(comparison)
-                        .font(.system(.caption2, design: .monospaced, weight: .semibold))
+                        .font(.system(.caption2, design: .default, weight: .semibold))
                         .foregroundStyle(InkPalette.cinnabar)
                 }
             }
@@ -126,7 +124,6 @@ struct WorkoutCompletionView: View {
                     ForEach(records.prefix(2)) { record in
                         Text(record.shortTitle)
                             .font(.caption2.weight(.bold))
-                            .tracking(0.7)
                             .foregroundStyle(InkPalette.cinnabar)
                     }
                 }
@@ -176,15 +173,14 @@ struct CompletionHeader: View {
     var body: some View {
         HStack(spacing: 10) {
             Text("done")
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.caption, design: .default))
                 .foregroundStyle(InkPalette.softInk)
                 .frame(width: 52, height: 52)
             Text("session complete")
-                .font(AtelierType.script(20))
+                .font(.system(.subheadline, design: .default))
             Spacer()
         }
         .padding(.trailing, 16)
         .background { PaperSurface() }
-        .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }

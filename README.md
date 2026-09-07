@@ -50,3 +50,13 @@ Create a production build with `yarn build`. Cloudflare Pages should use:
 - Node version: `22`
 
 For a direct upload after authenticating Wrangler, run `yarn deploy`.
+
+## Equipment-aware planner
+
+The homepage is now a working local planner. It starts with the gym inventory Eric supplied, supports 2–4 sessions per week and 30/45/60-minute budgets, filters every exercise by equipment, supports movement swaps, and downloads a text plan. Changes stay in browser storage. The iOS app has **Plan**, **My gym**, and **Record** tabs; review the prefilled gym to begin. Gym settings are stored on-device and are not synced with the browser.
+
+Both clients read `Form/Planning/exercises.json`. See `docs/PRODUCT_DIRECTION.md` for planning rules, assumptions, and compatibility decisions. Exercise demonstrations without artwork use a generic activity symbol. Active sessions embed their routine so later equipment changes do not alter work in progress.
+
+Additional web planning tests: `node --test src/planner.test.js`. If the selected command-line Swift runtime is broken, use `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift test`.
+
+This redesign is local-only; do not run deployment commands for it.

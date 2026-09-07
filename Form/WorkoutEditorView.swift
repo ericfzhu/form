@@ -125,12 +125,11 @@ struct WorkoutEditorView: View {
     private var sessionDetails: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("session")
-                .font(AtelierType.script(21))
+                .font(.system(.body, design: .monospaced))
                 .foregroundStyle(InkPalette.softInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("OPTIONAL TITLE")
                     .font(.caption2.weight(.semibold))
-                    .tracking(1)
                     .foregroundStyle(InkPalette.softInk)
                 TextField(workout.routineName, text: $sessionTitle).inkInput()
             }
@@ -140,7 +139,6 @@ struct WorkoutEditorView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("DURATION · MINUTES")
                     .font(.caption2.weight(.semibold))
-                    .tracking(1)
                     .foregroundStyle(InkPalette.softInk)
                 TextField("60", value: $durationMinutes, format: .number.precision(.fractionLength(0...1)))
                     .keyboardType(.decimalPad)
@@ -168,13 +166,11 @@ struct WorkoutEditorView: View {
             Text("Add exercise")
                 .font(AtelierType.script(17))
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .overlay(alignment: .top) { InkDivider() }
-                .overlay(alignment: .bottom) { InkDivider() }
         }
     }
 
     private var availableExercises: [ExerciseTemplate] {
-        WorkoutCatalog.routines.flatMap(\.exercises).uniquedByName().filter { template in
+        WorkoutCatalog.allExercises.uniquedByName().filter { template in
             !exercises.contains { $0.template.id == template.id }
         }
     }
@@ -274,7 +270,7 @@ private struct EditableExerciseCard: View {
                 DemonstrationImage(assetName: exercise.template.assetName)
                     .frame(width: 72, height: 72)
                 Text(exercise.template.name)
-                    .font(AtelierType.script(20))
+                    .font(.system(.body, design: .monospaced))
                 Spacer()
                 Button("Remove", role: .destructive, action: remove)
                     .font(.system(.caption, design: .monospaced, weight: .semibold))
@@ -282,8 +278,6 @@ private struct EditableExerciseCard: View {
                     .frame(minHeight: 44)
             }
             .padding(.vertical, 11)
-            InkDivider().padding(.horizontal, 14).padding(.vertical, 4)
-
             ForEach($exercise.sets) { $set in
                 HStack(spacing: 10) {
                     Picker("Set type", selection: $set.kind) {

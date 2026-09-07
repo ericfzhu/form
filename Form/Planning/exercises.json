@@ -1,0 +1,242 @@
+[
+  {
+    "id": "barbell-back-squat",
+    "name": "Barbell back squat",
+    "pattern": "squat",
+    "equipment": [
+      "barbell",
+      "rack"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "goblet-squat",
+    "name": "Goblet squat",
+    "pattern": "squat",
+    "equipment": [
+      "dumbbells"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "leg-press",
+    "name": "Leg press",
+    "pattern": "squat",
+    "equipment": [
+      "legPress"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "bodyweight-squat",
+    "name": "Bodyweight squat",
+    "pattern": "squat",
+    "equipment": [],
+    "measurement": "bodyweight"
+  },
+  {
+    "id": "conventional-deadlift",
+    "name": "Barbell deadlift",
+    "pattern": "hinge",
+    "equipment": [
+      "barbell"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "romanian-deadlift",
+    "name": "Dumbbell Romanian deadlift",
+    "pattern": "hinge",
+    "equipment": [
+      "dumbbells"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "glute-bridge",
+    "name": "Glute bridge",
+    "pattern": "hinge",
+    "equipment": [],
+    "measurement": "bodyweight"
+  },
+  {
+    "id": "chest-press",
+    "name": "Dumbbell chest press",
+    "pattern": "push",
+    "equipment": [
+      "dumbbells",
+      "bench"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "incline-press",
+    "name": "Incline dumbbell press",
+    "pattern": "push",
+    "equipment": [
+      "dumbbells",
+      "adjustableBench"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "shoulder-press",
+    "name": "Dumbbell shoulder press",
+    "pattern": "push",
+    "equipment": [
+      "dumbbells"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "pushup",
+    "name": "Push-up",
+    "pattern": "push",
+    "equipment": [],
+    "measurement": "bodyweight"
+  },
+  {
+    "id": "seated-row",
+    "name": "Seated cable row",
+    "pattern": "pull",
+    "equipment": [
+      "cable"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "lat-pulldown",
+    "name": "Lat pulldown",
+    "pattern": "pull",
+    "equipment": [
+      "pulldown"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "chest-supported-row",
+    "name": "Chest-supported row",
+    "pattern": "pull",
+    "equipment": [
+      "dumbbells",
+      "adjustableBench"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "dumbbell-row",
+    "name": "One-arm dumbbell row",
+    "pattern": "pull",
+    "equipment": [
+      "dumbbells",
+      "bench"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "underhand-lat-pulldown",
+    "name": "Underhand lat pulldown",
+    "pattern": "pull",
+    "equipment": [
+      "pulldown"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "split-squat",
+    "name": "Dumbbell split squat",
+    "pattern": "singleLeg",
+    "equipment": [
+      "dumbbells"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "reverse-lunge",
+    "name": "Reverse lunge",
+    "pattern": "singleLeg",
+    "equipment": [],
+    "measurement": "bodyweight"
+  },
+  {
+    "id": "plank",
+    "name": "Plank",
+    "pattern": "core",
+    "equipment": [],
+    "measurement": "timed"
+  },
+  {
+    "id": "side-plank",
+    "name": "Side plank",
+    "pattern": "core",
+    "equipment": [],
+    "measurement": "timed"
+  },
+  {
+    "id": "farmer-carry",
+    "name": "Farmer carry",
+    "pattern": "carry",
+    "equipment": [
+      "dumbbells"
+    ],
+    "measurement": "weightedTimed"
+  },
+  {
+    "id": "leg-curl",
+    "name": "Leg curl",
+    "pattern": "accessory",
+    "equipment": [
+      "legCurl"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "barbell-bench-press",
+    "name": "Barbell bench press",
+    "pattern": "push",
+    "equipment": [
+      "barbell",
+      "rack",
+      "bench"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "barbell-incline-press",
+    "name": "Incline barbell press",
+    "pattern": "push",
+    "equipment": [
+      "barbell",
+      "rack",
+      "adjustableBench"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "barbell-row",
+    "name": "Barbell row",
+    "pattern": "pull",
+    "equipment": [
+      "barbell"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "barbell-romanian-deadlift",
+    "name": "Barbell Romanian deadlift",
+    "pattern": "hinge",
+    "equipment": [
+      "barbell"
+    ],
+    "measurement": "weighted"
+  },
+  {
+    "id": "standing-cable-row",
+    "name": "Standing cable row",
+    "pattern": "pull",
+    "equipment": [
+      "highLow"
+    ],
+    "measurement": "weighted"
+  }
+]

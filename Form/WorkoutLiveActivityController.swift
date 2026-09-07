@@ -48,7 +48,7 @@ enum WorkoutLiveActivityController {
 
     static func pause(snapshot: ActiveWorkoutSnapshot) async {
         guard let currentActivity else { return }
-        let routine = WorkoutCatalog.routine(id: snapshot.routineID)
+        let routine = snapshot.resolvedRoutine
         let completed = snapshot.exercises.filter { exercise in
             guard let template = WorkoutCatalog.exercise(id: exercise.exerciseID) else {
                 return exercise.sets.contains(where: \.completed)

@@ -18,19 +18,13 @@ struct HistoryView: View {
             PaperBackground()
             if workouts.isEmpty {
                 VStack(spacing: 0) {
-                    HistoryHeader()
                     EmptyHistoryView(showRestore: { showingBackupImporter = true })
                         .frame(maxHeight: .infinity)
                 }
             } else {
                 List {
-                    HistoryHeader()
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets())
-
                     HistorySectionControl(selection: $selectedSection)
-                        .historyRow(bottom: 4)
+                        .historyRow(top: 18, bottom: 12)
 
                     Button { showingExerciseIndex = true } label: {
                         HStack(spacing: 14) {
@@ -44,7 +38,6 @@ struct HistoryView: View {
                         }
                         .padding(.horizontal, 7)
                         .frame(minHeight: 58)
-                        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PressableButtonStyle())
@@ -84,12 +77,6 @@ struct HistoryView: View {
                             }
                         }
                         .listRowBackground(Color.clear)
-                        .overlay(alignment: .leading) {
-                            FieldThread()
-                                .padding(.leading, 36)
-                                .padding(.vertical, 34)
-                                .accessibilityHidden(true)
-                            }
                     }
                 }
                 .listStyle(.plain)
@@ -159,21 +146,6 @@ struct HistoryView: View {
     }
 }
 
-private struct HistoryHeader: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("record")
-                .font(AtelierType.script(34))
-                .foregroundStyle(InkPalette.ink)
-            InkDivider().opacity(0.5)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 22)
-        .padding(.bottom, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 private extension View {
     func historyRow(top: CGFloat = 0, bottom: CGFloat = 0) -> some View {
         listRowBackground(Color.clear)
@@ -197,7 +169,7 @@ private struct HistorySectionControl: View {
             ForEach(HistorySection.allCases) { section in
                 Button { selection = section } label: {
                     Text(section.title)
-                        .font(AtelierType.script(18))
+                        .font(.system(.subheadline, design: .default))
                         .foregroundStyle(selection == section
                             ? InkPalette.ink
                             : InkPalette.softInk.opacity(0.68))
@@ -216,6 +188,5 @@ private struct HistorySectionControl: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 7)
-        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
     }
 }

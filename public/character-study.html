@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Form — a small person</title>
+<style>
+@font-face{font-family:Gaegu;src:url('/fonts/Gaegu-Regular.ttf')}*{box-sizing:border-box}body{margin:0;background:white;color:#051230;font-family:Gaegu,cursive}nav{display:flex;justify-content:space-between;padding:28px 5%;font-size:19px}a{color:inherit;text-decoration:none}a:hover{text-decoration:underline}button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}a:focus-visible,button:focus-visible{outline:2px solid #97acc8;outline-offset:5px}header{margin:60px auto 0;max-width:1080px;padding:0 40px}h1{font-weight:400;font-size:40px;letter-spacing:.06em;margin:0;transform:rotate(-2deg)}header p{font-size:19px;margin-top:22px;color:#657080}.poses{display:grid;grid-template-columns:repeat(3,1fr);max-width:1180px;margin:10px auto 0;padding:0 20px;gap:20px}figure{margin:0}svg.pose{width:100%;display:block;overflow:visible;stroke:#051230;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;fill:none}figcaption{text-align:center;font-size:22px;letter-spacing:.04em}figcaption small{display:block;font-size:16px;color:#657080;margin-top:10px}.stock{fill:#fff}.blue{fill:#97acc8}.shorts{fill:#b6bfc1}.piece{filter:url(#edge)}.seam{stroke-opacity:.35;stroke-width:.8}.ink{fill:#051230;stroke:none}.foot-line{stroke:#b6bfc1;stroke-width:1}.lift{transform-origin:173px 308px;animation:balance 11s ease-in-out infinite}.lift-head{transform-origin:174px 214px;animation:look 11s ease-in-out infinite}.rest-foot{transform-origin:237px 273px;animation:swing 8s ease-in-out infinite}.stand-head{transform-origin:174px 215px;animation:curious 10s ease-in-out infinite}.paused *{animation-play-state:paused!important}@keyframes balance{0%,12%,65%,100%{transform:rotate(0)}28%{transform:rotate(-4deg)}39%{transform:rotate(3deg)}50%{transform:rotate(-1deg)}}@keyframes look{0%,12%,70%,100%{transform:rotate(0)}28%,45%{transform:rotate(-7deg)}}@keyframes swing{0%,25%,100%{transform:rotate(0)}55%{transform:rotate(9deg)}75%{transform:rotate(-3deg)}}@keyframes curious{0%,30%,100%{transform:rotate(0)}50%,65%{transform:rotate(5deg)}}footer{max-width:1080px;margin:65px auto 35px;padding:0 40px;display:flex;justify-content:space-between;gap:25px;color:#657080;font-size:17px}footer p{margin:0;max-width:480px;line-height:1.5}@media(max-width:700px){header{margin-top:35px;padding:0 30px}h1{font-size:34px}.poses{grid-template-columns:1fr;max-width:370px;gap:25px;margin-top:0}.pose{max-height:390px}footer{margin-top:50px;padding:0 30px;flex-direction:column}nav{padding:22px 30px}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></head><body>
+<nav><a href="/">form. ↶</a><span>character study / 02</span></nav>
+<header><h1>a little lighter.</h1><p>a soft shape, small feet, a little wobble.</p></header>
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+<filter id="edge" x="-40%" y="-40%" width="190%" height="200%"><feMorphology in="SourceAlpha" operator="dilate" radius="2" result="rim"/><feFlood flood-color="white"/><feComposite in2="rim" operator="in"/><feDropShadow dx="1.4" dy="2.2" stdDeviation="1.1" flood-color="#051230" flood-opacity=".17"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<g id="head"><path class="stock" d="M-16-11C-19-24-8-33 4-31 18-32 24-19 17-7 11 3-9 3-16-11Z"/><circle class="ink" cx="4" cy="-18" r="1.2"/><circle class="ink" cx="12" cy="-17" r="1.2"/><path class="seam" d="m-13-11 2 2"/></g>
+<g id="shirt"><path class="stock" d="M-14-53Q-27-50-32-39L-35-28Q-31-23-23-22L-19-28Q-22-7-22 9C-15 18 15 19 25 10L20-28 25-22Q33-24 36-29L29-43Q25-51 13-54Q1-46-14-53Z"/><path class="seam" d="M-14-53Q-1-39 13-54M-21 7Q0 12 24 6m-56-37 11 6m46-1 10-7M-13-20l-2 17m28-34 3 8"/></g>
+<g id="shoes"><path class="stock" d="M-22-7Q-15-9-9-6L-1 4Q4 12-12 11L-26 10Q-34 8-28 1Z"/><path class="stock" d="M10-7Q17-10 22-8L26 0Q40 3 35 9 31 14 10 12Q6 8 10-7Z"/></g>
+<g id="blue-plate"><path class="blue" d="M-58-3C-59-39-32-63 2-61 37-62 62-36 61 0 61 35 34 63 0 61-35 62-60 35-58-3Z"/><path d="M-47 2C-50-28-27-50 2-49 30-50 50-27 49 1 50 28 28 51-1 49-26 50-47 29-47 8" stroke-opacity=".45"/><path class="stock" d="M-10 0C-11-13 12-13 12 0 13 13-11 14-10 0Z"/><path fill="#c2cede" stroke="none" d="m43 42 10-16-5 24Z"/><path class="seam" d="m43 42 5 8 5-24"/></g>
+</defs></svg>
+<main class="poses">
+<figure><svg class="pose" viewBox="0 0 360 390" role="img" aria-label="Standing character with a simple oval head, soft oversized white T-shirt, gray shorts and rounded white shoes.">
+<path class="foot-line" d="M113 325q43-3 108 0m7 0 10-1"/>
+<g class="piece"><path class="stock" d="m149 270 1 36 12 2 5-37m14 0 3 36 12-1 3-37"/></g>
+<g transform="translate(171 310)" class="piece"><use href="#shoes"/></g>
+<g class="piece"><path class="shorts" d="M148 257 199 256 201 287 180 289 174 276 169 290 147 287Z"/><path class="seam" d="m177 266-3 10"/></g>
+<g class="piece"><path class="stock" d="M143 236q-5 13-3 22l-2 8q1 7 6 5l4-4q3-4 0-7l6-20M197 236l7 21-2 9q1 7 6 4l4-7-5-28"/></g>
+<g transform="translate(173 254)" class="piece"><use href="#shirt"/></g>
+<g class="stand-head"><g transform="translate(173 212) rotate(-5)" class="piece"><use href="#head"/></g></g>
+</svg><figcaption>just arrived.<small></small></figcaption></figure>
+<figure><svg class="pose" viewBox="0 0 360 390" role="img" aria-label="The same paper character lifts an oversized blue weight plate overhead, with separate bent arms and a gentle balancing wobble.">
+<path class="foot-line" d="M113 325q43-3 108 0m7 0 10-1"/>
+<g class="piece"><path class="stock" d="m148 276 1 32 13 1 5-35m15 0 3 34 13-2 1-33"/></g>
+<g transform="translate(171 310)" class="piece"><use href="#shoes"/></g>
+<g class="lift">
+<g class="piece"><path class="shorts" d="M148 257 199 256 201 287 180 289 174 276 169 290 147 287Z"/></g>
+<g class="piece"><path class="stock" d="M147 222 128 205Q121 196 125 182L131 164Q137 158 139 165L135 186Q133 192 138 196L158 207ZM198 221 221 201Q228 194 224 181L218 164Q212 159 210 167L215 187 193 206Z"/><path class="seam" d="m128 201 8-8m80 5 7 4"/></g>
+<g transform="translate(173 254)" class="piece"><use href="#shirt"/></g>
+<g class="lift-head"><g transform="translate(173 212) rotate(-8)" class="piece"><use href="#head"/></g></g>
+<g transform="translate(174 116) rotate(-6)" class="piece"><use href="#blue-plate"/></g>
+<path class="stock" d="M128 169q-3-9 4-11l9 2q3 5-2 7l-6-1m78-1q-4-5 1-7l9-1q6 5 2 12"/>
+</g></svg><figcaption>finding the balance.<small></small></figcaption></figure>
+<figure><svg class="pose" viewBox="0 0 360 390" role="img" aria-label="The character rests on a small paper bench, leaning back with one arm supporting its body and a trainer swinging below.">
+<path class="foot-line" d="M94 325q58-2 177 0"/>
+<g class="piece"><path class="stock" d="M100 276q84-3 169 0v10H99Z"/><path d="m112 286-5 35h8l7-35m125 0 8 35h8l-7-35"/></g>
+<g class="rest-foot piece"><path class="stock" d="M229 272q16-5 18 7l-1 26-10 2-3-24Z"/><path class="stock" d="M234 302 246 302 250 311 260 316q2 7-9 7l-19-4Z"/><path class="seam" d="m234 315 24 5"/></g>
+<g class="piece"><path class="stock" d="M212 259q16-13 24-6l16 14-7 8-18-10-9 6Z"/><path class="stock" d="M244 266q10-2 14 7l8 4q3 6-4 7l-19-7Z"/></g>
+<g class="piece"><path class="shorts" d="m187 245 23-2 20 18-12 15-16-7-10 7-20-13Z"/></g>
+<g class="piece"><path class="stock" d="M146 235 132 262l-5 10 12 3 1-7 17-26"/></g>
+<g transform="translate(173 254) rotate(-24) scale(.9)" class="piece"><use href="#shirt"/></g>
+<g class="piece"><path class="stock" d="M191 233q-2 17 13 20l13 1q5 4 0 7l-15-1q-22-3-22-20"/></g>
+<g transform="translate(149 210) rotate(-18)" class="piece"><use href="#head"/></g>
+</svg><figcaption>no hurry.<small></small></figcaption></figure>
+</main><footer><p>a little less detail.<br>a little more room to play.</p><button id="motion" aria-pressed="false">let things rest</button></footer>
+<script>const button=document.querySelector('#motion');const preference=matchMedia('(prefers-reduced-motion: reduce)');let paused=preference.matches;function render(){document.body.classList.toggle('paused',paused);button.setAttribute('aria-pressed',String(paused));button.textContent=paused?'let things move':'let things rest'}button.onclick=()=>{paused=!paused;render()};preference.addEventListener('change',event=>{paused=event.matches;render()});render();</script>
+</body></html>

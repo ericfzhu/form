@@ -24,10 +24,9 @@ struct WorkoutHistoryDetail: View {
                             .foregroundStyle(InkPalette.softInk)
                         Spacer()
                         Text(workout.healthSyncStatus.title.uppercased())
-                            .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 8, weight: .semibold, design: .default))
                             .foregroundStyle(InkPalette.cinnabar)
                     }
-                    InkDivider()
 
                     ForEach(completedExercises) { exercise in
                         if let template = WorkoutCatalog.exercise(for: exercise) {
@@ -98,13 +97,12 @@ private struct HistoryExerciseCard: View {
                     .frame(width: 86, height: 86)
                 VStack(alignment: .leading, spacing: 7) {
                     Text(exercise.name)
-                        .font(AtelierType.script(21))
+                        .font(.system(.body, design: .default))
                     if !records.isEmpty {
                         HStack(spacing: 8) {
                             ForEach(records.prefix(2)) { record in
                                 Text(record.shortTitle)
                                     .font(.caption2.weight(.bold))
-                                    .tracking(0.8)
                                     .foregroundStyle(InkPalette.cinnabar)
                             }
                         }
@@ -113,11 +111,10 @@ private struct HistoryExerciseCard: View {
                 Spacer()
             }
             .padding(.vertical, 11)
-            InkDivider().padding(.horizontal, 14).padding(.vertical, 3)
             ForEach(exercise.sets.sorted { $0.order < $1.order }) { set in
                 HStack {
                     Text(set.kind == .warmup ? "Warm-up" : "Set \(workingSetNumber(for: set))")
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(.body, design: .default))
                         .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
                     Spacer()
                     Text(WorkoutValueFormatter.setText(
@@ -144,7 +141,7 @@ private struct CardioHistoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             Text(entry.kind.title)
-                .font(.system(.headline, design: .monospaced, weight: .semibold))
+                .font(.system(.headline, design: .default, weight: .semibold))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), alignment: .leading)], spacing: 12) {
                 metric("\(WorkoutValueFormatter.decimal(entry.durationMinutes)) min", "TIME")
                 if entry.distanceKilometers > 0 {
@@ -158,7 +155,7 @@ private struct CardioHistoryCard: View {
                 }
             }
         }
-        .padding(16)
+        .padding(.vertical, 12)
         .inkCard()
     }
 
@@ -166,7 +163,6 @@ private struct CardioHistoryCard: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.caption2.weight(.semibold))
-                .tracking(0.9)
                 .foregroundStyle(InkPalette.softInk)
             Text(value).font(.subheadline.monospacedDigit().weight(.semibold))
         }

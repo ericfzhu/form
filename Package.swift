@@ -12,6 +12,8 @@ let package = Package(
             name: "FormCore",
             path: "Form",
             exclude: [
+                "Planning/PlannerStore.swift",
+                "Planning/PlannerViews.swift",
                 "ActiveSessionStore.swift",
                 "ActiveWorkoutView.swift",
                 "AppModelContainer.swift",
@@ -51,11 +53,13 @@ let package = Package(
                 "ProgressComponents.swift"
             ],
             sources: [
+                "Planning/WorkoutPlanning.swift",
                 "ActiveDuration.swift",
                 "HealthDistanceWindowPlanner.swift",
                 "ProgressPeriod.swift",
                 "ProgressionRules.swift"
             ],
+            resources: [.copy("Planning/exercises.json")],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

@@ -13,7 +13,7 @@ struct RestTimer: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("rest")
-                        .font(AtelierType.script(18))
+                        .font(.system(.caption, design: .default))
                         .foregroundStyle(InkPalette.softInk)
                     Text(String(format: "%d:%02d", remaining / 60, remaining % 60))
                         .font(.title3.monospacedDigit().weight(.semibold))
@@ -28,13 +28,11 @@ struct RestTimer: View {
                     .frame(width: 44, height: 44)
                     .accessibilityLabel("Add 30 seconds")
                 Button("Skip", action: cancel)
-                    .font(AtelierType.script(16))
+                    .font(.system(.subheadline, design: .default))
                     .frame(minWidth: 44, minHeight: 44)
             }
             .padding(.horizontal, 16)
             .frame(height: 64)
-            .overlay(alignment: .top) { InkDivider() }
-            .overlay(alignment: .bottom) { InkDivider() }
             .onChange(of: remaining) { _, value in
                 if value == 0 { complete() }
             }

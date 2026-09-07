@@ -28,7 +28,6 @@ struct HistoryConsistencyView: View {
             }
             Text("TWELVE WEEKS")
                 .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .tracking(1.5)
                 .foregroundStyle(InkPalette.softInk.opacity(0.72))
             HStack(alignment: .bottom, spacing: 7) {
                 ForEach(weeklyCounts) { week in
@@ -39,7 +38,6 @@ struct HistoryConsistencyView: View {
         }
         .padding(.horizontal, 7)
         .padding(.bottom, 16)
-        .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
     }
 
     private func weekMark(_ week: WeekCount) -> some View {
@@ -49,13 +47,10 @@ struct HistoryConsistencyView: View {
         let color = week.count > 0
             ? InkPalette.cinnabar
             : InkPalette.washedInk.opacity(0.58)
-        let angle = Double(week.count % 3) - 1
-
         return Rectangle()
             .fill(color)
             .frame(width: 2, height: height)
             .frame(maxWidth: .infinity, alignment: .bottom)
-            .rotationEffect(.degrees(angle))
             .accessibilityLabel(
                 "Week of \(week.id.formatted(date: .abbreviated, time: .omitted)), \(week.count) sessions"
             )

@@ -5,7 +5,7 @@ struct ExerciseIndexView: View {
     @State private var searchText = ""
 
     private var exercises: [ExerciseTemplate] {
-        let all = WorkoutCatalog.routines.flatMap(\.exercises).uniquedByName()
+        let all = WorkoutCatalog.allExercises.uniquedByName()
         guard !searchText.isEmpty else { return all }
         return all.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
@@ -14,39 +14,55 @@ struct ExerciseIndexView: View {
         NavigationStack {
             ZStack {
                 PaperBackground()
-                List(exercises) { exercise in
-                    NavigationLink(value: exercise) {
-                        HStack(spacing: 14) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(exercise.name)
-                                    .font(AtelierType.script(20))
-                                Text(exercise.targetText)
-                                    .font(.system(.caption2, design: .monospaced))
-                                    .foregroundStyle(InkPalette.softInk.opacity(0.8))
-                            }
-                            Spacer()
-                            DemonstrationImage(assetName: exercise.assetName, outlined: false)
-                                .frame(width: 72, height: 64)
-                        }
-                        .padding(.vertical, 8)
-                        .overlay(alignment: .bottom) { InkDivider().opacity(0.36) }
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("exercise progress")
+                            .font(.system(.body, design: .monospaced))
+                        Spacer()
+                        Button("done") { dismiss() }
+                            .font(.system(.subheadline, design: .monospaced))
+                            .frame(minWidth: 52, minHeight: 44, alignment: .trailing)
                     }
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    .padding(.horizontal, 20)
+
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 12))
+                            .foregroundStyle(InkPalette.softInk)
+                        TextField("exercise", text: $searchText)
+                            .font(.system(.body, design: .monospaced))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    .frame(minHeight: 52)
+                    .padding(.horizontal, 20)
+
+                    List(exercises) { exercise in
+                        NavigationLink(value: exercise) {
+                            HStack(spacing: 14) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(exercise.name)
+                                        .font(.system(.body, design: .monospaced))
+                                    Text(exercise.targetText)
+                                        .font(.system(.caption2, design: .monospaced))
+                                        .foregroundStyle(InkPalette.softInk.opacity(0.8))
+                                }
+                                Spacer()
+                                DemonstrationImage(assetName: exercise.assetName, outlined: false)
+                                    .frame(width: 72, height: 64)
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .searchable(text: $searchText, prompt: "Exercise")
             }
-            .navigationTitle("Exercise progress")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ExerciseTemplate.self) {
                 ExerciseProgressView(exercise: $0)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
             }
         }
         .tint(InkPalette.cinnabar)
@@ -105,12 +121,10 @@ struct BackupManagementView: View {
                     Spacer()
                     Text("CHOOSE")
                         .font(.system(.caption, design: .monospaced, weight: .semibold))
-                        .tracking(1.3)
                         .foregroundStyle(InkPalette.cinnabar)
                 }
                 .padding(.horizontal, 15)
                 .frame(minHeight: 72)
-                .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -134,11 +148,9 @@ private func recordAction(
         Spacer(minLength: 12)
         Text(action)
             .font(.system(.caption, design: .monospaced, weight: .semibold))
-            .tracking(1.3)
             .foregroundStyle(InkPalette.cinnabar)
     }
     .padding(.horizontal, 15)
     .frame(minHeight: 72)
-    .overlay(alignment: .bottom) { InkDivider().opacity(0.38) }
     .contentShape(Rectangle())
 }

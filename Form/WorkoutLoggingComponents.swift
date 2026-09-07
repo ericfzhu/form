@@ -10,9 +10,9 @@ struct ActiveWorkoutHeader: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("session in progress")
-                    .font(AtelierType.script(19))
+                    .font(.system(.subheadline, design: .default))
                 Text(progress)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.system(.caption2, design: .default))
                     .foregroundStyle(InkPalette.softInk.opacity(0.76))
                     .monospacedDigit()
             }
@@ -32,8 +32,6 @@ struct ActiveWorkoutHeader: View {
             .accessibilityLabel("Session options")
         }
         .background(InkPalette.paper)
-        .overlay(alignment: .top) { InkDivider() }
-        .overlay(alignment: .bottom) { ClassicalRule() }
     }
 }
 
@@ -55,29 +53,28 @@ struct ExerciseLoggingCard: View {
     var body: some View {
         VStack(spacing: 0) {
             Button(action: toggleExpanded) {
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     DemonstrationImage(assetName: draft.template.assetName)
-                        .frame(width: 64, height: 64)
+                        .frame(width: 52, height: 52)
                     VStack(alignment: .leading, spacing: 6) {
                         Text(draft.template.name)
-                            .font(AtelierType.script(22))
+                            .font(.system(.body, design: .default))
                             .multilineTextAlignment(.leading)
                         Text(draft.template.targetText)
                             .font(.subheadline.monospacedDigit())
                             .foregroundStyle(InkPalette.softInk)
-                        Text(isComplete ? "DONE · \(completedSetCount) SETS" : "\(completedSetCount)/\(draft.template.sets) SETS")
-                            .font(.caption2.weight(.semibold))
-                            .tracking(1)
+                        Text(isComplete ? "done · \(completedSetCount) sets" : "\(completedSetCount)/\(draft.template.sets) sets")
+                            .font(.system(.caption2, design: .default))
                             .foregroundStyle(isComplete ? InkPalette.cinnabar : InkPalette.softInk)
                             .monospacedDigit()
                     }
                     Spacer(minLength: 0)
                     Text(isExpanded ? "−" : "+")
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(.body, design: .default))
                         .foregroundStyle(InkPalette.softInk)
                     .frame(width: 44, height: 44)
                 }
-                .padding(8)
+                .padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -94,18 +91,15 @@ struct ExerciseLoggingCard: View {
                         .padding(.bottom, 8)
                     }
 
-                    InkDivider().padding(.horizontal, 14).padding(.vertical, 5)
-
                     HStack {
-                        Text("TYPE").frame(width: 40, alignment: .leading)
-                        Text(draft.template.recordsLoad ? draft.template.loadLabel : "LOAD")
+                        Text("type").frame(width: 40, alignment: .leading)
+                        Text((draft.template.recordsLoad ? draft.template.loadLabel : "load").lowercased())
                             .frame(maxWidth: .infinity)
-                        Text(draft.template.recordsTime ? "SEC" : "REPS")
+                        Text(draft.template.recordsTime ? "sec" : "reps")
                             .frame(maxWidth: .infinity)
                         Color.clear.frame(width: 52, height: 1)
                     }
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.2)
+                    .font(.system(.caption2, design: .default))
                     .foregroundStyle(InkPalette.softInk)
                     .padding(.horizontal, 14)
                     .padding(.top, 6)
@@ -134,7 +128,6 @@ struct ExerciseLoggingCard: View {
                             .font(AtelierType.script(16))
                             .foregroundStyle(InkPalette.cinnabar)
                             .frame(maxWidth: .infinity, minHeight: 42)
-                            .overlay(alignment: .bottom) { InkDivider() }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .disabled(!canApplyFirstWorkingSet)
@@ -150,7 +143,6 @@ struct ExerciseLoggingCard: View {
                         Text("add another set")
                             .font(AtelierType.script(16))
                             .frame(maxWidth: .infinity, minHeight: 46)
-                            .overlay(alignment: .bottom) { InkDivider() }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -169,7 +161,6 @@ struct ExerciseLoggingCard: View {
                             .font(AtelierType.script(16))
                             .foregroundStyle(InkPalette.cinnabar)
                             .frame(maxWidth: .infinity, minHeight: 42)
-                            .overlay(alignment: .bottom) { InkDivider() }
                     }
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
@@ -178,6 +169,7 @@ struct ExerciseLoggingCard: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .padding(.vertical, 8)
         .inkCard()
     }
 

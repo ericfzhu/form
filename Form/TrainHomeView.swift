@@ -18,7 +18,7 @@ struct RoutineListView: View {
                     HStack {
                         Spacer()
                         Button("settings") { showingSettings = true }
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(.system(.subheadline, design: .default))
                             .foregroundStyle(InkPalette.softInk)
                             .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
                             .buttonStyle(PressableButtonStyle())
@@ -51,7 +51,7 @@ struct RoutineListView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             Text("settings")
-                                .font(AtelierType.script(32))
+                                .font(.system(.title3, design: .default))
                                 .foregroundStyle(InkPalette.ink)
                             Spacer()
                             Button("Done") { showingSettings = false }
@@ -92,8 +92,6 @@ struct RoutineListView: View {
             .frame(minHeight: 52)
             .padding(.horizontal, 12)
 
-            InkDivider()
-
             Toggle(isOn: $keepScreenAwake) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("KEEP SCREEN AWAKE")
@@ -101,7 +99,7 @@ struct RoutineListView: View {
                         .textCase(.lowercase)
                         .foregroundStyle(InkPalette.softInk)
                     Text("While a session is in progress")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.caption, design: .default))
                         .foregroundStyle(InkPalette.softInk.opacity(0.76))
                 }
             }
@@ -119,7 +117,7 @@ private struct CloudIntegrationSection: View {
             FieldSectionTitle(title: "iCloud")
             HStack(spacing: 14) {
                 Text(detail)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.system(.caption, design: .default))
                     .foregroundStyle(InkPalette.softInk.opacity(0.8))
                 Spacer()
                 Text(status.lowercased())
@@ -128,7 +126,6 @@ private struct CloudIntegrationSection: View {
             }
             .padding(.horizontal, 7)
             .frame(minHeight: 58)
-            .overlay(alignment: .bottom) { InkDivider() }
         }
     }
 
@@ -156,7 +153,7 @@ private struct HealthIntegrationSection: View {
             FieldSectionTitle(title: "Apple Health")
             HStack(alignment: .center, spacing: 14) {
                 Text(detail)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.system(.caption, design: .default))
                     .foregroundStyle(InkPalette.softInk.opacity(0.8))
                 Spacer(minLength: 12)
                 Button(actionTitle) { performAction() }
@@ -168,12 +165,10 @@ private struct HealthIntegrationSection: View {
             }
             .padding(.horizontal, 7)
             .frame(minHeight: 58)
-            .overlay(alignment: .bottom) { InkDivider() }
 
             if let errorMessage = health.errorMessage ?? healthSync.lastError {
-                InkDivider()
                 Text(errorMessage)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.system(.caption2, design: .default))
                     .foregroundStyle(InkPalette.cinnabar)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
@@ -227,7 +222,7 @@ private struct RoutineThreadRow: View {
 
     var body: some View {
         Text(routine.name)
-            .font(.system(size: 25, weight: .regular, design: .monospaced))
+            .font(.system(size: 25, weight: .regular, design: .default))
             .foregroundStyle(InkPalette.ink)
             .frame(maxWidth: .infinity, minHeight: 88, alignment: .center)
         .contentShape(Rectangle())

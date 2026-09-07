@@ -1,166 +1,40 @@
 import SwiftData
 import SwiftUI
 
-private enum AppTab: CaseIterable, Hashable {
-    case train
-    case history
-
-    var title: String { self == .train ? "training" : "record" }
-}
+private enum AppTab: Hashable { case plan, gym, record }
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("did-see-training-introduction") private var didSeeIntroduction = false
-    @State private var selection: AppTab = .train
-    @State private var trainPath = NavigationPath()
-    @State private var historyPath = NavigationPath()
-    @State private var showingIntroduction = false
-
-    private var isFooterVisible: Bool {
-        selection == .train ? trainPath.isEmpty : historyPath.isEmpty
-    }
+    @StateObject private var planner = PlannerStore()
+    @State private var selection: AppTab = .plan
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                PaperBackground()
-                VStack(spacing: 0) {
-                    ZStack {
-                        NavigationStack(path: $trainPath) {
-                            RoutineListView()
-                                .navigationDestination(for: RoutineTemplate.self) {
-                                    RoutineDetailView(routine: $0)
-                                }
-                                .navigationDestination(for: ExerciseTemplate.self) {
-                                    ExerciseProgressView(exercise: $0)
-                                }
-                        }
-                        .opacity(selection == .train ? 1 : 0)
-                        .allowsHitTesting(selection == .train)
-                        .accessibilityHidden(selection != .train)
-                        .zIndex(selection == .train ? 1 : 0)
-
-                        NavigationStack(path: $historyPath) {
-                            HistoryView { historyPath.append($0) }
-                                .navigationDestination(for: ExerciseTemplate.self) {
-                                    ExerciseProgressView(exercise: $0)
-                                }
-                                .navigationDestination(for: WorkoutRecord.self) {
-                                    WorkoutHistoryDetail(workout: $0)
-                                }
-                        }
-                        .opacity(selection == .history ? 1 : 0)
-                        .allowsHitTesting(selection == .history)
-                        .accessibilityHidden(selection != .history)
-                        .zIndex(selection == .history ? 1 : 0)
-                    }
-
-                    if isFooterVisible {
-                        InkTabBar(selection: $selection)
-                            .background {
-                                InkPalette.paper.ignoresSafeArea(edges: .bottom)
-                            }
-                    }
-                }
-
-                PaperSurface()
-                    .frame(height: proxy.safeAreaInsets.top)
-                    .frame(maxHeight: .infinity, alignment: .top)
-                    .ignoresSafeArea(edges: .top)
-                    .allowsHitTesting(false)
-            }
-            .tint(InkPalette.ink)
-            .environment(\.font, .system(.body, design: .monospaced))
-            .transaction { transaction in
-                if reduceMotion { transaction.animation = nil }
-            }
+        TabView(selection: $selection) {
+            NavigationStack {
+                PlanHomeView { selection = .gym }
+                    .navigationDestination(for: RoutineTemplate.self) { RoutineDetailView(routine: $0) }
+                    .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
+            }.tabItem { Label("Plan", systemImage: "rectangle.stack") }.tag(AppTab.plan)
+            NavigationStack {
+                GymProfileView { selection = .plan }
+            }.tabItem { Label("My gym", systemImage: "building.2") }.tag(AppTab.gym)
+            NavigationStack {
+                HistoryNavigationView()
+                    .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
+                    .navigationDestination(for: WorkoutRecord.self) { WorkoutHistoryDetail(workout: $0) }
+            }.tabItem { Label("Record", systemImage: "clock.arrow.circlepath") }.tag(AppTab.record)
         }
-        .task {
-            try? WorkoutDataMigration.backfillLegacyRecords(in: modelContext)
-            if !didSeeIntroduction { showingIntroduction = true }
-        }
-        .sheet(isPresented: $showingIntroduction, onDismiss: {
-            didSeeIntroduction = true
-        }) {
-            TrainingIntroductionView {
-                didSeeIntroduction = true
-                showingIntroduction = false
-            }
-        }
+        .environmentObject(planner)
+        .tint(InkPalette.ink)
+        .environment(\.font, .system(.body))
+        .task { try? WorkoutDataMigration.backfillLegacyRecords(in: modelContext) }
     }
 }
 
-private struct TrainingIntroductionView: View {
-    let done: () -> Void
-
+private struct HistoryNavigationView: View {
+    @State private var selectedWorkout: WorkoutRecord?
     var body: some View {
-        ZStack {
-            PaperBackground()
-            VStack(alignment: .leading, spacing: 0) {
-                RawScreenTitle(index: "00", title: "Begin")
-                VStack(spacing: 0) {
-                    row("I", "Follow the rotation", "Form keeps your place across Workouts A, B and C.")
-                    row("II", "Record each completed set", "Your last load and repetitions return when the movement comes again.")
-                    row("III", "Leave and return safely", "Close a session whenever needed. Your work, timer and Live Activity remain preserved.")
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                Spacer(minLength: 24)
-                InkPrimaryButton(title: "Continue", action: done).padding(20)
-            }
-        }
-        .presentationDetents([.large])
-    }
-
-    private func row(_ index: String, _ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            Text(index)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(InkPalette.softInk)
-                .frame(width: 30, alignment: .leading)
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(AtelierType.script(20))
-                Text(detail)
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(InkPalette.softInk)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 18)
-        .overlay(alignment: .bottom) { InkDivider() }
-    }
-}
-
-private struct InkTabBar: View {
-    @Binding var selection: AppTab
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(AppTab.allCases, id: \.self) { tab in
-                Button {
-                    withAnimation(.easeOut(duration: 0.24)) { selection = tab }
-                } label: {
-                    Text(tab.title)
-                    .font(AtelierType.script(17))
-                    .foregroundStyle(selection == tab ? InkPalette.ink : InkPalette.softInk.opacity(0.74))
-                    .frame(maxWidth: .infinity, minHeight: 56)
-                    .background(InkPalette.paper)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityAddTraits(selection == tab ? .isSelected : [])
-                .overlay(alignment: .top) {
-                    if selection == tab {
-                        Rectangle()
-                            .fill(InkPalette.ink)
-                            .frame(width: 32, height: 1)
-                    }
-                }
-            }
-        }
-        .overlay(alignment: .top) { InkDivider().opacity(0.42) }
+        HistoryView { selectedWorkout = $0 }
+            .navigationDestination(item: $selectedWorkout) { WorkoutHistoryDetail(workout: $0) }
     }
 }

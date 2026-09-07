@@ -1,13 +1,25 @@
 import SwiftUI
 
 struct CardioLoggingSection: View {
+    @EnvironmentObject private var planner: PlannerStore
+    private var availableKinds: [CardioKind] {
+        CardioKind.allCases.filter { kind in
+            switch kind {
+            case .treadmillWalk, .treadmillRun: planner.profile.equipment.contains(.treadmill)
+            case .cycling: planner.profile.equipment.contains(.bike)
+            case .elliptical: planner.profile.equipment.contains(.elliptical)
+            case .rowing: planner.profile.equipment.contains(.rower)
+            case .other: true
+            }
+        }
+    }
     @Binding var entries: [CardioDraft]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("cardio")
-                    .font(AtelierType.script(21))
+                    .font(.system(.body, design: .default))
                     .foregroundStyle(InkPalette.ink)
                 Spacer()
                 if !entries.isEmpty {
@@ -18,7 +30,7 @@ struct CardioLoggingSection: View {
             }
 
             ForEach($entries) { $entry in
-                CardioEntryEditor(entry: $entry) {
+                CardioEntryEditor(entry: $entry, availableKinds: availableKinds) {
                     withAnimation(.easeOut(duration: 0.18)) {
                         entries.removeAll { $0.id == entry.id }
                     }
@@ -27,7 +39,7 @@ struct CardioLoggingSection: View {
 
             Button {
                 withAnimation(.easeOut(duration: 0.18)) {
-                    entries.append(CardioDraft())
+                    entries.append(CardioDraft(kind: availableKinds.first ?? .other, durationMinutes: 0, averageSpeed: 0, incline: 0))
                 }
             } label: {
                 HStack(spacing: 8) {
@@ -36,8 +48,6 @@ struct CardioLoggingSection: View {
                 .font(AtelierType.script(17))
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .overlay(alignment: .top) { InkDivider() }
-                .overlay(alignment: .bottom) { InkDivider() }
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -46,19 +56,20 @@ struct CardioLoggingSection: View {
 
 struct CardioEntryEditor: View {
     @Binding var entry: CardioDraft
+    var availableKinds: [CardioKind] = CardioKind.allCases
     let delete: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 Picker("Cardio type", selection: $entry.kind) {
-                    ForEach(CardioKind.allCases) { kind in
+                    ForEach(CardioKind.allCases.filter { availableKinds.contains($0) || $0 == entry.kind }) { kind in
                         Text(kind.title).tag(kind)
                     }
                 }
                 .pickerStyle(.menu)
                 .tint(InkPalette.ink)
-                .font(AtelierType.script(19))
+                .font(.system(.body, design: .default))
                 Spacer()
                 Button(action: delete) {
                     Image(systemName: "trash")
@@ -94,7 +105,6 @@ struct CardioEntryEditor: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label)
                 .font(.caption2.weight(.semibold))
-                .tracking(1)
                 .foregroundStyle(InkPalette.softInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

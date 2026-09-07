@@ -11,7 +11,7 @@ final class ActiveSessionStore {
         let snapshot: ActiveWorkoutSnapshot
     }
 
-    private let schemaVersion = 2
+    private let schemaVersion = 3
     private let legacyDefaultsKey = "active-workout-snapshot-v1"
     private let fileURL: URL
     private let lock = NSLock()

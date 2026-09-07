@@ -8,15 +8,13 @@ struct LastPerformanceSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text("LAST · \(performance.date.formatted(.dateTime.day().month(.abbreviated)).uppercased())")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.2)
+                Text("last · \(performance.date.formatted(.dateTime.day().month(.abbreviated)).lowercased())")
+                    .font(.system(.caption2, design: .default))
                     .foregroundStyle(InkPalette.softInk)
                 Spacer()
                 if let recommendation {
-                    Text(recommendation.title.uppercased())
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.1)
+                    Text(recommendation.title.lowercased())
+                        .font(.system(.caption2, design: .default))
                         .foregroundStyle(InkPalette.cinnabar)
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
@@ -68,10 +66,9 @@ struct SetLoggingRow: View {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 7, weight: .bold))
                 }
-                .font(.system(.body, design: .monospaced, weight: .semibold))
+                .font(.system(.body, design: .default, weight: .semibold))
                 .foregroundStyle(set.kind == .warmup ? InkPalette.plum : InkPalette.softInk)
                 .frame(width: 40, height: 44)
-                .overlay(alignment: .bottom) { InkDivider() }
             }
             .tint(InkPalette.ink)
             .accessibilityLabel("Set type: \(set.kind.title)")
@@ -88,12 +85,11 @@ struct SetLoggingRow: View {
                         value: .load
                     ))
             } else {
-                Text("BODY")
-                    .font(.caption.weight(.semibold))
+                Text("body")
+                    .font(.system(.caption, design: .default))
                     .foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
-                    .overlay(alignment: .bottom) { InkDivider() }
             }
 
             TextField("0", value: $set.repetitions, format: .number)
@@ -124,9 +120,6 @@ struct SetLoggingRow: View {
             .accessibilityLabel(set.completed ? "Mark incomplete" : "Mark complete")
         }
         .padding(.vertical, 2)
-        .overlay(alignment: .bottom) {
-            InkDivider()
-        }
     }
 }
 

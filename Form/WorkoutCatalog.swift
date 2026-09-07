@@ -1,6 +1,6 @@
 import Foundation
 
-struct ExerciseTemplate: Identifiable, Hashable {
+struct ExerciseTemplate: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let assetName: String
@@ -10,7 +10,7 @@ struct ExerciseTemplate: Identifiable, Hashable {
     let measurement: Measurement
     let restSeconds: Int
 
-    enum Measurement: Hashable {
+    enum Measurement: String, Hashable, Codable {
         case weighted
         case weightedTimed
         case bodyweight
@@ -42,7 +42,7 @@ struct ExerciseTemplate: Identifiable, Hashable {
         [
             "chest-press", "romanian-deadlift", "incline-press",
             "split-squat", "chest-supported-row", "shoulder-press",
-            "farmer-carry"
+            "farmer-carry", "dumbbell-row"
         ].contains(id)
     }
 
@@ -60,7 +60,7 @@ struct ExerciseTemplate: Identifiable, Hashable {
     }
 }
 
-struct RoutineTemplate: Identifiable, Hashable {
+struct RoutineTemplate: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let focus: String
@@ -203,12 +203,27 @@ enum WorkoutCatalog {
         )
     ]
 
+    static var allExercises: [ExerciseTemplate] {
+        var seen = Set<String>()
+        return (routines.flatMap(\.exercises) + PlanningCatalog.exercises.compactMap { exercise(id: $0.id) })
+            .filter { seen.insert($0.id).inserted }
+    }
+
     static func exercise(named name: String) -> ExerciseTemplate? {
         routines.flatMap(\.exercises).first { $0.name == name }
     }
 
     static func exercise(id: String) -> ExerciseTemplate? {
-        routines.flatMap(\.exercises).first { $0.id == id }
+        routines.flatMap(\.exercises).first { $0.id == id } ?? planningExercise(id: id)
+    }
+
+    private static func planningExercise(id: String) -> ExerciseTemplate? {
+        guard let item = PlanningCatalog.exercises.first(where: { $0.id == id }) else { return nil }
+        return ExerciseTemplate(id: item.id, name: item.name, assetName: item.id, sets: 2,
+            minimumRepetitions: item.measurement == "timed" ? 30 : 8,
+            maximumRepetitions: item.measurement == "timed" ? 45 : 12,
+            measurement: ExerciseTemplate.Measurement(rawValue: item.measurement) ?? .weighted,
+            restSeconds: 90)
     }
 
     static func exercise(for record: ExerciseRecord) -> ExerciseTemplate? {

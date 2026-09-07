@@ -6,10 +6,17 @@ struct DemonstrationImage: View {
     var outlined = true
 
     var body: some View {
-        Image(assetName)
-            .resizable()
-            .scaledToFit()
-            .accessibilityLabel("Illustration demonstrating the exercise")
+        Group {
+            if UIImage(named: assetName) != nil {
+                Image(assetName).resizable().scaledToFit()
+                    .accessibilityLabel("Exercise illustration")
+            } else {
+                Image(systemName: "figure.strengthtraining.functional")
+                    .resizable().scaledToFit().padding(12)
+                    .foregroundStyle(InkPalette.ink)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 

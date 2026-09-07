@@ -122,6 +122,7 @@ final class WorkoutSessionState {
 
     var snapshot: ActiveWorkoutSnapshot {
         ActiveWorkoutSnapshot(
+            routineTemplate: routine,
             sessionID: sessionID,
             routineID: routine.id,
             startedAt: startedAt,
