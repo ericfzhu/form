@@ -111,7 +111,7 @@ struct RoutineListView: View {
 
 }
 
-private struct CloudIntegrationSection: View {
+struct CloudIntegrationSection: View {
     var body: some View {
         VStack(spacing: 0) {
             FieldSectionTitle(title: "iCloud")
@@ -144,7 +144,7 @@ private struct CloudIntegrationSection: View {
     }
 }
 
-private struct HealthIntegrationSection: View {
+struct HealthIntegrationSection: View {
     @ObservedObject var health: HealthKitService
     @ObservedObject var healthSync: HealthSyncCoordinator
 
@@ -226,5 +226,107 @@ private struct RoutineThreadRow: View {
             .foregroundStyle(InkPalette.ink)
             .frame(maxWidth: .infinity, minHeight: 88, alignment: .center)
         .contentShape(Rectangle())
+    }
+}
+
+
+struct TodayView: View {
+    @Query(sort: \WorkoutRecord.date, order: .reverse) private var history: [WorkoutRecord]
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var snapshot: ActiveWorkoutSnapshot?
+    @State private var presentedRoutine: RoutineTemplate?
+    @State private var showingRoutine = false
+    @State private var showingSettings = false
+
+    private var next: RoutineTemplate {
+        snapshot?.resolvedRoutine ?? FormRoutine.next(after: history.first(where: {
+            FormRoutine.sessions.map(\.id).contains($0.routineID)
+        })?.routineID)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("form.").font(AtelierType.script(30))
+                    Spacer()
+                    Button { showingSettings = true } label: {
+                        Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                    }.accessibilityLabel("Settings")
+                }
+                Text("a little\nmovement.").font(AtelierType.script(46)).lineSpacing(-5)
+                Text("good to see you.").font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                PaperVignette(name: "arrive", height: 220)
+                Text(snapshot == nil ? "UP NEXT" : "PICK UP WHERE YOU LEFT OFF")
+                    .font(.caption2).tracking(2).foregroundStyle(InkPalette.softInk)
+                Text("A full-body session").font(.title3)
+                Text(next.focus).font(.subheadline).foregroundStyle(InkPalette.softInk)
+                Text("About 45 minutes, all together.").font(.caption).foregroundStyle(InkPalette.softInk)
+                InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
+                    presentedRoutine = next
+                }.padding(.top, 12)
+                Button("View routine") { showingRoutine = true }
+                    .font(AtelierType.script(20)).frame(maxWidth: .infinity, minHeight: 44)
+            }.padding(.horizontal, 28).padding(.bottom, 20)
+        }
+        .background(PaperBackground())
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear { snapshot = ActiveWorkoutStore.load() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { snapshot = ActiveWorkoutStore.load() }
+        }
+        .fullScreenCover(item: $presentedRoutine, onDismiss: { snapshot = ActiveWorkoutStore.load() }) { routine in
+            ActiveWorkoutView(routine: routine, snapshot: snapshot)
+        }
+        .sheet(isPresented: $showingRoutine) {
+            NavigationStack {
+                List {
+                    ForEach(FormRoutine.sessions) { routine in
+                        Section(routine.name) {
+                            ForEach(routine.exercises) { exercise in
+                                HStack {
+                                    DemonstrationImage(assetName: exercise.id).frame(width: 64, height: 56)
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(exercise.name)
+                                        Text(exercise.targetText + (exercise.id == "reverse-lunge" ? " / side" : ""))
+                                            .font(.caption).foregroundStyle(InkPalette.softInk)
+                                    }
+                                }
+                            }
+                            Text("Then, a 15 min treadmill walk.").font(AtelierType.script(20))
+                        }
+                    }
+                }.scrollContentBackground(.hidden).background(.white)
+                    .navigationTitle("The routine").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { Button("Done") { showingRoutine = false } }
+            }
+        }
+        .sheet(isPresented: $showingSettings) { FormSettingsView() }
+    }
+}
+
+struct FormSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("progression-load-increment") private var loadIncrement = 2.5
+    @AppStorage("keep-screen-awake") private var keepScreenAwake = true
+    @StateObject private var health = HealthKitService.shared
+    @StateObject private var sync = HealthSyncCoordinator.shared
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Preferences") {
+                    Picker("Load increment", selection: $loadIncrement) {
+                        ForEach([1.0, 1.25, 2, 2.5, 5], id: \.self) { value in
+                            Text("\(WorkoutValueFormatter.decimal(value)) kg").tag(value)
+                        }
+                    }
+                    Toggle("Keep screen awake during sessions", isOn: $keepScreenAwake)
+                }
+                CloudIntegrationSection()
+                HealthIntegrationSection(health: health, healthSync: sync)
+            }.scrollContentBackground(.hidden).background(.white)
+                .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
+                .toolbar { Button("Done") { dismiss() } }
+        }
     }
 }

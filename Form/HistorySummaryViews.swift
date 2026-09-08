@@ -7,10 +7,10 @@ struct EmptyHistoryView: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            DemonstrationImage(assetName: "plank", outlined: false)
+            DemonstrationImage(assetName: "pages", outlined: false)
                 .frame(width: 230, height: 180)
-            Text("No sessions recorded")
-                .font(.system(.title3, design: .default))
+            Text("little by little.")
+                .font(AtelierType.script(38))
             Text("Completed sessions will appear here.")
                 .font(.system(.body, design: .default))
                 .foregroundStyle(InkPalette.softInk)
@@ -27,39 +27,21 @@ struct HistoryCard: View {
     let workout: WorkoutRecord
 
     var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(workout.date.formatted(.dateTime.day().month(.abbreviated).year()))
-                    .font(.system(size: 9, weight: .medium, design: .default))
-                    .foregroundStyle(InkPalette.mineral)
-                    .textCase(.uppercase)
-                Text(workout.displayName)
-                    .font(.system(.body, design: .default))
-                    .foregroundStyle(InkPalette.ink)
-                Text(detailText)
-                    .font(.system(.caption2, design: .default))
-                    .foregroundStyle(InkPalette.softInk.opacity(0.8))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                if workout.healthSyncStatus == .failed || workout.healthSyncStatus == .pending {
-                    Text(workout.healthSyncStatus.title.uppercased())
-                        .font(.system(size: 8, weight: .semibold, design: .default))
-                        .foregroundStyle(InkPalette.cinnabar)
-                }
+        HStack(spacing: 20) {
+            VStack(spacing: 4) {
+                Text(workout.date.formatted(.dateTime.day())).font(.system(size: 28, weight: .light))
+                Text(workout.date.formatted(.dateTime.month(.abbreviated))).font(.caption2)
+            }.frame(width: 40)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(workout.displayName).font(.body)
+                Text(detailText).font(.caption).foregroundStyle(InkPalette.softInk)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let assetName = workout.exercises.sorted(by: { $0.order < $1.order }).first?.assetName,
-               !assetName.isEmpty {
-                DemonstrationImage(assetName: assetName, outlined: false)
-                    .frame(width: 78, height: 78)
-            }
-        }
-        .padding(.leading, 7)
-        .padding(.trailing, 3)
-        .padding(.vertical, 10)
-        .frame(minHeight: 106)
-        .contentShape(Rectangle())
+            Spacer(minLength: 0)
+            Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(InkPalette.softInk)
+        }.foregroundStyle(InkPalette.ink)
+            .padding(.vertical, 22)
+            .overlay(alignment: .bottom) { InkDivider() }
+            .contentShape(Rectangle())
     }
 
     private var detailText: String {

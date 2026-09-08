@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="460" viewBox="0 0 360 230" role="img" aria-label="Lat pulldown — a seated character pulls a wide cable bar toward the upper chest beneath an overhead pulley."><style>.paper{fill:#fff}.blue{fill:#97acc8}.gray{fill:#b6bfc1}.seam{stroke-width:.8;stroke-opacity:.4;fill:none}.ground{stroke:#b6bfc1;stroke-width:1;fill:none}.piece{filter:url(#edge)}path,ellipse,circle{vector-effect:non-scaling-stroke}</style><defs><filter id="edge" x="-30%" y="-30%" width="170%" height="180%"><feDropShadow dx="1.3" dy="2" stdDeviation="1" flood-color="#051230" flood-opacity=".13"/></filter><g id="head"><path class="paper" d="M-10-5C-15-14-7-23 3-22 15-22 18-12 11-5 5 1-4 1-10-5Z"/><path d="m4-14 .2 .6m6 0 .2 .6"/></g><g id="disc"><path class="blue" d="M-10-1C-11-19-6-31 1-30 9-30 12-17 12 0 13 18 8 30 0 30-7 30-11 17-10-1Z"/><path class="seam" d="M2-23Q10-1 2 23"/></g><g id="stack"><path class="paper" d="M-14-36 13-36 15 33-15 33Z"/><path class="seam" d="M-13-25h27m-27 11h27m-27 11h27m-27 11h27m-27 11h27"/><path d="M0-42v77" class="seam"/></g></defs><g stroke="#051230" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" fill="none"><path class="ground" d="M58 202q100-3 242 0"/><path d="M111 198V37h148v162m-8-162v161" class="ground"/><g transform="translate(123 143)" class="piece"><use href="#stack"/></g><circle cx="212" cy="39" r="6" class="paper"/><path d="m127 99 1-57 79-3m6 7v75"/><g class="piece"><path class="paper" d="M155 158Q190 156 230 158v8h-76Z"/><path d="m165 167-4 31m60-31 7 31"/>
+<!-- Rounded seated legs and small feet, without the old zig-zag intersections. -->
+<path class="paper" d="M178 151Q194 149 202 158C207 163 204 181 208 190L215 194Q222 201 210 201L199 197Q195 193 194 181L191 169 175 166Z"/>
+<path class="paper" d="M194 151Q215 151 219 162L224 189 233 193Q240 199 228 200L216 195Q211 192 209 178L207 170 188 166Z"/>
+<path class="paper" d="M173 128Q164 139 157 139 151 136 148 125Q145 119 140 123C136 126 143 145 151 149 159 153 171 147 180 138Z"/>
+<path class="paper" d="M197 128Q203 137 212 138 218 135 222 124Q226 119 230 123C234 128 226 145 218 150 209 153 199 146 192 138Z"/>
+<path class="paper" d="M174 118C163 123 161 136 165 149 168 160 182 165 195 161 209 158 212 146 206 134 202 123 193 116 184 116Z"/>
+<path class="blue" d="M181 157Q196 155 215 158Q219 161 215 165L182 165Q177 162 181 157Z"/>
+</g>
+<path d="m136 128 14-8 67 1 18 9" stroke-width="2.6"/>
+<g class="piece" transform="translate(185 116) rotate(4)"><use href="#head"/></g>
+</g></svg>

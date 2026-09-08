@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+    @State private var showingSettings = false
     @State private var saveErrorMessage: String?
     @State private var selectedSection: HistorySection = .sessions
     @State private var showingExerciseIndex = false
@@ -23,26 +24,10 @@ struct HistoryView: View {
                 }
             } else {
                 List {
-                    HistorySectionControl(selection: $selectedSection)
-                        .historyRow(top: 18, bottom: 12)
-
-                    Button { showingExerciseIndex = true } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundStyle(InkPalette.softInk)
-                            Text("Find exercise progress")
-                                .font(AtelierType.script(20))
-                                .foregroundStyle(InkPalette.ink)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 7)
-                        .frame(minHeight: 58)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PressableButtonStyle())
-                    .historyRow(bottom: 16)
-
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("little by little.").font(AtelierType.script(40))
+                        Text("a few days of showing up.").font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                    }.historyRow(top: 12, bottom: 12)
                     if selectedSection == .overview {
                         HistoryWeeklySummary(workouts: workouts)
                             .historyRow(bottom: 18)
@@ -77,6 +62,7 @@ struct HistoryView: View {
                             }
                         }
                         .listRowBackground(Color.clear)
+                        PaperVignette(name: "pages", height: 190).historyRow(bottom: 12)
                     }
                 }
                 .listStyle(.plain)
@@ -84,6 +70,23 @@ struct HistoryView: View {
                 .contentMargins(.bottom, 18, for: .scrollContent)
             }
         }
+        .safeAreaInset(edge: .top) {
+            HStack {
+                Text("form.").font(AtelierType.script(30))
+                Spacer()
+                Menu {
+                    Button("Sessions") { selectedSection = .sessions }
+                    Button("Overview") { selectedSection = .overview }
+                    Button("Exercise progress") { showingExerciseIndex = true }
+                    Button("Restore a backup") { showingBackupImporter = true }
+                } label: { Image(systemName: "ellipsis").frame(width: 44, height: 44) }
+                    .accessibilityLabel("History options")
+                Button { showingSettings = true } label: {
+                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                }.accessibilityLabel("Settings")
+            }.padding(.horizontal, 28).background(.white)
+        }
+        .sheet(isPresented: $showingSettings) { FormSettingsView() }
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showingExerciseIndex) { ExerciseIndexView() }
         .fileImporter(

@@ -12,7 +12,7 @@ struct RestTimer: View {
             let remaining = max(0, Int(end.timeIntervalSince(context.date).rounded(.up)))
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("rest")
+                    Text(remaining == 0 ? "ready when you are" : "rest")
                         .font(.system(.caption, design: .default))
                         .foregroundStyle(InkPalette.softInk)
                     Text(String(format: "%d:%02d", remaining / 60, remaining % 60))
@@ -27,7 +27,7 @@ struct RestTimer: View {
                     .font(.caption.monospacedDigit().weight(.semibold))
                     .frame(width: 44, height: 44)
                     .accessibilityLabel("Add 30 seconds")
-                Button("Skip", action: cancel)
+                Button(remaining == 0 ? "Continue" : "Skip", action: cancel)
                     .font(.system(.subheadline, design: .default))
                     .frame(minWidth: 44, minHeight: 44)
             }

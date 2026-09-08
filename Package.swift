@@ -12,6 +12,7 @@ let package = Package(
             name: "FormCore",
             path: "Form",
             exclude: [
+                "Info.plist",
                 "Planning/PlannerStore.swift",
                 "Planning/PlannerViews.swift",
                 "ActiveSessionStore.swift",
@@ -55,6 +56,7 @@ let package = Package(
             sources: [
                 "Planning/WorkoutPlanning.swift",
                 "ActiveDuration.swift",
+                "LiveWorkoutState.swift",
                 "HealthDistanceWindowPlanner.swift",
                 "ProgressPeriod.swift",
                 "ProgressionRules.swift"

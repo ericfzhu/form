@@ -1,0 +1,54 @@
+{
+  "squat": {
+    "src": "/brand/mobile/squat.svg",
+    "label": "Barbell back squat \u2014 a rounded paper character squatting inside a power rack."
+  },
+  "bench-press": {
+    "src": "/brand/mobile/bench-press.svg",
+    "label": "Barbell bench press \u2014 a paper character lying on a flat bench with a barbell above the chest."
+  },
+  "seated-row": {
+    "src": "/brand/mobile/seated-row.svg",
+    "label": "Seated cable row \u2014 a seated character pulls a cable handle toward the torso with feet braced on a footplate."
+  },
+  "leg-curl": {
+    "src": "/brand/mobile/leg-curl.svg",
+    "label": "Seated leg curl \u2014 a paper character seated with a thigh restraint and lower-leg roller on a plate-loaded machine."
+  },
+  "rdl": {
+    "src": "/brand/mobile/rdl.svg",
+    "label": "Barbell Romanian deadlift \u2014 a character hinges at the hips, holding the bar close to the lower legs."
+  },
+  "incline-press": {
+    "src": "/brand/mobile/incline-press.svg",
+    "label": "Incline barbell press \u2014 a paper character on an inclined bench holding a bar above the upper chest."
+  },
+  "pulldown": {
+    "src": "/brand/mobile/pulldown.svg",
+    "label": "Lat pulldown \u2014 a seated character pulls a wide cable bar toward the upper chest beneath an overhead pulley."
+  },
+  "reverse-lunge": {
+    "src": "/brand/mobile/reverse-lunge.svg",
+    "label": "Reverse lunge \u2014 a rounded paper character steps one leg back and lowers the rear knee toward the floor."
+  },
+  "arrive": {
+    "src": "/brand/mobile/arrive.svg",
+    "label": "A small paper character arrives carrying a gym bag and a folded blue towel."
+  },
+  "pause": {
+    "src": "/brand/mobile/pause.svg",
+    "label": "A little paper character sits on a gym bench with legs dangling, a folded towel beside it."
+  },
+  "walk": {
+    "src": "/brand/mobile/walk.svg",
+    "label": "A small paper character walks on a gently inclined treadmill."
+  },
+  "finished": {
+    "src": "/brand/mobile/finished.svg",
+    "label": "A paper character hangs a blue gym towel on a peg after training."
+  },
+  "pages": {
+    "src": "/brand/mobile/pages.svg",
+    "label": "A little character turns a page in an oversized folded exercise journal."
+  }
+}

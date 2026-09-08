@@ -6,17 +6,9 @@ struct DemonstrationImage: View {
     var outlined = true
 
     var body: some View {
-        Group {
-            if UIImage(named: assetName) != nil {
-                Image(assetName).resizable().scaledToFit()
-                    .accessibilityLabel("Exercise illustration")
-            } else {
-                Image(systemName: "figure.strengthtraining.functional")
-                    .resizable().scaledToFit().padding(12)
-                    .foregroundStyle(InkPalette.ink)
-                    .accessibilityHidden(true)
-            }
-        }
+        Image("paper-" + PaperArtwork.name(for: assetName))
+            .resizable().scaledToFit()
+            .accessibilityHidden(true)
     }
 }
 
@@ -163,5 +155,37 @@ final class NavigationResolverView: UIView {
                 responder = current.next
             }
         }
+    }
+}
+
+
+enum PaperArtwork {
+    static func name(for id: String) -> String {
+        switch id {
+        case "barbell-back-squat", "bodyweight-squat", "squat": "squat"
+        case "barbell-bench-press", "bench-press": "bench-press"
+        case "seated-row": "seated-row"
+        case "leg-curl": "leg-curl"
+        case "barbell-romanian-deadlift", "romanian-deadlift", "rdl": "rdl"
+        case "barbell-incline-press", "incline-press": "incline-press"
+        case "lat-pulldown", "underhand-lat-pulldown", "pulldown": "pulldown"
+        case "reverse-lunge", "split-squat": "reverse-lunge"
+        case "arrive", "pause", "walk", "finished", "pages": id
+        default: "pages"
+        }
+    }
+}
+
+struct PaperVignette: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var settled = false
+    let name: String
+    var height: CGFloat = 220
+    var body: some View {
+        DemonstrationImage(assetName: name)
+            .frame(maxWidth: .infinity).frame(height: height)
+            .offset(y: reduceMotion || !["arrive", "pause", "finished"].contains(name) ? 0 : (settled ? 0 : 3))
+            .animation(reduceMotion ? nil : .easeInOut(duration: 1.8), value: settled)
+            .onAppear { settled = true }
     }
 }

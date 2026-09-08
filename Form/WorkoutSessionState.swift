@@ -39,6 +39,7 @@ final class WorkoutSessionState {
 
     var drafts: [ExerciseDraft]
     var cardioDrafts: [CardioDraft]
+    var timedWalk: TimedWalk?
     var restEnd: Date?
     var expandedExerciseID: String?
 
@@ -55,8 +56,8 @@ final class WorkoutSessionState {
         sessionID = validSnapshot?.sessionID ?? UUID()
         startedAt = validSnapshot?.startedAt ?? now
         duration = ActiveDurationAccumulator(
-            accumulated: max(0, validSnapshot?.activeDuration ?? 0),
-            segmentStartedAt: now
+            accumulated: validSnapshot?.sessionTimerStartedAt == nil ? max(0, validSnapshot?.activeDuration ?? 0) : 0,
+            segmentStartedAt: validSnapshot?.sessionTimerStartedAt ?? now
         )
         drafts = routine.exercises.map { exercise in
             let savedSets = validSnapshot?.exercises
@@ -89,9 +90,11 @@ final class WorkoutSessionState {
                 incline: $0.incline
             )
         } ?? []
-        expandedExerciseID = validSnapshot?.expandedExerciseID
-            ?? routine.exercises.first?.id
-        restEnd = validSnapshot?.restEnd.flatMap { $0 > now ? $0 : nil }
+        expandedExerciseID = validSnapshot == nil ? routine.exercises.first?.id : validSnapshot?.expandedExerciseID
+        restEnd = validSnapshot?.restEnd
+        timedWalk = validSnapshot?.timedWalk
+        timedWalk?.resume(at: now)
+        if timedWalk != nil { expandedExerciseID = nil }
     }
 
     var elapsedActiveDuration: TimeInterval {
@@ -112,6 +115,8 @@ final class WorkoutSessionState {
     }
 
     var currentExerciseName: String {
+        if timedWalk != nil { return "Treadmill walk" }
+        if completedMovementCount == drafts.count { return "Treadmill walk" }
         if let expandedExerciseID,
            let expanded = drafts.first(where: { $0.id == expandedExerciseID }) {
             return expanded.template.name
@@ -151,22 +156,42 @@ final class WorkoutSessionState {
                 )
             },
             expandedExerciseID: expandedExerciseID,
-            restEnd: restEnd
+            restEnd: restEnd,
+            sessionTimerStartedAt: sessionTimerStartedAt,
+            timedWalk: timedWalk
         )
     }
 
     func pause(at date: Date = Date()) {
         duration.pause(at: date)
+        timedWalk?.pause(at: date)
     }
 
     func resume(at date: Date = Date()) {
         duration.resume(at: date)
+        timedWalk?.resume(at: date)
     }
 
     func adjustRest(by seconds: Int, now: Date = Date()) {
         guard let restEnd else { return }
         let adjusted = restEnd.addingTimeInterval(TimeInterval(seconds))
-        self.restEnd = adjusted > now ? adjusted : nil
+        self.restEnd = max(adjusted, now)
+    }
+
+    func startTimedWalk(now: Date = Date()) {
+        guard timedWalk == nil else { return }
+        restEnd = nil
+        expandedExerciseID = nil
+        timedWalk = TimedWalk(now: now)
+    }
+
+    func finishTimedWalk(now: Date = Date()) {
+        guard let walk = timedWalk else { return }
+        let minutes = walk.elapsed(at: now) / 60
+        if minutes > 0, !cardioDrafts.contains(where: { $0.id == walk.id }) {
+            cardioDrafts.append(CardioDraft(id: walk.id, kind: .treadmillWalk, durationMinutes: minutes, averageSpeed: 0, incline: 0))
+        }
+        timedWalk = nil
     }
 
     func clearRest() {
@@ -186,6 +211,7 @@ final class WorkoutSessionState {
         guard let index = drafts.firstIndex(where: { $0.id == exerciseID }) else {
             return
         }
+        finishTimedWalk(now: now)
         let prescribedRest = drafts[index].template.restSeconds
         let seconds = kind == .warmup ? min(90, prescribedRest) : prescribedRest
         restEnd = now.addingTimeInterval(TimeInterval(seconds))

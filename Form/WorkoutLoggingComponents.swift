@@ -52,32 +52,12 @@ struct ExerciseLoggingCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Button(action: toggleExpanded) {
-                HStack(spacing: 12) {
-                    DemonstrationImage(assetName: draft.template.assetName)
-                        .frame(width: 52, height: 52)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(draft.template.name)
-                            .font(.system(.body, design: .default))
-                            .multilineTextAlignment(.leading)
-                        Text(draft.template.targetText)
-                            .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(InkPalette.softInk)
-                        Text(isComplete ? "done · \(completedSetCount) sets" : "\(completedSetCount)/\(draft.template.sets) sets")
-                            .font(.system(.caption2, design: .default))
-                            .foregroundStyle(isComplete ? InkPalette.cinnabar : InkPalette.softInk)
-                            .monospacedDigit()
-                    }
-                    Spacer(minLength: 0)
-                    Text(isExpanded ? "−" : "+")
-                        .font(.system(.body, design: .default))
-                        .foregroundStyle(InkPalette.softInk)
-                    .frame(width: 44, height: 44)
-                }
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(draft.template.name).font(AtelierType.script(38))
+                Text("\(draft.template.sets) sets · \(draft.template.minimumRepetitions)–\(draft.template.maximumRepetitions) \(draft.template.recordsTime ? "sec" : "reps")" + (draft.id == "reverse-lunge" ? " / side" : ""))
+                    .font(.subheadline).foregroundStyle(InkPalette.softInk)
+                PaperVignette(name: draft.template.assetName, height: 210)
+            }.frame(maxWidth: .infinity, alignment: .leading)
 
             if isExpanded {
                 VStack(spacing: 0) {
@@ -92,7 +72,7 @@ struct ExerciseLoggingCard: View {
                     }
 
                     HStack {
-                        Text("type").frame(width: 40, alignment: .leading)
+                        Text("set").frame(width: 40, alignment: .leading)
                         Text((draft.template.recordsLoad ? draft.template.loadLabel : "load").lowercased())
                             .frame(maxWidth: .infinity)
                         Text(draft.template.recordsTime ? "sec" : "reps")
@@ -123,6 +103,7 @@ struct ExerciseLoggingCard: View {
                     }
                     .padding(.horizontal, 10)
 
+                    DisclosureGroup("Set options") {
                     Button(action: applyFirstWorkingSetToRemaining) {
                         Text("apply first set to remaining")
                             .font(AtelierType.script(16))
@@ -165,6 +146,7 @@ struct ExerciseLoggingCard: View {
                     .buttonStyle(PressableButtonStyle())
                     .padding(.horizontal, 10)
                     .padding(.bottom, 9)
+                    }.font(.subheadline).padding(.horizontal, 14).padding(.top, 10)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }

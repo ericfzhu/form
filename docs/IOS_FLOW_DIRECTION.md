@@ -1,6 +1,6 @@
 # Form iOS — navigation and flow proposal
 
-Status: proposed structure for review, before implementing screen designs.
+Status: implemented in native SwiftUI, based on /mobile-study.html.
 
 ## Intent
 
@@ -16,7 +16,7 @@ Today is the entry point even when the user is not training that day. Show one s
 
 History lists saved sessions by date. Opening one shows its recorded exercises and cardio; selecting an exercise opens its existing progress view. Empty history uses a small quiet illustration and one line of copy, not sample achievements.
 
-Settings holds units, load increment, screen-awake preference and optional Apple Health/iCloud status. Use existing service behavior. Request any Health permissions when the user connects it, not on first launch.
+Settings holds load increment, screen-awake preference and optional Apple Health/iCloud status. Use existing service behavior. Request any Health permissions when the user connects it, not on first launch.
 
 ## Main flow
 
@@ -30,7 +30,7 @@ Cardio follows weights: 15-minute treadmill walk, speed 5 and incline 7.5. Conso
 
 Summary shows only what was recorded. Finishing saves once; repeat taps must not duplicate records. A short character settling animation is optional and never blocks Done. Partial sessions are saved honestly. Discard does not advance the routine. A saved session advances the proposed A/B sequence; explicit partial completion uses the same behavior, with the next session visible on Today.
 
-The bottom tabs disappear during the active session. A labeled close/minimize control returns to Today with progress retained. Discard is a separate deliberate action. A/B labels are useful in the routine sheet and session details; they do not need to dominate the illustrated home screen.
+The bottom tabs disappear during the active session. A labeled Close control returns to Today with progress retained. Discard is a separate deliberate action. A/B labels are useful in the routine sheet and session details; they do not need to dominate the illustrated home screen.
 
 ## Motion and material
 
@@ -49,4 +49,10 @@ Use restrained overlapping edges and shadows, not a card around every item. Supp
 3. Cardio and save/summary flow.
 4. History detail and progress styling.
 
-Review the first stage before reskinning the full application. This document changes no app behavior.
+All four stages are now connected in the native app. Today/History replace the planner and equipment tabs; the fixed sessions are defined by FormRoutine. Legacy saved sessions still resume with their original exercises. New sessions alternate A/B based on the latest saved prescribed session; discarding does not advance that sequence.
+
+The logger presents one exercise at a time with editable set rows, a primary Complete set action, optional set tools and movement notes. Logging a set opens the illustrated rest state; Continue returns to the next set or exercise. The session list supports revisiting exercises, moving to cardio and finishing a partial session. Cardio uses an actual walking timer and a manual entry option. The completion view keeps the recorded totals visible and exercise details in a disclosure.
+
+All eight approved exercise illustrations and the five app vignettes are bundled in the app asset catalog at native resolution. Gaegu is bundled for short headings; workout inputs remain system type. Unknown legacy exercises use the journal vignette rather than an unrelated exercise pose. Illustrations are decorative to VoiceOver; headings and controls carry their context. Static logging artwork, restrained arrival motion and Reduce Motion support keep controls stable.
+
+Validation: iOS Simulator build and core regression suite, plus simulator checks for legacy-session resume, walking, partial save/summary, fresh-session entry, set completion/rest, exercise navigation, History and saved-record detail. Physical-device and larger Dynamic Type review remain before release.

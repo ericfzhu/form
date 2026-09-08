@@ -205,16 +205,16 @@ enum WorkoutCatalog {
 
     static var allExercises: [ExerciseTemplate] {
         var seen = Set<String>()
-        return (routines.flatMap(\.exercises) + PlanningCatalog.exercises.compactMap { exercise(id: $0.id) })
+        return (FormRoutine.sessions.flatMap(\.exercises) + routines.flatMap(\.exercises) + PlanningCatalog.exercises.compactMap { exercise(id: $0.id) })
             .filter { seen.insert($0.id).inserted }
     }
 
     static func exercise(named name: String) -> ExerciseTemplate? {
-        routines.flatMap(\.exercises).first { $0.name == name }
+        (FormRoutine.sessions + routines).flatMap(\.exercises).first { $0.name == name }
     }
 
     static func exercise(id: String) -> ExerciseTemplate? {
-        routines.flatMap(\.exercises).first { $0.id == id } ?? planningExercise(id: id)
+        (FormRoutine.sessions + routines).flatMap(\.exercises).first { $0.id == id } ?? planningExercise(id: id)
     }
 
     private static func planningExercise(id: String) -> ExerciseTemplate? {
@@ -238,7 +238,7 @@ enum WorkoutCatalog {
     }
 
     static func routine(id: String) -> RoutineTemplate? {
-        routines.first { $0.id == id }
+        (FormRoutine.sessions + routines).first { $0.id == id }
     }
 
     static func routineID(forLegacyName name: String) -> String? {
@@ -346,5 +346,32 @@ enum WorkoutCatalog {
             measurement: .weightedTimed,
             restSeconds: rest
         )
+    }
+}
+
+// The two prescribed sessions shown in the approved mobile study.
+enum FormRoutine {
+    static let sessions: [RoutineTemplate] = [
+        RoutineTemplate(id: "form-full-body-a", name: "Full-body · A", focus: "4 exercises · 15 min walk", exercises: [
+            movement("barbell-back-squat", "Barbell back squat", 6, 10),
+            movement("barbell-bench-press", "Barbell bench press", 6, 10),
+            movement("seated-row", "Seated cable row", 8, 12),
+            movement("leg-curl", "Seated leg curl", 10, 15)
+        ]),
+        RoutineTemplate(id: "form-full-body-b", name: "Full-body · B", focus: "4 exercises · 15 min walk", exercises: [
+            movement("barbell-romanian-deadlift", "Romanian deadlift", 8, 10),
+            movement("barbell-incline-press", "Incline barbell press", 8, 12),
+            movement("lat-pulldown", "Lat pulldown", 8, 12),
+            movement("reverse-lunge", "Reverse lunge", 8, 12, measurement: .bodyweight)
+        ])
+    ]
+    private static func movement(_ id: String, _ name: String, _ minimum: Int, _ maximum: Int,
+                                 measurement: ExerciseTemplate.Measurement = .weighted) -> ExerciseTemplate {
+        ExerciseTemplate(id: id, name: name, assetName: id, sets: 2,
+                         minimumRepetitions: minimum, maximumRepetitions: maximum,
+                         measurement: measurement, restSeconds: 120)
+    }
+    static func next(after routineID: String?) -> RoutineTemplate {
+        routineID == sessions[0].id ? sessions[1] : sessions[0]
     }
 }

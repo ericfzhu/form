@@ -20,7 +20,7 @@ enum InkPalette {
 
 enum AtelierType {
     static func script(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .medium, design: .rounded)
+        .custom("Gaegu-Regular", size: size, relativeTo: .title2)
     }
 }
 

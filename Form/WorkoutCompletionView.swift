@@ -27,30 +27,16 @@ struct WorkoutCompletionView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
-                    Text(record.date.formatted(date: .long, time: .shortened).lowercased())
-                        .font(AtelierType.script(17))
-                        .foregroundStyle(InkPalette.softInk)
-
-                    HStack(spacing: 0) {
-                        summaryMetric("\(max(1, Int(record.duration / 60)))", label: "MINUTES")
-                        summaryMetric("\(completedExercises.count)", label: "MOVEMENTS")
-                        summaryMetric("\(completedSetCount)", label: "SETS")
+                    Text("a little more\nthan before.").font(AtelierType.script(42))
+                    PaperVignette(name: "finished", height: 230)
+                    HStack { Text("Time moving"); Spacer(); Text(WorkoutValueFormatter.durationMinutes(record.duration)) }
+                    HStack { Text("Strength"); Spacer(); Text("\(completedSetCount) set\(completedSetCount == 1 ? "" : "s")") }
+                    if cardioMinutes > 0 {
+                        HStack { Text("Cardio"); Spacer(); Text("\(cardioMinutes) min") }
                     }
-                    .padding(.vertical, 15)
-
-                    if record.hasTrainingData {
-                        HStack(spacing: 10) {
-                            Image(systemName: record.healthSyncStatus == .synced ? "heart.fill" : "heart")
-                                .foregroundStyle(InkPalette.cinnabar)
-                            Text(record.healthSyncStatus.title)
-                                .font(.system(.caption, design: .default, weight: .semibold))
-                                .foregroundStyle(record.healthSyncStatus == .failed
-                                    ? InkPalette.cinnabar
-                                    : InkPalette.softInk)
-                            Spacer()
-                        }
-                    }
-
+                    Text("and now, the rest of your day.")
+                        .font(AtelierType.script(22)).foregroundStyle(InkPalette.softInk).padding(.vertical, 12)
+                    DisclosureGroup("View session") {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("movements")
                             .font(.system(.body, design: .default))
@@ -65,16 +51,8 @@ struct WorkoutCompletionView: View {
                         }
                     }
 
-                    if cardioMinutes > 0 {
-                        HStack {
-                            Text("cardio")
-                                .font(.system(.body, design: .default))
-                                .foregroundStyle(InkPalette.softInk)
-                            Spacer()
-                            Text("\(cardioMinutes) min")
-                                .font(.subheadline.monospacedDigit().weight(.semibold))
-                        }
                     }
+
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)

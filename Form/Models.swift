@@ -274,6 +274,8 @@ struct ActiveWorkoutSnapshot: Codable, Equatable {
     var cardio: [ActiveCardioSnapshot]
     var expandedExerciseID: String?
     var restEnd: Date?
+    var sessionTimerStartedAt: Date? = nil
+    var timedWalk: TimedWalk? = nil
 }
 
 struct CardioDraft: Identifiable, Equatable, Codable {

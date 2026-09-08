@@ -5,7 +5,7 @@ import UIKit
 
 extension ActiveWorkoutView {
     var inputFields: [WorkoutInputField] {
-        session.drafts.flatMap { draft in
+        session.drafts.filter { $0.id == session.expandedExerciseID }.flatMap { draft in
             draft.sets.flatMap { set -> [WorkoutInputField] in
                 var fields: [WorkoutInputField] = []
                 if draft.template.recordsLoad {
@@ -73,8 +73,9 @@ extension ActiveWorkoutView {
     }
 
     func completeRest() {
-        session.clearRest()
+        // Preserve the deadline so the Live Activity can display Ready.
         RestFeedbackService.shared.finishInForeground()
+        Task { await WorkoutLiveActivityController.update(session: session) }
     }
 
     func scheduleRestFeedback() {
@@ -89,6 +90,7 @@ extension ActiveWorkoutView {
     }
 
     func requestFinish() {
+        session.finishTimedWalk()
         if !session.hasRecordedWork {
             showingEmptyFinishConfirmation = true
         } else if session.completedMovementCount < session.drafts.count {

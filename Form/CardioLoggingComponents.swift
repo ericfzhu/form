@@ -2,8 +2,10 @@ import SwiftUI
 
 struct CardioLoggingSection: View {
     @EnvironmentObject private var planner: PlannerStore
+    var prescribedWalk = false
     private var availableKinds: [CardioKind] {
-        CardioKind.allCases.filter { kind in
+        if prescribedWalk { return [.treadmillWalk] }
+        return CardioKind.allCases.filter { kind in
             switch kind {
             case .treadmillWalk, .treadmillRun: planner.profile.equipment.contains(.treadmill)
             case .cycling: planner.profile.equipment.contains(.bike)
@@ -14,9 +16,13 @@ struct CardioLoggingSection: View {
         }
     }
     @Binding var entries: [CardioDraft]
+    var timedWalk: TimedWalk? = nil
+    var startWalk: (() -> Void)? = nil
+    var finishWalk: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if !prescribedWalk {
             HStack {
                 Text("cardio")
                     .font(.system(.body, design: .default))
@@ -27,6 +33,27 @@ struct CardioLoggingSection: View {
                         .font(.caption2.monospacedDigit().weight(.semibold))
                         .foregroundStyle(InkPalette.softInk)
                 }
+            }
+
+            }
+
+            if let startWalk, availableKinds.contains(.treadmillWalk) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Treadmill walk").font(.subheadline)
+                        if let startedAt = timedWalk?.timerStartedAt {
+                            Text(startedAt, style: .timer).monospacedDigit()
+                        } else {
+                            Text("15 min suggested").font(.caption).foregroundStyle(InkPalette.softInk)
+                        }
+                    }
+                    Spacer()
+                    Button(timedWalk == nil ? "Start walk" : "Finish walk") {
+                        if timedWalk == nil { startWalk() } else { finishWalk?() }
+                    }
+                    .frame(minHeight: 44)
+                }
+                .padding(.horizontal, 12)
             }
 
             ForEach($entries) { $entry in
@@ -43,7 +70,7 @@ struct CardioLoggingSection: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Text(entries.isEmpty ? "Add cardio" : "Add another cardio entry")
+                    Text(entries.isEmpty ? (prescribedWalk ? "Record a walk already done" : "Add cardio") : "Add another cardio entry")
                 }
                 .font(AtelierType.script(17))
                 .frame(maxWidth: .infinity)

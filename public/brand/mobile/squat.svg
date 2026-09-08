@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="460" viewBox="0 0 360 230" role="img" aria-label="Barbell back squat — a rounded paper character squatting inside a power rack."><style>.paper{fill:#fff}.blue{fill:#97acc8}.gray{fill:#b6bfc1}.seam{stroke-width:.8;stroke-opacity:.4;fill:none}.ground{stroke:#b6bfc1;stroke-width:1;fill:none}.piece{filter:url(#edge)}path,ellipse,circle{vector-effect:non-scaling-stroke}</style><defs><filter id="edge" x="-30%" y="-30%" width="170%" height="180%"><feDropShadow dx="1.3" dy="2" stdDeviation="1" flood-color="#051230" flood-opacity=".13"/></filter><g id="head"><path class="paper" d="M-10-5C-15-14-7-23 3-22 15-22 18-12 11-5 5 1-4 1-10-5Z"/><path d="m4-14 .2 .6m6 0 .2 .6"/></g><g id="disc"><path class="blue" d="M-10-1C-11-19-6-31 1-30 9-30 12-17 12 0 13 18 8 30 0 30-7 30-11 17-10-1Z"/><path class="seam" d="M2-23Q10-1 2 23"/></g><g id="stack"><path class="paper" d="M-14-36 13-36 15 33-15 33Z"/><path class="seam" d="M-13-25h27m-27 11h27m-27 11h27m-27 11h27m-27 11h27"/><path d="M0-42v77" class="seam"/></g></defs><g stroke="#051230" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" fill="none"><path class="ground" d="M58 202q100-3 242 0"/><path class="ground" d="M67 193V36h224v157M70 36l-6-6h232l-5 6"/><path class="seam" d="M75 58h7m-7 20h7m-7 20h7m193-40h7m-7 20h7m-7 20h7"/>
+<g class="piece">
+<!-- Soft bent legs sit behind the single, uninterrupted round torso. -->
+<path class="paper" d="M160 143C149 144 133 150 132 160 131 168 143 181 148 191L143 194C136 201 150 203 160 198 167 194 160 181 154 168L176 159Z"/>
+<path class="paper" d="M179 145C192 145 207 152 208 162 209 171 199 182 198 190L205 194C212 200 199 203 190 198 181 194 184 181 190 168L171 161Z"/>
+<path class="paper" d="M155 121C146 124 137 130 133 126L126 113C123 107 117 110 119 117L126 134C131 144 145 139 155 133Z"/>
+<path class="paper" d="M186 120C196 126 200 131 205 126L213 113C217 108 222 112 220 118L212 135C207 143 195 139 185 132Z"/>
+<path class="paper" d="M157 114C145 118 144 133 147 145 148 156 157 163 171 163 187 164 197 154 196 142 195 127 190 117 179 113Z"/>
+</g>
+<path d="m106 112 145-2" stroke-width="2.6"/>
+<g class="piece" transform="translate(111 111) rotate(-1)"><use href="#disc"/></g><g class="piece" transform="translate(247 109) rotate(-1)"><use href="#disc"/></g>
+<g class="piece" transform="translate(173 111) rotate(-5)"><use href="#head"/></g>
+</g></svg>
