@@ -236,6 +236,7 @@ struct TodayView: View {
     @State private var snapshot: ActiveWorkoutSnapshot?
     @State private var presentedRoutine: RoutineTemplate?
     @State private var showingRoutine = false
+    @State private var showingDiscardConfirmation = false
     @State private var showingSettings = false
 
     private var next: RoutineTemplate {
@@ -265,17 +266,38 @@ struct TodayView: View {
                 InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
                     presentedRoutine = next
                 }.padding(.top, 12)
+                if snapshot != nil {
+                    Button("Discard session", role: .destructive) {
+                        showingDiscardConfirmation = true
+                    }
+                    .font(AtelierType.script(20))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                }
                 Button("View routine") { showingRoutine = true }
                     .font(AtelierType.script(20)).frame(maxWidth: .infinity, minHeight: 44)
             }.padding(.horizontal, 28).padding(.bottom, 20)
         }
         .background(PaperBackground())
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear { snapshot = ActiveWorkoutStore.load() }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { snapshot = ActiveWorkoutStore.load() }
+        .confirmationDialog("Discard this session?", isPresented: $showingDiscardConfirmation) {
+            Button("Discard session", role: .destructive) {
+                ActiveWorkoutStore.clear()
+                snapshot = nil
+                RestFeedbackService.shared.cancel()
+                Task { await WorkoutLiveActivityController.forceEnd() }
+            }
+            Button("Keep session", role: .cancel) {}
+        } message: {
+            Text("This removes the unfinished session. Your saved workout history is kept.")
         }
-        .fullScreenCover(item: $presentedRoutine, onDismiss: { snapshot = ActiveWorkoutStore.load() }) { routine in
+        .onAppear { snapshot = ActiveWorkoutStore.load(completedWorkouts: history) }
+        .onChange(of: history.map(\.persistentModelID)) { _, _ in
+            snapshot = ActiveWorkoutStore.load(completedWorkouts: history)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { snapshot = ActiveWorkoutStore.load(completedWorkouts: history) }
+        }
+        .fullScreenCover(item: $presentedRoutine, onDismiss: { snapshot = ActiveWorkoutStore.load(completedWorkouts: history) }) { routine in
             ActiveWorkoutView(routine: routine, snapshot: snapshot)
         }
         .sheet(isPresented: $showingRoutine) {

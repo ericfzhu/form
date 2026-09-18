@@ -5,34 +5,36 @@ private enum AppTab: Hashable { case today, history }
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var history: [WorkoutRecord]
     @StateObject private var planner = PlannerStore()
     @State private var liveRoute: LiveSessionRoute?
     @State private var selection: AppTab = .today
 
     var body: some View {
-        TabView(selection: $selection) {
-            NavigationStack {
-                TodayView()
-                    .navigationDestination(for: RoutineTemplate.self) { RoutineDetailView(routine: $0) }
-                    .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
+        // Reserve layout space for the custom tabs, including pushed detail pages.
+        VStack(spacing: 0) {
+            TabView(selection: $selection) {
+                NavigationStack {
+                    TodayView()
+                        .navigationDestination(for: RoutineTemplate.self) { RoutineDetailView(routine: $0) }
+                        .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
+                }
+                .toolbar(.hidden, for: .tabBar)
+                .tabItem { Label("Today", systemImage: "sun.max") }.tag(AppTab.today)
+                NavigationStack {
+                    HistoryNavigationView()
+                        .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
+                        .navigationDestination(for: WorkoutRecord.self) { WorkoutHistoryDetail(workout: $0) }
+                }
+                .toolbar(.hidden, for: .tabBar)
+                .tabItem { Label("History", systemImage: "book.closed") }.tag(AppTab.history)
             }
-            .toolbar(.hidden, for: .tabBar)
-            .tabItem { Label("Today", systemImage: "sun.max") }.tag(AppTab.today)
-            NavigationStack {
-                HistoryNavigationView()
-                    .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
-                    .navigationDestination(for: WorkoutRecord.self) { WorkoutHistoryDetail(workout: $0) }
-            }
-            .toolbar(.hidden, for: .tabBar)
-            .tabItem { Label("History", systemImage: "book.closed") }.tag(AppTab.history)
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
             PaperTabBar(selection: $selection)
         }
         .onOpenURL { url in
             guard let id = LiveWorkoutState.sessionID(from: url),
                   !WorkoutLiveActivityController.isSessionPresented,
-                  let snapshot = ActiveWorkoutStore.load(),
+                  let snapshot = ActiveWorkoutStore.load(completedWorkouts: history),
                   snapshot.sessionID == id, snapshot.resolvedRoutine != nil else { return }
             selection = .today
             liveRoute = LiveSessionRoute(id: id, snapshot: snapshot)

@@ -90,6 +90,7 @@ extension ActiveWorkoutView {
     }
 
     func requestFinish() {
+        guard !didEndSession else { return }
         session.finishTimedWalk()
         if !session.hasRecordedWork {
             showingEmptyFinishConfirmation = true
@@ -104,7 +105,7 @@ extension ActiveWorkoutView {
         snapshotSaveTask?.cancel()
         snapshotSaveTask = Task {
             try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !didEndSession, completedRecord == nil else { return }
             do {
                 try ActiveWorkoutStore.save(snapshot)
             } catch {
@@ -114,6 +115,7 @@ extension ActiveWorkoutView {
     }
 
     func persistImmediately() {
+        guard !didEndSession, completedRecord == nil else { return }
         do {
             try ActiveWorkoutStore.save(session.snapshot)
         } catch {
@@ -132,6 +134,7 @@ extension ActiveWorkoutView {
     }
 
     func saveAndClose() {
+        guard !didEndSession else { return }
         session.pause()
         snapshotSaveTask?.cancel()
         persistImmediately()
@@ -141,6 +144,7 @@ extension ActiveWorkoutView {
     }
 
     func finishWorkout() {
+        guard !didEndSession else { return }
         session.pause()
         do {
             let record = try WorkoutRepository.saveCompletedSession(
@@ -165,6 +169,8 @@ extension ActiveWorkoutView {
             }
         } catch {
             modelContext.rollback()
+            session.resume()
+            persistImmediately()
             saveErrorMessage = "Nothing was lost from this active session. Try saving again."
         }
     }

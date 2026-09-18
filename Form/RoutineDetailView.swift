@@ -4,6 +4,7 @@ import SwiftUI
 
 struct RoutineDetailView: View {
     private let originalRoutine: RoutineTemplate
+    @Query private var history: [WorkoutRecord]
     @EnvironmentObject private var planner: PlannerStore
     init(routine: RoutineTemplate) { originalRoutine = routine }
     private var planned: PlannedSession? { planner.sessions.first { $0.id == originalRoutine.id } }
@@ -146,7 +147,7 @@ struct RoutineDetailView: View {
     }
 
     private func requestWorkoutStart() {
-        guard let snapshot = ActiveWorkoutStore.load() else {
+        guard let snapshot = ActiveWorkoutStore.load(completedWorkouts: history) else {
             workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
             return
         }

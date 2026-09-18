@@ -67,7 +67,8 @@ struct ActiveWorkoutView: View {
                 ActiveWorkoutHeader(
                     index: routine.id,
                     progress: "\(session.completedMovementCount) of \(session.drafts.count) movements",
-                    close: saveAndClose,
+                    requestFinish: requestFinish,
+                    pause: saveAndClose,
                     requestDiscard: { showingDiscardConfirmation = true }
                 )
             } else {
@@ -109,6 +110,7 @@ struct ActiveWorkoutView: View {
             Text(saveErrorMessage ?? "")
         }
         .onAppear {
+            guard !didEndSession, completedRecord == nil else { return }
             WorkoutLiveActivityController.isSessionPresented = true
             session.prefillFromHistory(history)
             session.resume()

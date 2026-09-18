@@ -3,7 +3,8 @@ import SwiftUI
 struct ActiveWorkoutHeader: View {
     let index: String
     let progress: String
-    let close: () -> Void
+    let requestFinish: () -> Void
+    let pause: () -> Void
     let requestDiscard: () -> Void
 
     var body: some View {
@@ -18,11 +19,12 @@ struct ActiveWorkoutHeader: View {
             }
             .padding(.leading, 20)
             Spacer()
-            Button("Close", action: close)
+            Button("Finish session", action: requestFinish)
                 .font(AtelierType.script(16))
-                .frame(width: 58, height: 56)
+                .frame(minWidth: 100, minHeight: 56)
                 .buttonStyle(PressableButtonStyle())
             Menu {
+                Button("Pause and close", action: pause)
                 Button("Discard session", role: .destructive, action: requestDiscard)
             } label: {
                 Image(systemName: "ellipsis")

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "FormCore",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "FormCore", targets: ["FormCore"])
     ],
@@ -15,7 +15,6 @@ let package = Package(
                 "Info.plist",
                 "Planning/PlannerStore.swift",
                 "Planning/PlannerViews.swift",
-                "ActiveSessionStore.swift",
                 "ActiveWorkoutView.swift",
                 "AppModelContainer.swift",
                 "CoachingReport.swift",
@@ -25,16 +24,12 @@ let package = Package(
                 "HealthKitService.swift",
                 "HealthSyncCoordinator.swift",
                 "HistoryView.swift",
-                "Models.swift",
                 "RestFeedbackService.swift",
                 "RootView.swift",
                 "WorkoutActivityAttributes.swift",
                 "WorkoutBackup.swift",
-                "WorkoutCatalog.swift",
                 "WorkoutFormatting.swift",
                 "WorkoutLiveActivityController.swift",
-                "WorkoutRepository.swift",
-                "WorkoutSessionState.swift",
                 "DesignSystem.swift",
                 "TrainHomeView.swift",
                 "RoutineDetailView.swift",
@@ -54,6 +49,12 @@ let package = Package(
                 "ProgressComponents.swift"
             ],
             sources: [
+                "Models.swift",
+                "WorkoutCatalog.swift",
+                "WorkoutSessionState.swift",
+                "ActiveSessionStore.swift",
+                "WorkoutRepository.swift",
+
                 "Planning/WorkoutPlanning.swift",
                 "ActiveDuration.swift",
                 "LiveWorkoutState.swift",

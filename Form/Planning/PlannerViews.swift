@@ -50,8 +50,8 @@ struct PlanHomeView: View {
         }
         .background(InkPalette.paper)
         .toolbar(.hidden, for: .navigationBar)
-        .task { active = ActiveWorkoutStore.load() }
-        .onChange(of: scenePhase) { _, phase in if phase == .active { active = ActiveWorkoutStore.load() } }
+        .task { active = ActiveWorkoutStore.load(completedWorkouts: history) }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { active = ActiveWorkoutStore.load(completedWorkouts: history) } }
         .sheet(isPresented: $preferences) {
             NavigationStack {
                 RoutineListView().toolbar(.visible, for: .navigationBar)
@@ -61,7 +61,7 @@ struct PlanHomeView: View {
                     .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
             }
         }
-        .fullScreenCover(isPresented: $resume, onDismiss: { active = ActiveWorkoutStore.load() }) {
+        .fullScreenCover(isPresented: $resume, onDismiss: { active = ActiveWorkoutStore.load(completedWorkouts: history) }) {
             if let active, let routine = active.resolvedRoutine { ActiveWorkoutView(routine: routine, snapshot: active) }
         }
     }
