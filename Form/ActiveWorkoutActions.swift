@@ -5,7 +5,7 @@ import UIKit
 
 extension ActiveWorkoutView {
     var inputFields: [WorkoutInputField] {
-        session.drafts.filter { $0.id == session.expandedExerciseID }.flatMap { draft in
+        session.drafts.flatMap { draft in
             draft.sets.flatMap { set -> [WorkoutInputField] in
                 var fields: [WorkoutInputField] = []
                 if draft.template.recordsLoad {

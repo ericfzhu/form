@@ -50,16 +50,25 @@ struct ExerciseLoggingCard: View {
         draft.sets.filter { $0.completed && $0.kind == .working }.count
     }
 
-    private var isComplete: Bool { completedSetCount >= draft.template.sets }
+    private var workingSetCount: Int { draft.sets.filter { $0.kind == .working }.count }
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(draft.template.name).font(AtelierType.script(38))
-                Text("\(draft.template.sets) sets · \(draft.template.minimumRepetitions)–\(draft.template.maximumRepetitions) \(draft.template.recordsTime ? "sec" : "reps")" + (draft.id == "reverse-lunge" ? " / side" : ""))
-                    .font(.subheadline).foregroundStyle(InkPalette.softInk)
-                PaperVignette(name: draft.template.assetName, height: 210)
-            }.frame(maxWidth: .infinity, alignment: .leading)
+            HStack(alignment: .top, spacing: 12) {
+                DemonstrationImage(assetName: draft.template.assetName)
+                    .frame(width: 64, height: 70)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(draft.template.name).font(AtelierType.script(27))
+                    Text("\(completedSetCount)/\(workingSetCount) sets · \(draft.template.minimumRepetitions)–\(draft.template.maximumRepetitions) \(draft.template.recordsTime ? "sec" : "reps")" + (draft.id == "reverse-lunge" ? " / side" : ""))
+                        .font(.caption).foregroundStyle(InkPalette.softInk)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            ExerciseRestPicker(exercise: draft.template)
+                .padding(.horizontal, 14)
+
 
             if isExpanded {
                 VStack(spacing: 0) {
@@ -104,6 +113,16 @@ struct ExerciseLoggingCard: View {
                         )
                     }
                     .padding(.horizontal, 10)
+
+                    DisclosureGroup("Movement notes") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            PaperVignette(name: draft.template.assetName, height: 160)
+                            Text("Leave about 2 reps in reserve.")
+                            ForEach(draft.template.formCues, id: \.self) { Text($0) }
+                            if draft.id == "reverse-lunge" { Text("Record repetitions per side.") }
+                        }.font(.subheadline).padding(.vertical, 10)
+                    }
+                    .font(AtelierType.script(18)).padding(.horizontal, 14).padding(.top, 10)
 
                     DisclosureGroup("Set options") {
                     Button(action: applyFirstWorkingSetToRemaining) {
@@ -179,6 +198,34 @@ struct ExerciseLoggingCard: View {
             && !draft.sets[index].completed {
             draft.sets[index].weight = reference.weight
             draft.sets[index].repetitions = reference.repetitions
+        }
+    }
+}
+
+private struct ExerciseRestPicker: View {
+    @AppStorage private var seconds: Int
+
+    init(exercise: ExerciseTemplate) {
+        _seconds = AppStorage(wrappedValue: exercise.restSeconds, ExerciseRestPreference.key(for: exercise.id))
+    }
+
+    private var options: [Int] {
+        Array(Set([0, 30, 60, 90, 120, 150, 180, 240, 300, seconds])).sorted()
+    }
+
+    var body: some View {
+        HStack {
+            Text("rest between sets").font(.caption).foregroundStyle(InkPalette.softInk)
+            Spacer()
+            Picker("Rest between sets", selection: $seconds) {
+                ForEach(options, id: \.self) { value in
+                    Text(value == 0 ? "Off" : String(format: "%d:%02d", value / 60, value % 60)).tag(value)
+                }
+            }
+            .pickerStyle(.menu)
+            .font(.caption.monospacedDigit())
+            .tint(InkPalette.mineral)
+            .frame(minHeight: 44)
         }
     }
 }

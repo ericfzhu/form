@@ -27,7 +27,6 @@ struct ActiveWorkoutView: View {
 
     @State var session: WorkoutSessionState
     @State var showingExerciseList = false
-    @State var showingMovementNotes = false
     @State var showingDiscardConfirmation = false
     @State var showingEmptyFinishConfirmation = false
     @State var showingIncompleteFinishConfirmation = false
@@ -159,145 +158,96 @@ struct ActiveWorkoutView: View {
     private var workoutLogger: some View {
         @Bindable var session = session
         return ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(session.restEnd != nil ? "SET SAVED" : (session.expandedExerciseID == nil ? "CARDIO" : "EXERCISE \(currentIndex + 1) OF \(session.drafts.count)"))
-                        .font(.caption2).tracking(2).foregroundStyle(InkPalette.softInk)
-                    Spacer()
-                    Button { showingExerciseList = true } label: {
-                        Image(systemName: "list.bullet").frame(width: 44, height: 44)
-                    }.accessibilityLabel("Session exercise list")
-                }
-                if let end = session.restEnd {
-                    Text("room to rest.").font(AtelierType.script(42))
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let seconds = max(0, Int(end.timeIntervalSince(context.date).rounded(.up)))
-                        Text(seconds == 0 ? "ready." : String(format: "%d:%02d", seconds / 60, seconds % 60))
-                            .font(.system(size: 58, weight: .light)).monospacedDigit()
-                            .onChange(of: seconds) { _, value in if value == 0 { completeRest() } }
-                    }
-                    PaperVignette(name: "pause", height: 230)
-                    Text("UP NEXT").font(.caption2).tracking(2).foregroundStyle(InkPalette.softInk)
-                    Text(session.currentExerciseName).font(.title3)
+            LazyVStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("your own pace.").font(AtelierType.script(38))
                     HStack {
-                        Button("−30 sec") { adjustRest(by: -30) }
+                        Text("Choose any movement. Check off each set.")
+                            .font(.caption).foregroundStyle(InkPalette.softInk)
                         Spacer()
-                        Button("+30 sec") { adjustRest(by: 30) }
-                    }.font(.subheadline).frame(minHeight: 44)
-                } else if session.expandedExerciseID != nil, session.drafts.indices.contains(currentIndex) {
+                        Button { focusedInput = nil; showingExerciseList = true } label: {
+                            Image(systemName: "arrow.up.arrow.down").frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Reorder exercises")
+                    }
+                }
+
+                ForEach($session.drafts) { $draft in
                     ExerciseLoggingCard(
-                        draft: $session.drafts[currentIndex],
-                        previous: ProgressionEngine.latestCompleted(for: session.drafts[currentIndex].template, in: history),
+                        draft: $draft,
+                        previous: ProgressionEngine.latestCompleted(for: draft.template, in: history),
                         recommendation: nil,
                         isExpanded: true, focusedInput: $focusedInput,
                         toggleExpanded: {},
                         didUpdateSet: { completed, kind in
-                            guard completed else { return }
                             focusedInput = nil
-                            session.didCompleteSet(for: session.drafts[currentIndex].id, kind: kind)
+                            guard completed else { return }
+                            session.didCompleteSet(
+                                for: draft.id, kind: kind,
+                                restSeconds: ExerciseRestPreference.seconds(for: draft.template)
+                            )
                         }
                     )
-                    Button("Movement notes") { showingMovementNotes = true }
-                        .font(AtelierType.script(20)).frame(maxWidth: .infinity, minHeight: 44)
-                } else {
-                    Text("a little further.").font(AtelierType.script(42))
-                    Text("Treadmill walk").font(.subheadline).foregroundStyle(InkPalette.softInk)
-                    PaperVignette(name: "walk", height: 230)
-                    if let start = session.timedWalk?.timerStartedAt {
-                        Text(start, style: .timer).font(.system(size: 48, weight: .light)).monospacedDigit()
-                    } else {
-                        Text("15 min").font(.system(size: 44, weight: .light))
-                    }
-                    HStack(spacing: 65) {
-                        VStack(alignment: .leading, spacing: 6) { Text("SPEED").font(.caption2); Text("5").font(.title2) }
-                        VStack(alignment: .leading, spacing: 6) { Text("INCLINE").font(.caption2); Text("7.5").font(.title2) }
-                    }.padding(.vertical, 8)
-                    Text("Check console units.\nKeep the effort conversational.")
-                        .font(.caption).foregroundStyle(InkPalette.softInk).lineSpacing(5)
-                    CardioLoggingSection(prescribedWalk: true, entries: $session.cardioDrafts)
                 }
-            }.padding(.horizontal, 28).padding(.bottom, 24)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    InkDivider()
+                    HStack {
+                        Text("a little further.").font(AtelierType.script(30))
+                        Spacer()
+                        DemonstrationImage(assetName: "walk").frame(width: 64, height: 64)
+                    }
+                    Text("Treadmill walk · 15 min suggested")
+                        .font(.subheadline).foregroundStyle(InkPalette.softInk)
+                    Text("Speed 5 · incline 7.5. Check console units and keep the effort conversational.")
+                        .font(.caption).foregroundStyle(InkPalette.softInk)
+                    CardioLoggingSection(
+                        prescribedWalk: true, entries: $session.cardioDrafts,
+                        timedWalk: session.timedWalk,
+                        startWalk: { focusedInput = nil; session.startTimedWalk() },
+                        finishWalk: { session.finishTimedWalk() }
+                    )
+                }
+                InkPrimaryButton(title: "Finish session", action: requestFinish)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(PaperBackground())
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if isKeyboardVisible { keyboardControls }
-            else {
-                VStack(spacing: 3) {
-                    InkPrimaryButton(title: primaryTitle, action: primaryAction)
-                    if session.expandedExerciseID == nil && session.restEnd == nil && session.timedWalk == nil {
-                        Button(session.cardioDrafts.isEmpty ? "Skip cardio" : "Finish session", action: requestFinish)
-                            .font(AtelierType.script(19)).frame(minHeight: 44)
-                    }
-                }.padding(.horizontal, 28).padding(.vertical, 10).background(.white)
+            VStack(spacing: 0) {
+                if let end = session.restEnd {
+                    InkDivider()
+                    RestTimer(end: end, adjust: adjustRest, cancel: clearRest, complete: completeRest)
+                }
+                if isKeyboardVisible { keyboardControls }
             }
+            .background(InkPalette.paper)
         }
         .sheet(isPresented: $showingExerciseList) {
             NavigationStack {
                 List {
                     ForEach(session.drafts) { draft in
-                        Button {
-                            session.finishTimedWalk()
-                            clearRest()
-                            session.expandedExerciseID = draft.id
-                            showingExerciseList = false
-                        } label: {
-                            HStack {
-                                Text(draft.template.name)
-                                Spacer()
-                                Text(session.isExerciseComplete(draft) ? "✓" : "\(draft.sets.filter(\.completed).count)/\(draft.template.sets)")
-                            }.frame(minHeight: 44)
-                        }
+                        HStack {
+                            Text(draft.template.name)
+                            Spacer()
+                            Text("\(draft.sets.filter { $0.completed && $0.kind == .working }.count)/\(draft.sets.filter { $0.kind == .working }.count)")
+                                .font(.caption.monospacedDigit()).foregroundStyle(InkPalette.softInk)
+                        }.padding(.vertical, 8)
                     }
-                    Button("Treadmill walk") {
-                        clearRest(); session.expandedExerciseID = nil; showingExerciseList = false
+                    .onMove { source, destination in
+                        session.drafts.move(fromOffsets: source, toOffset: destination)
                     }
-                    Button("Finish partial session") { showingExerciseList = false; requestFinish() }
-                }.navigationTitle("This session").navigationBarTitleDisplayMode(.inline)
-                    .toolbar { Button("Done") { showingExerciseList = false } }
+                }
+                .environment(\.editMode, .constant(.active))
+                .scrollContentBackground(.hidden)
+                .background(PaperBackground())
+                .navigationTitle("Your exercise order")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { Button("Done") { showingExerciseList = false } }
             }
-        }
-        .sheet(isPresented: $showingMovementNotes) {
-            NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text(session.currentExerciseName).font(AtelierType.script(32))
-                        Text("Leave about 2 reps in reserve.")
-                        if session.drafts.indices.contains(currentIndex) {
-                            ForEach(session.drafts[currentIndex].template.formCues, id: \.self) { Text($0) }
-                            if session.drafts[currentIndex].id == "reverse-lunge" { Text("Record repetitions per side.") }
-                        }
-                    }.padding(28)
-                }.toolbar { Button("Done") { showingMovementNotes = false } }
-            }.presentationDetents([.medium, .large])
-        }
-    }
-
-    private var currentIndex: Int {
-        session.drafts.firstIndex { $0.id == session.expandedExerciseID } ?? 0
-    }
-
-    private var primaryTitle: String {
-        if session.restEnd != nil { return "Ready for the next one →" }
-        if session.expandedExerciseID == nil { return session.timedWalk == nil ? "Start walk →" : "Finish walk →" }
-        if session.drafts.indices.contains(currentIndex), session.isExerciseComplete(session.drafts[currentIndex]) { return "Next exercise →" }
-        return "Complete set ✓"
-    }
-
-    private func primaryAction() {
-        dismissKeyboard(); focusedInput = nil
-        if session.restEnd != nil { clearRest(); return }
-        if session.expandedExerciseID == nil {
-            if session.timedWalk == nil { session.startTimedWalk() }
-            else { session.finishTimedWalk(); requestFinish() }
-            return
-        }
-        guard session.drafts.indices.contains(currentIndex) else { return }
-        let index = currentIndex
-        if let set = session.drafts[index].sets.firstIndex(where: { !$0.completed }) {
-            session.drafts[index].sets[set].completed = true
-            session.didCompleteSet(for: session.drafts[index].id, kind: session.drafts[index].sets[set].kind)
-        } else {
-            session.expandedExerciseID = session.drafts.dropFirst(index + 1).first(where: { !session.isExerciseComplete($0) })?.id
         }
     }
 

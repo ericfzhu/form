@@ -27,7 +27,7 @@ struct RestTimer: View {
                     .font(.caption.monospacedDigit().weight(.semibold))
                     .frame(width: 44, height: 44)
                     .accessibilityLabel("Add 30 seconds")
-                Button(remaining == 0 ? "Continue" : "Skip", action: cancel)
+                Button(remaining == 0 ? "Dismiss" : "Skip", action: cancel)
                     .font(.system(.subheadline, design: .default))
                     .frame(minWidth: 44, minHeight: 44)
             }

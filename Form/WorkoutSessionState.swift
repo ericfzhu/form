@@ -93,6 +93,12 @@ final class WorkoutSessionState {
         expandedExerciseID = validSnapshot == nil ? routine.exercises.first?.id : validSnapshot?.expandedExerciseID
         restEnd = validSnapshot?.restEnd
         timedWalk = validSnapshot?.timedWalk
+        if let savedOrder = validSnapshot?.exercises.map(\.exerciseID) {
+            drafts.sort {
+                (savedOrder.firstIndex(of: $0.id) ?? savedOrder.count)
+                    < (savedOrder.firstIndex(of: $1.id) ?? savedOrder.count)
+            }
+        }
         timedWalk?.resume(at: now)
         if timedWalk != nil { expandedExerciseID = nil }
     }
@@ -116,7 +122,6 @@ final class WorkoutSessionState {
 
     var currentExerciseName: String {
         if timedWalk != nil { return "Treadmill walk" }
-        if completedMovementCount == drafts.count { return "Treadmill walk" }
         if let expandedExerciseID,
            let expanded = drafts.first(where: { $0.id == expandedExerciseID }) {
             return expanded.template.name
@@ -199,28 +204,25 @@ final class WorkoutSessionState {
     }
 
     func isExerciseComplete(_ draft: ExerciseDraft) -> Bool {
-        draft.sets.filter { $0.completed && $0.kind == .working }.count
-            >= draft.template.sets
+        let workingSets = draft.sets.filter { $0.kind == .working }
+        return !workingSets.isEmpty && workingSets.allSatisfy(\.completed)
     }
 
     func didCompleteSet(
         for exerciseID: String,
         kind: SetKind,
+        restSeconds: Int? = nil,
         now: Date = Date()
     ) {
         guard let index = drafts.firstIndex(where: { $0.id == exerciseID }) else {
             return
         }
         finishTimedWalk(now: now)
-        let prescribedRest = drafts[index].template.restSeconds
+        let prescribedRest = max(0, restSeconds ?? drafts[index].template.restSeconds)
         let seconds = kind == .warmup ? min(90, prescribedRest) : prescribedRest
-        restEnd = now.addingTimeInterval(TimeInterval(seconds))
-
-        guard isExerciseComplete(drafts[index]) else { return }
-        let following = drafts.dropFirst(index + 1).first(where: {
-            !isExerciseComplete($0)
-        }) ?? drafts.first(where: { !isExerciseComplete($0) })
-        expandedExerciseID = following?.id
+        restEnd = seconds > 0 ? now.addingTimeInterval(TimeInterval(seconds)) : nil
+        // Logging updates the activity context without navigating away from the set.
+        expandedExerciseID = exerciseID
     }
 
     func prefillFromHistory(_ history: [WorkoutRecord]) {
@@ -245,5 +247,15 @@ final class WorkoutSessionState {
                 drafts[draftIndex].sets[setIndex].repetitions = previousSet.repetitions
             }
         }
+    }
+}
+
+/// Local exercise preferences apply to future sessions without altering the routine.
+enum ExerciseRestPreference {
+    static func key(for exerciseID: String) -> String { "exercise-rest-seconds-" + exerciseID }
+
+    static func seconds(for exercise: ExerciseTemplate, defaults: UserDefaults = .standard) -> Int {
+        guard defaults.object(forKey: key(for: exercise.id)) != nil else { return exercise.restSeconds }
+        return max(0, defaults.integer(forKey: key(for: exercise.id)))
     }
 }
