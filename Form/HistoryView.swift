@@ -25,8 +25,8 @@ struct HistoryView: View {
             } else {
                 List {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("little by little.").font(AtelierType.script(40))
-                        Text("a few days of showing up.").font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                        Text("History").font(AtelierType.script(40))
+                        Text("\(workouts.count) saved session\(workouts.count == 1 ? "" : "s")").font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
                     }.historyRow(top: 12, bottom: 12)
                     if selectedSection == .overview {
                         HistoryWeeklySummary(workouts: workouts)

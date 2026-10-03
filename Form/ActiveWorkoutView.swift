@@ -160,7 +160,7 @@ struct ActiveWorkoutView: View {
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("your own pace.").font(AtelierType.script(38))
+                    Text(routine.name.lowercased()).font(AtelierType.script(38))
                     HStack {
                         Text("Choose any movement. Check off each set.")
                             .font(.caption).foregroundStyle(InkPalette.softInk)
@@ -193,7 +193,7 @@ struct ActiveWorkoutView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     InkDivider()
                     HStack {
-                        Text("a little further.").font(AtelierType.script(30))
+                        Text("cardio").font(AtelierType.script(30))
                         Spacer()
                         DemonstrationImage(assetName: "walk").frame(width: 64, height: 64)
                     }

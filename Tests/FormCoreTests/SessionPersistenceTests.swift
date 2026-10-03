@@ -13,7 +13,10 @@ final class SessionPersistenceTests: XCTestCase {
         session.drafts[0].sets[0].completed = true
         session.pause()
         let record = try WorkoutRepository.saveCompletedSession(session, in: container.mainContext)
-        XCTAssertEqual(record.exercises[0].sets.count, 1)
+        let savedExercise = try XCTUnwrap(record.exercises.first {
+            $0.exerciseID == session.drafts[0].id
+        })
+        XCTAssertEqual(savedExercise.sets.count, 1)
 
         try withStore { store, directory, defaults in
             // Simulate termination after history saves but before snapshot cleanup.

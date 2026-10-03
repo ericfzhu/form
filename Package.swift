@@ -28,7 +28,6 @@ let package = Package(
                 "RootView.swift",
                 "WorkoutActivityAttributes.swift",
                 "WorkoutBackup.swift",
-                "WorkoutFormatting.swift",
                 "WorkoutLiveActivityController.swift",
                 "DesignSystem.swift",
                 "TrainHomeView.swift",
@@ -54,6 +53,7 @@ let package = Package(
                 "WorkoutSessionState.swift",
                 "ActiveSessionStore.swift",
                 "WorkoutRepository.swift",
+                "WorkoutFormatting.swift",
 
                 "Planning/WorkoutPlanning.swift",
                 "ActiveDuration.swift",

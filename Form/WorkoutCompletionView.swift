@@ -27,15 +27,25 @@ struct WorkoutCompletionView: View {
             PaperBackground()
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
-                    Text("a little more\nthan before.").font(AtelierType.script(42))
-                    PaperVignette(name: "finished", height: 230)
-                    HStack { Text("Time moving"); Spacer(); Text(WorkoutValueFormatter.durationMinutes(record.duration)) }
+                    Text("Session saved").font(AtelierType.script(36))
+                    Text(record.displayName)
+                        .font(.subheadline).foregroundStyle(InkPalette.softInk)
+                    PaperVignette(name: "finished", height: 120)
+                    HStack { Text("Session duration"); Spacer(); Text(WorkoutValueFormatter.durationMinutes(record.duration)) }
                     HStack { Text("Strength"); Spacer(); Text("\(completedSetCount) set\(completedSetCount == 1 ? "" : "s")") }
                     if cardioMinutes > 0 {
                         HStack { Text("Cardio"); Spacer(); Text("\(cardioMinutes) min") }
                     }
-                    Text("and now, the rest of your day.")
-                        .font(AtelierType.script(22)).foregroundStyle(InkPalette.softInk).padding(.vertical, 12)
+                    if let observation = SessionObservation.message(for: record, in: workouts) {
+                        Text(observation)
+                            .font(.subheadline)
+                            .foregroundStyle(InkPalette.ink)
+                            .padding(.vertical, 8)
+                    }
+                    if completedSetCount == 0 && record.cardioEntries.isEmpty {
+                        Text("No working sets or cardio recorded.")
+                            .font(.subheadline).foregroundStyle(InkPalette.softInk)
+                    }
                     DisclosureGroup("View session") {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("movements")
@@ -56,7 +66,7 @@ struct WorkoutCompletionView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                .padding(.bottom, 104)
+                .padding(.bottom, 24)
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -65,18 +75,6 @@ struct WorkoutCompletionView: View {
                 .padding(.vertical, 10)
                 .background(InkPalette.paper.opacity(0.95))
         }
-    }
-
-    private func summaryMetric(_ value: String, label: String) -> some View {
-        VStack(spacing: 5) {
-            Text(value)
-                .font(.system(.title2, design: .default))
-                .monospacedDigit()
-            Text(label.lowercased())
-                .font(.system(.caption2, design: .default))
-                .foregroundStyle(InkPalette.softInk)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     private func completionRow(_ exercise: ExerciseRecord) -> some View {
@@ -150,15 +148,12 @@ struct WorkoutCompletionView: View {
 struct CompletionHeader: View {
     var body: some View {
         HStack(spacing: 10) {
-            Text("done")
-                .font(.system(.caption, design: .default))
-                .foregroundStyle(InkPalette.softInk)
-                .frame(width: 52, height: 52)
-            Text("session complete")
+            Text("Session summary")
                 .font(.system(.subheadline, design: .default))
             Spacer()
         }
-        .padding(.trailing, 16)
+        .padding(.horizontal, 20)
+        .frame(minHeight: 52)
         .background { PaperSurface() }
     }
 }

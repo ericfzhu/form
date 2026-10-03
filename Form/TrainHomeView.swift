@@ -239,6 +239,15 @@ struct TodayView: View {
     @State private var showingDiscardConfirmation = false
     @State private var showingSettings = false
 
+    private var welcomeDetail: String {
+        if let snapshot {
+            return "Started " + snapshot.startedAt.formatted(date: .abbreviated, time: .shortened)
+        }
+        guard let last = history.first else { return "Your first session starts here." }
+        if Calendar.current.isDateInToday(last.date) { return "Session saved today." }
+        return "Last session · " + last.date.formatted(date: .abbreviated, time: .omitted)
+    }
+
     private var next: RoutineTemplate {
         snapshot?.resolvedRoutine ?? FormRoutine.next(after: history.first(where: {
             FormRoutine.sessions.map(\.id).contains($0.routineID)
@@ -255,14 +264,14 @@ struct TodayView: View {
                         Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
                     }.accessibilityLabel("Settings")
                 }
-                Text("a little\nmovement.").font(AtelierType.script(46)).lineSpacing(-5)
-                Text("good to see you.").font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                Text("Today").font(AtelierType.script(46)).lineSpacing(-5)
+                Text(welcomeDetail).font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
                 PaperVignette(name: "arrive", height: 220)
-                Text(snapshot == nil ? "UP NEXT" : "PICK UP WHERE YOU LEFT OFF")
+                Text(snapshot == nil ? "UP NEXT" : "IN PROGRESS")
                     .font(.caption2).tracking(2).foregroundStyle(InkPalette.softInk)
-                Text("A full-body session").font(.title3)
+                Text(next.name).font(.title3)
                 Text(next.focus).font(.subheadline).foregroundStyle(InkPalette.softInk)
-                Text("About 45 minutes, all together.").font(.caption).foregroundStyle(InkPalette.softInk)
+                Text("About 45 minutes").font(.caption).foregroundStyle(InkPalette.softInk)
                 InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
                     presentedRoutine = next
                 }.padding(.top, 12)
