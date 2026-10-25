@@ -9,7 +9,7 @@ struct WorkoutHistoryDetail: View {
 
     private var completedExercises: [ExerciseRecord] {
         workout.exercises
-            .filter { $0.sets.contains { $0.kind == .working } }
+            .filter { !$0.sets.isEmpty }
             .sorted { $0.order < $1.order }
     }
 
@@ -44,6 +44,7 @@ struct WorkoutHistoryDetail: View {
                             Text("cardio")
                                 .font(AtelierType.script(20))
                                 .foregroundStyle(InkPalette.softInk)
+                                .accessibilityAddTraits(.isHeader)
                             ForEach(workout.cardioEntries.sorted { $0.order < $1.order }) {
                                 CardioHistoryCard(entry: $0)
                             }
@@ -124,7 +125,8 @@ private struct HistoryExerciseCard: View {
                     .font(.body.monospacedDigit().weight(.semibold))
                 }
                 .padding(.horizontal, 16)
-                .frame(height: 46)
+                .frame(minHeight: 46)
+                .padding(.vertical, 6)
             }
         }
         .inkCard()
@@ -142,6 +144,7 @@ private struct CardioHistoryCard: View {
         VStack(alignment: .leading, spacing: 9) {
             Text(entry.kind.title)
                 .font(.system(.headline, design: .default, weight: .semibold))
+                .accessibilityAddTraits(.isHeader)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), alignment: .leading)], spacing: 12) {
                 metric("\(WorkoutValueFormatter.decimal(entry.durationMinutes)) min", "TIME")
                 if entry.distanceKilometers > 0 {
@@ -166,5 +169,6 @@ private struct CardioHistoryCard: View {
                 .foregroundStyle(InkPalette.softInk)
             Text(value).font(.subheadline.monospacedDigit().weight(.semibold))
         }
+        .accessibilityElement(children: .combine)
     }
 }

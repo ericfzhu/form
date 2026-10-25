@@ -71,6 +71,83 @@ final class SessionPersistenceTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testUnreadableSnapshotIsReportedAndCannotBeOverwritten() throws {
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0])
+        try withStore { store, directory, _ in
+            let file = directory.appendingPathComponent("active-workout.json")
+            let damaged = Data("invalid snapshot".utf8)
+            try damaged.write(to: file)
+            XCTAssertThrowsError(try store.loadChecked())
+            XCTAssertThrowsError(try store.save(session.snapshot))
+            XCTAssertEqual(try Data(contentsOf: file), damaged)
+            try store.clearChecked()
+            XCTAssertNil(try store.loadChecked())
+        }
+    }
+
+    @MainActor
+    func testNewerSnapshotIsPreservedUntilExplicitDiscard() throws {
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0])
+        try withStore { store, directory, _ in
+            try store.save(session.snapshot)
+            let file = directory.appendingPathComponent("active-workout.json")
+            var envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+            envelope["schemaVersion"] = 999
+            let newer = try JSONSerialization.data(withJSONObject: envelope)
+            try newer.write(to: file)
+            XCTAssertThrowsError(try store.loadChecked()) { error in
+                XCTAssertEqual(error as? ActiveSessionStore.RecoveryError, .newerVersion)
+            }
+            XCTAssertThrowsError(try store.save(session.snapshot))
+            XCTAssertEqual(try Data(contentsOf: file), newer)
+        }
+    }
+
+    func testMissingSnapshotIsNotARecoveryError() throws {
+        try withStore { store, _, _ in
+            XCTAssertNil(try store.loadChecked())
+            XCTAssertNoThrow(try store.clearChecked())
+        }
+    }
+
+    @MainActor
+    func testActualWriteAndDeleteFailuresPreserveSnapshotUntilRetry() throws {
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0])
+        session.pause()
+        try withStore { store, directory, _ in
+            try store.save(session.snapshot)
+            let original = try store.loadChecked()
+            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path) }
+            session.drafts[0].sets[0].weight = 42
+            XCTAssertThrowsError(try store.save(session.snapshot))
+            XCTAssertThrowsError(try store.clearChecked())
+            XCTAssertEqual(try store.loadChecked(), original)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+            try store.save(session.snapshot)
+            XCTAssertEqual(try store.loadChecked(), session.snapshot)
+            try store.clearChecked()
+            XCTAssertNil(try store.loadChecked())
+        }
+    }
+
+    @MainActor
+    func testFailedLegacyMigrationPreservesSourceForRetry() throws {
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0])
+        try withStore { store, directory, defaults in
+            let data = try JSONEncoder().encode(session.snapshot)
+            defaults.set(data, forKey: "active-workout-snapshot-v1")
+            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path) }
+            XCTAssertThrowsError(try store.loadChecked())
+            XCTAssertEqual(defaults.data(forKey: "active-workout-snapshot-v1"), data)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+            XCTAssertNotNil(try store.loadChecked())
+            XCTAssertNil(defaults.data(forKey: "active-workout-snapshot-v1"))
+        }
+    }
+
     private func withStore(_ body: (ActiveSessionStore, URL, UserDefaults) throws -> Void) throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let suite = "SessionPersistenceTests.\(UUID().uuidString)"

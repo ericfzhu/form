@@ -19,6 +19,7 @@ struct FormApp: App {
 }
 
 private struct AppBootstrapView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @StateObject private var health = HealthKitService.shared
@@ -35,6 +36,13 @@ private struct AppBootstrapView: View {
                 )
                 if ActiveWorkoutStore.load() == nil {
                     await WorkoutLiveActivityController.forceEnd()
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task {
+                    await health.refresh()
+                    await healthSync.processPending(in: modelContext)
                 }
             }
             .onChange(of: health.accessState) { _, state in

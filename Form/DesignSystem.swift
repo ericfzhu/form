@@ -67,6 +67,7 @@ struct RawScreenTitle: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(detail.isEmpty ? title : "\(title), \(detail)")
+        .accessibilityAddTraits(.isHeader)
         .padding(.horizontal, 20)
         .padding(.top, 18)
         .padding(.bottom, 10)
@@ -91,6 +92,8 @@ struct FieldSectionTitle: View {
             }
         }
         .frame(minHeight: 40)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -114,10 +117,12 @@ struct RawSectionHeader: View {
         .frame(minHeight: 48)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(trailing.isEmpty ? title : "\(title), \(trailing)")
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
 struct InkTextHeader: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let title: String
     let leadingTitle: String
     let leadingAction: () -> Void
@@ -125,31 +130,31 @@ struct InkTextHeader: View {
     var trailingAction: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 0) {
-            Button(leadingTitle, action: leadingAction)
-                .font(AtelierType.script(16))
-                .foregroundStyle(InkPalette.softInk)
-                .frame(width: 76, height: 52)
-                .buttonStyle(PressableButtonStyle())
-
-            Text(title)
-                .font(AtelierType.script(16))
-                .foregroundStyle(InkPalette.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-                .frame(maxWidth: .infinity)
-
-            if let trailingTitle, let trailingAction {
-                Button(trailingTitle, action: trailingAction)
-                    .font(AtelierType.script(16))
-                    .foregroundStyle(InkPalette.verdigris)
-                    .frame(width: 76, height: 52)
-                    .buttonStyle(PressableButtonStyle())
-            } else {
-                Color.clear
-                    .frame(width: 76, height: 52)
-                    .accessibilityHidden(true)
+        VStack(spacing: 0) {
+            if typeSize.isAccessibilitySize {
+                Text(title).font(AtelierType.script(16)).padding(.horizontal, 16)
+                    .accessibilityAddTraits(.isHeader)
             }
+            HStack(spacing: 12) {
+                Button(leadingTitle, action: leadingAction)
+                    .font(AtelierType.script(16))
+                    .frame(minWidth: 60, minHeight: 52)
+                if typeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                else {
+                    Text(title).font(AtelierType.script(16)).lineLimit(1)
+                        .minimumScaleFactor(0.76).frame(maxWidth: .infinity)
+                        .accessibilityAddTraits(.isHeader)
+                }
+                if let trailingTitle, let trailingAction {
+                    Button(trailingTitle, action: trailingAction)
+                        .font(AtelierType.script(16))
+                        .frame(minWidth: 60, minHeight: 52)
+                } else if !typeSize.isAccessibilitySize {
+                    Color.clear.frame(width: 60, height: 52).accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, 12)
+            .buttonStyle(PressableButtonStyle())
         }
         .background { PaperSurface() }
     }

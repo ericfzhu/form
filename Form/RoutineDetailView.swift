@@ -10,6 +10,7 @@ struct RoutineDetailView: View {
     private var planned: PlannedSession? { planner.sessions.first { $0.id == originalRoutine.id } }
     private var routine: RoutineTemplate { planned?.routine ?? originalRoutine }
     @Environment(\.dismiss) private var dismiss
+    @State private var recoveryError: String?
     @State private var workoutLaunch: WorkoutLaunch?
     @State private var startConflict: ActiveWorkoutSnapshot?
     @State private var shouldReturnToTrain = false
@@ -129,6 +130,12 @@ struct RoutineDetailView: View {
         } message: {
             Text("Only one session can be active at a time. Current progress remains saved unless discarded.")
         }
+        .alert("Couldn’t restore session", isPresented: Binding(
+            get: { recoveryError != nil }, set: { if !$0 { recoveryError = nil } }
+        )) {
+            Button("Retry", action: requestWorkoutStart)
+            Button("Cancel", role: .cancel) {}
+        } message: { Text(recoveryError ?? "") }
         .fullScreenCover(item: $workoutLaunch, onDismiss: {
             if shouldReturnToTrain { dismiss() }
         }) { launch in
@@ -147,21 +154,20 @@ struct RoutineDetailView: View {
     }
 
     private func requestWorkoutStart() {
-        guard let snapshot = ActiveWorkoutStore.load(completedWorkouts: history) else {
-            workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
-            return
-        }
-        guard snapshot.resolvedRoutine != nil else {
-            ActiveWorkoutStore.clear()
-            workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
-            return
-        }
-        startConflict = snapshot
+        do {
+            guard let snapshot = try ActiveWorkoutStore.loadChecked(completedWorkouts: history) else {
+                workoutLaunch = WorkoutLaunch(routine: routine, snapshot: nil)
+                return
+            }
+            guard snapshot.resolvedRoutine != nil else { throw ActiveSessionStore.RecoveryError.unreadable }
+            startConflict = snapshot
+        } catch { recoveryError = error.localizedDescription + " You can manage the saved session on Today." }
     }
 
     private func replaceActiveWorkout() {
         startConflict = nil
-        ActiveWorkoutStore.clear()
+        do { try ActiveWorkoutStore.clearChecked() }
+        catch { recoveryError = "Couldn’t discard the existing session. Try again."; return }
         RestFeedbackService.shared.cancel()
         Task {
             await WorkoutLiveActivityController.forceEnd()

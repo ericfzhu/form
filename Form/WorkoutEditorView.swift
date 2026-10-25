@@ -2,29 +2,9 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-private struct EditableSetDraft: Identifiable, Equatable {
-    let id = UUID()
-    var weight: Double
-    var repetitions: Int
-    var kind: SetKind = .working
-}
-
-private struct EditableExerciseDraft: Identifiable, Equatable {
-    let id = UUID()
-    let record: ExerciseRecord?
-    let template: ExerciseTemplate
-    var sets: [EditableSetDraft]
-
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id
-            && lhs.record?.persistentModelID == rhs.record?.persistentModelID
-            && lhs.template == rhs.template
-            && lhs.sets == rhs.sets
-    }
-}
-
 struct WorkoutEditorView: View {
     let workout: WorkoutRecord
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var sessionTitle: String
@@ -131,16 +111,29 @@ struct WorkoutEditorView: View {
                 Text("OPTIONAL TITLE")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(InkPalette.softInk)
-                TextField(workout.routineName, text: $sessionTitle).inkInput()
+                TextField(workout.routineName, text: $sessionTitle)
+                    .accessibilityLabel("Session title").inkInput()
             }
-            DatePicker("Date and time", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                .font(.system(.body, design: .monospaced))
-                .tint(InkPalette.cinnabar)
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Date").font(.caption)
+                    DatePicker("Session date", selection: $date, displayedComponents: .date)
+                        .labelsHidden()
+                    Text("Time").font(.caption)
+                    DatePicker("Session time", selection: $date, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                }
+            } else {
+                DatePicker("Date and time", selection: $date, displayedComponents: [.date, .hourAndMinute])
+                    .font(.system(.body, design: .monospaced))
+                    .tint(InkPalette.cinnabar)
+            }
             VStack(alignment: .leading, spacing: 5) {
                 Text("DURATION · MINUTES")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(InkPalette.softInk)
                 TextField("60", value: $durationMinutes, format: .number.precision(.fractionLength(0...1)))
+                    .accessibilityLabel("Session duration in minutes")
                     .keyboardType(.decimalPad)
                     .inkInput()
             }
@@ -190,61 +183,11 @@ struct WorkoutEditorView: View {
 
     private func save() {
         let previousUUID = workout.healthKitWorkoutUUID
-        let trimmed = sessionTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        workout.sessionTitle = trimmed.isEmpty ? nil : trimmed
-        workout.date = date
-        workout.duration = max(60, durationMinutes * 60)
-
-        let retained = Set(exercises.compactMap { $0.record?.persistentModelID })
-        for existing in workout.exercises where !retained.contains(existing.persistentModelID) {
-            modelContext.delete(existing)
-        }
-
-        workout.exercises = exercises.enumerated().compactMap { exerciseIndex, draft in
-            if draft.record == nil && draft.sets.isEmpty { return nil }
-            let record = draft.record ?? ExerciseRecord(
-                exerciseID: draft.template.id,
-                name: draft.template.name,
-                assetName: draft.template.assetName,
-                order: exerciseIndex
-            )
-            record.exerciseID = draft.template.id
-            record.name = draft.template.name
-            record.assetName = draft.template.assetName
-            record.order = exerciseIndex
-            let oldSets = record.sets
-            record.sets = []
-            oldSets.forEach(modelContext.delete)
-            record.sets = draft.sets.enumerated().map { index, set in
-                SetRecord(
-                    order: index,
-                    weight: draft.template.recordsLoad ? max(0, set.weight) : 0,
-                    repetitions: max(0, set.repetitions),
-                    kind: set.kind
-                )
-            }
-            return record
-        }
-
-        let oldCardio = workout.cardioEntries
-        workout.cardioEntries = []
-        oldCardio.forEach(modelContext.delete)
-        workout.cardioEntries = cardioEntries.enumerated().compactMap { index, entry in
-            guard entry.durationMinutes > 0 else { return nil }
-            return CardioRecord(
-                kind: entry.kind,
-                order: index,
-                durationMinutes: max(0, entry.durationMinutes),
-                distanceKilometers: max(0, entry.distanceKilometers),
-                averageSpeed: max(0, entry.averageSpeed),
-                incline: entry.kind.supportsIncline ? max(0, entry.incline) : 0
-            )
-        }
-        workout.healthSyncStatus = workout.hasTrainingData ? .pending : .notRequested
-        workout.healthSyncLastError = nil
-
         do {
-            try modelContext.save()
+            try WorkoutRepository.update(
+                workout, title: sessionTitle, date: date, durationMinutes: durationMinutes,
+                exercises: exercises, cardioEntries: cardioEntries, in: modelContext
+            )
             Task {
                 await HealthSyncCoordinator.shared.enqueueSave(
                     workout,
@@ -254,45 +197,53 @@ struct WorkoutEditorView: View {
             }
             dismiss()
         } catch {
-            modelContext.rollback()
             saveErrorMessage = "Your edits are still on this screen. Try saving again."
         }
     }
 }
 
 private struct EditableExerciseCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var exercise: EditableExerciseDraft
     let remove: () -> Void
 
     var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
+            layout {
                 DemonstrationImage(assetName: exercise.template.assetName)
                     .frame(width: 72, height: 72)
                 Text(exercise.template.name)
                     .font(.system(.body, design: .monospaced))
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
                 Button("Remove", role: .destructive, action: remove)
+                    .accessibilityLabel("Remove \(exercise.template.name)")
                     .font(.system(.caption, design: .monospaced, weight: .semibold))
                     .foregroundStyle(InkPalette.cinnabar)
                     .frame(minHeight: 44)
             }
             .padding(.vertical, 11)
             ForEach($exercise.sets) { $set in
-                HStack(spacing: 10) {
+                let setNumber = (exercise.sets.firstIndex { $0.id == set.id } ?? 0) + 1
+                layout {
                     Picker("Set type", selection: $set.kind) {
                         ForEach(SetKind.allCases) { Text($0.shortTitle).tag($0) }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 44)
+                    .accessibilityLabel("\(exercise.template.name), set \(setNumber), type")
+                    .accessibilityValue(set.kind.title)
+                    .frame(minWidth: 44)
                     if exercise.template.recordsLoad {
-                        editField(exercise.template.loadLabel, value: $set.weight)
+                        editField(exercise.template.loadLabel, value: $set.weight,
+                                  accessibilityLabel: "\(exercise.template.name), set \(setNumber), weight in kilograms")
                     }
                     VStack(spacing: 4) {
                         Text(exercise.template.recordsTime ? "SEC" : "REPS")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(InkPalette.softInk)
                         TextField("0", value: $set.repetitions, format: .number)
+                            .accessibilityLabel("\(exercise.template.name), set \(setNumber), \(exercise.template.recordsTime ? "seconds" : "repetitions")")
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.center)
                             .inkInput()
@@ -303,8 +254,9 @@ private struct EditableExerciseCard: View {
                     } label: {
                         Image(systemName: "minus")
                             .foregroundStyle(InkPalette.cinnabar)
-                            .frame(width: 42, height: 42)
+                            .frame(width: 44, height: 44)
                     }
+                    .accessibilityLabel("Remove \(exercise.template.name), set \(setNumber)")
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
@@ -322,18 +274,20 @@ private struct EditableExerciseCard: View {
                     .frame(maxWidth: .infinity, minHeight: 46)
             }
             .buttonStyle(PressableButtonStyle())
+            .accessibilityLabel("Add set to \(exercise.template.name)")
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
         }
         .inkCard()
     }
 
-    private func editField(_ label: String, value: Binding<Double>) -> some View {
+    private func editField(_ label: String, value: Binding<Double>, accessibilityLabel: String) -> some View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(InkPalette.softInk)
             TextField("0", value: value, format: .number.precision(.fractionLength(0...1)))
+                .accessibilityLabel(accessibilityLabel)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.center)
                 .inkInput()

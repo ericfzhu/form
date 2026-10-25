@@ -136,7 +136,9 @@ final class WorkoutSessionState {
             sessionID: sessionID,
             routineID: routine.id,
             startedAt: startedAt,
-            activeDuration: elapsedActiveDuration,
+            // Running time is reconstructed from the stable timer anchor. Reading
+            // the snapshot must not change it or trigger autosave on every redraw.
+            activeDuration: duration.accumulated,
             exercises: drafts.map { draft in
                 ActiveExerciseSnapshot(
                     exerciseID: draft.id,
@@ -165,6 +167,37 @@ final class WorkoutSessionState {
             sessionTimerStartedAt: sessionTimerStartedAt,
             timedWalk: timedWalk
         )
+    }
+
+    enum FinishDisposition { case empty, partial, complete }
+
+    func finishDisposition(at date: Date = Date()) -> FinishDisposition {
+        let hasWork = hasRecordedWork || (timedWalk?.elapsed(at: date) ?? 0) > 0
+        if !hasWork { return .empty }
+        return completedMovementCount < drafts.count ? .partial : .complete
+    }
+
+    func pauseAndSave(at date: Date = Date(), save: (ActiveWorkoutSnapshot) throws -> Void) throws {
+        pause(at: date)
+        do { try save(snapshot) }
+        catch {
+            resume(at: date)
+            throw error
+        }
+    }
+
+    func finish(at date: Date = Date(), save: (WorkoutSessionState) throws -> WorkoutRecord) throws -> WorkoutRecord {
+        let originalWalk = timedWalk
+        let originalCardio = cardioDrafts
+        pause(at: date)
+        finishTimedWalk(now: date)
+        do { return try save(self) }
+        catch {
+            timedWalk = originalWalk
+            cardioDrafts = originalCardio
+            resume(at: date)
+            throw error
+        }
     }
 
     func pause(at date: Date = Date()) {

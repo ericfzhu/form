@@ -54,6 +54,69 @@ final class WorkoutWorkflowTests: XCTestCase {
         XCTAssertFalse(session.isExerciseComplete(session.drafts[0]))
     }
 
+    @MainActor
+    func testRequestingFinishLeavesWalkRunningUntilConfirmed() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0], now: start)
+        session.startTimedWalk(now: start)
+        XCTAssertEqual(session.finishDisposition(at: start.addingTimeInterval(60)), .partial)
+        XCTAssertEqual(session.timedWalk?.startedAt, start)
+        XCTAssertTrue(session.cardioDrafts.isEmpty)
+        XCTAssertEqual(session.timedWalk?.elapsed(at: start.addingTimeInterval(90)), 90)
+    }
+
+    @MainActor
+    func testFailedPauseSaveResumesSessionAndWalk() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0], now: start)
+        session.startTimedWalk(now: start)
+        XCTAssertThrowsError(try session.pauseAndSave(at: start.addingTimeInterval(60)) { snapshot in
+            XCTAssertNil(snapshot.sessionTimerStartedAt)
+            throw CocoaError(.fileWriteOutOfSpace)
+        })
+        XCTAssertNotNil(session.sessionTimerStartedAt)
+        XCTAssertEqual(session.timedWalk?.elapsed(at: start.addingTimeInterval(90)), 90)
+    }
+
+    @MainActor
+    func testFailedFinishRestoresWalkAndRetryLogsItOnce() throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0], now: start)
+        session.startTimedWalk(now: start)
+        XCTAssertThrowsError(try session.finish(at: start.addingTimeInterval(60)) { state in
+            XCTAssertEqual(state.cardioDrafts.count, 1)
+            XCTAssertNil(state.timedWalk)
+            throw CocoaError(.fileWriteOutOfSpace)
+        })
+        XCTAssertNotNil(session.timedWalk)
+        XCTAssertTrue(session.cardioDrafts.isEmpty)
+        _ = try session.finish(at: start.addingTimeInterval(120)) { state in
+            XCTAssertEqual(state.cardioDrafts.count, 1)
+            XCTAssertEqual(state.cardioDrafts[0].durationMinutes, 2)
+            return WorkoutRecord(date: start, routineName: state.routine.name, duration: 120)
+        }
+        XCTAssertNil(session.timedWalk)
+        XCTAssertNil(session.sessionTimerStartedAt)
+    }
+
+    @MainActor
+    func testSnapshotIsStableBetweenActionsAndTimersSurviveRelaunch() throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0], now: start)
+        session.startTimedWalk(now: start.addingTimeInterval(10))
+        session.restEnd = start.addingTimeInterval(180)
+        let first = session.snapshot
+        XCTAssertEqual(first, session.snapshot)
+        let decoded = try JSONDecoder().decode(ActiveWorkoutSnapshot.self, from: JSONEncoder().encode(first))
+        let restored = WorkoutSessionState(routine: session.routine, snapshot: decoded, now: start.addingTimeInterval(60))
+        XCTAssertEqual(restored.sessionTimerStartedAt, start)
+        XCTAssertEqual(restored.timedWalk?.elapsed(at: start.addingTimeInterval(60)), 50)
+        XCTAssertEqual(restored.restEnd, first.restEnd)
+        restored.pause(at: start.addingTimeInterval(90))
+        XCTAssertEqual(restored.snapshot.activeDuration, 90)
+        XCTAssertEqual(restored.snapshot.timedWalk?.accumulated, 80)
+    }
+
     func testRestPreferenceRemembersOffAndIsSpecificToExercise() throws {
         let suite = "WorkoutWorkflowTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

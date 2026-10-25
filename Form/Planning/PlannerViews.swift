@@ -6,6 +6,7 @@ struct PlanHomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var history: [WorkoutRecord]
     @State private var active: ActiveWorkoutSnapshot?
+    @State private var recoveryError: String?
     @State private var resume = false
     @State private var preferences = false
     let openGym: () -> Void
@@ -25,6 +26,10 @@ struct PlanHomeView: View {
                     Button { preferences = true } label: {
                         Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
                     }.accessibilityLabel("Preferences and integrations")
+                }
+                if let recoveryError {
+                    Text(recoveryError).font(.subheadline).foregroundStyle(InkPalette.cinnabar)
+                    Button("Retry restoring session", action: reloadSession)
                 }
                 if let active, active.resolvedRoutine != nil {
                     Button { resume = true } label: {
@@ -50,8 +55,8 @@ struct PlanHomeView: View {
         }
         .background(InkPalette.paper)
         .toolbar(.hidden, for: .navigationBar)
-        .task { active = ActiveWorkoutStore.load(completedWorkouts: history) }
-        .onChange(of: scenePhase) { _, phase in if phase == .active { active = ActiveWorkoutStore.load(completedWorkouts: history) } }
+        .task { reloadSession() }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { reloadSession() } }
         .sheet(isPresented: $preferences) {
             NavigationStack {
                 RoutineListView().toolbar(.visible, for: .navigationBar)
@@ -61,9 +66,17 @@ struct PlanHomeView: View {
                     .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
             }
         }
-        .fullScreenCover(isPresented: $resume, onDismiss: { active = ActiveWorkoutStore.load(completedWorkouts: history) }) {
+        .fullScreenCover(isPresented: $resume, onDismiss: { reloadSession() }) {
             if let active, let routine = active.resolvedRoutine { ActiveWorkoutView(routine: routine, snapshot: active) }
         }
+    }
+
+    private func reloadSession() {
+        do {
+            active = try ActiveWorkoutStore.loadChecked(completedWorkouts: history)
+            guard active == nil || active?.resolvedRoutine != nil else { throw ActiveSessionStore.RecoveryError.unreadable }
+            recoveryError = nil
+        } catch { active = nil; recoveryError = error.localizedDescription }
     }
 
     private var introduction: some View {

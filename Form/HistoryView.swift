@@ -12,6 +12,7 @@ struct HistoryView: View {
     @State private var showingExerciseIndex = false
     @State private var showingBackupImporter = false
     @State private var restoreMessage: String?
+    @State private var pendingDeletion: WorkoutRecord?
     let openWorkout: (WorkoutRecord) -> Void
 
     var body: some View {
@@ -48,15 +49,15 @@ struct HistoryView: View {
                                 }
                                 .buttonStyle(PressableButtonStyle())
                                 .historyRow()
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) { delete(workout) } label: {
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) { pendingDeletion = workout } label: {
                                         Label("Delete", systemImage: "trash")
                                     }
                                     .tint(InkPalette.cinnabar)
                                 }
                                 .contextMenu {
                                     Button("Delete session", role: .destructive) {
-                                        delete(workout)
+                                        pendingDeletion = workout
                                     }
                                 }
                             }
@@ -79,12 +80,24 @@ struct HistoryView: View {
                     Button("Overview") { selectedSection = .overview }
                     Button("Exercise progress") { showingExerciseIndex = true }
                     Button("Restore a backup") { showingBackupImporter = true }
-                } label: { Image(systemName: "ellipsis").frame(width: 44, height: 44) }
+                } label: { Image(systemName: "ellipsis").font(.system(size: 22)).frame(width: 44, height: 44) }
                     .accessibilityLabel("History options")
                 Button { showingSettings = true } label: {
-                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                    Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
                 }.accessibilityLabel("Settings")
             }.padding(.horizontal, 28).background(.white)
+        }
+        .confirmationDialog("Delete this session?", isPresented: Binding(
+            get: { pendingDeletion != nil },
+            set: { if !$0 { pendingDeletion = nil } }
+        ), presenting: pendingDeletion) { workout in
+            Button("Delete session", role: .destructive) {
+                delete(workout)
+                pendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDeletion = nil }
+        } message: { workout in
+            Text("Delete \(workout.displayName)? This also requests removal of its Apple Health workout and can’t be undone.")
         }
         .sheet(isPresented: $showingSettings) { FormSettingsView() }
         .toolbar(.hidden, for: .navigationBar)
@@ -143,6 +156,8 @@ struct HistoryView: View {
             restoreMessage = count == 0
                 ? "This backup contains no new sessions."
                 : "Restored \(count) session\(count == 1 ? "" : "s")."
+        } catch let error as CocoaError where error.code == .userCancelled {
+            return
         } catch {
             restoreMessage = "The backup could not be restored. \(error.localizedDescription)"
         }

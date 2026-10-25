@@ -7,37 +7,46 @@ struct ActiveWorkoutHeader: View {
     let pause: () -> Void
     let requestDiscard: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("session in progress")
-                    .font(.system(.subheadline, design: .default))
-                Text(progress)
-                    .font(.system(.caption2, design: .default))
-                    .foregroundStyle(InkPalette.softInk.opacity(0.76))
-                    .monospacedDigit()
+        VStack(alignment: .leading, spacing: 4) {
+            if typeSize.isAccessibilitySize {
+                Text(progress).font(.caption2).foregroundStyle(InkPalette.softInk)
             }
-            .padding(.leading, 20)
-            Spacer()
-            Button("Finish session", action: requestFinish)
-                .font(AtelierType.script(16))
-                .frame(minWidth: 100, minHeight: 56)
-                .buttonStyle(PressableButtonStyle())
-            Menu {
-                Button("Pause and close", action: pause)
-                Button("Discard session", role: .destructive, action: requestDiscard)
-            } label: {
-                Image(systemName: "ellipsis")
-                    .frame(width: 44, height: 56)
-                    .contentShape(Rectangle())
+            HStack(spacing: 12) {
+                if !typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("session in progress").font(.subheadline)
+                        Text(progress).font(.caption2).foregroundStyle(InkPalette.softInk)
+                    }
+                    Spacer(minLength: 0)
+                }
+                Button("Finish session", action: requestFinish)
+                    .font(AtelierType.script(16))
+                    .frame(minHeight: 44)
+                    .buttonStyle(PressableButtonStyle())
+                if typeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                Menu {
+                    Button("Pause and close", action: pause)
+                    Button("Discard session", role: .destructive, action: requestDiscard)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 22))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Session options")
             }
-            .accessibilityLabel("Session options")
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 6)
         .background(InkPalette.paper)
     }
 }
 
 struct ExerciseLoggingCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var draft: ExerciseDraft
     let previous: ExercisePerformance?
     let recommendation: ProgressionRecommendation?
@@ -59,6 +68,7 @@ struct ExerciseLoggingCard: View {
                     .frame(width: 64, height: 70)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(draft.template.name).font(AtelierType.script(27))
+                        .accessibilityAddTraits(.isHeader)
                     Text("\(completedSetCount)/\(workingSetCount) sets · \(draft.template.minimumRepetitions)–\(draft.template.maximumRepetitions) \(draft.template.recordsTime ? "sec" : "reps")" + (draft.id == "reverse-lunge" ? " / side" : ""))
                         .font(.caption).foregroundStyle(InkPalette.softInk)
                 }
@@ -82,6 +92,7 @@ struct ExerciseLoggingCard: View {
                         .padding(.bottom, 8)
                     }
 
+                    if !typeSize.isAccessibilitySize {
                     HStack {
                         Text("set").frame(width: 40, alignment: .leading)
                         Text((draft.template.recordsLoad ? draft.template.loadLabel : "load").lowercased())
@@ -94,6 +105,7 @@ struct ExerciseLoggingCard: View {
                     .foregroundStyle(InkPalette.softInk)
                     .padding(.horizontal, 14)
                     .padding(.top, 6)
+                    }
 
                     ForEach($draft.sets) { $set in
                         SetLoggingRow(
@@ -123,6 +135,7 @@ struct ExerciseLoggingCard: View {
                         }.font(.subheadline).padding(.vertical, 10)
                     }
                     .font(AtelierType.script(18)).padding(.horizontal, 14).padding(.top, 10)
+                    .accessibilityLabel("\(draft.template.name), movement notes")
 
                     DisclosureGroup("Set options") {
                     Button(action: applyFirstWorkingSetToRemaining) {
@@ -168,6 +181,7 @@ struct ExerciseLoggingCard: View {
                     .padding(.horizontal, 10)
                     .padding(.bottom, 9)
                     }.font(.subheadline).padding(.horizontal, 14).padding(.top, 10)
+                        .accessibilityLabel("\(draft.template.name), set options")
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -204,8 +218,10 @@ struct ExerciseLoggingCard: View {
 
 private struct ExerciseRestPicker: View {
     @AppStorage private var seconds: Int
+    private let exerciseName: String
 
     init(exercise: ExerciseTemplate) {
+        exerciseName = exercise.name
         _seconds = AppStorage(wrappedValue: exercise.restSeconds, ExerciseRestPreference.key(for: exercise.id))
     }
 
@@ -223,6 +239,7 @@ private struct ExerciseRestPicker: View {
                 }
             }
             .pickerStyle(.menu)
+            .accessibilityLabel("\(exerciseName), rest between sets")
             .font(.caption.monospacedDigit())
             .tint(InkPalette.mineral)
             .frame(minHeight: 44)

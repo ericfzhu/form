@@ -34,6 +34,7 @@ struct ActiveWorkoutView: View {
     @State var saveErrorMessage: String?
     @State var isKeyboardVisible = false
     @State var didEndSession = false
+    @State private var didPrefill = false
     @State var snapshotSaveTask: Task<Void, Never>?
     @FocusState var focusedInput: WorkoutInputField?
 
@@ -92,7 +93,7 @@ struct ActiveWorkoutView: View {
             "Finish this partial session?",
             isPresented: $showingIncompleteFinishConfirmation
         ) {
-            Button("Finish partial session", role: .destructive, action: finishWorkout)
+            Button("Save partial session", action: finishWorkout)
             Button("Keep training", role: .cancel) {}
         } message: {
             Text("\(session.completedMovementCount) of \(session.drafts.count) movements are complete. Only completed sets and cardio entries will be saved.")
@@ -111,7 +112,10 @@ struct ActiveWorkoutView: View {
         .onAppear {
             guard !didEndSession, completedRecord == nil else { return }
             WorkoutLiveActivityController.isSessionPresented = true
-            session.prefillFromHistory(history)
+            if !didPrefill {
+                session.prefillFromHistory(history)
+                didPrefill = true
+            }
             session.resume()
             updateScreenAwakeState()
             persistImmediately()
@@ -166,7 +170,7 @@ struct ActiveWorkoutView: View {
                             .font(.caption).foregroundStyle(InkPalette.softInk)
                         Spacer()
                         Button { focusedInput = nil; showingExerciseList = true } label: {
-                            Image(systemName: "arrow.up.arrow.down").frame(width: 44, height: 44)
+                            Image(systemName: "arrow.up.arrow.down").font(.system(size: 20)).frame(width: 44, height: 44)
                         }
                         .accessibilityLabel("Reorder exercises")
                     }
@@ -254,13 +258,13 @@ struct ActiveWorkoutView: View {
     private var keyboardControls: some View {
         HStack(spacing: 2) {
             Button { moveInputFocus(by: -1) } label: {
-                Image(systemName: "chevron.up").frame(width: 44, height: 44)
+                Image(systemName: "chevron.up").font(.system(size: 20)).frame(width: 44, height: 44)
             }
             .disabled(!canMoveInputFocus(by: -1))
             .accessibilityLabel("Previous field")
 
             Button { moveInputFocus(by: 1) } label: {
-                Image(systemName: "chevron.down").frame(width: 44, height: 44)
+                Image(systemName: "chevron.down").font(.system(size: 20)).frame(width: 44, height: 44)
             }
             .disabled(!canMoveInputFocus(by: 1))
             .accessibilityLabel("Next field")
@@ -268,12 +272,12 @@ struct ActiveWorkoutView: View {
             Spacer(minLength: 8)
 
             Button { adjustFocusedInput(by: -1) } label: {
-                Image(systemName: "minus").frame(width: 44, height: 44)
+                Image(systemName: "minus").font(.system(size: 20)).frame(width: 44, height: 44)
             }
             .accessibilityLabel("Decrease value")
 
             Button { adjustFocusedInput(by: 1) } label: {
-                Image(systemName: "plus").frame(width: 44, height: 44)
+                Image(systemName: "plus").font(.system(size: 20)).frame(width: 44, height: 44)
             }
             .accessibilityLabel("Increase value")
 

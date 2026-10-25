@@ -91,13 +91,11 @@ extension ActiveWorkoutView {
 
     func requestFinish() {
         guard !didEndSession else { return }
-        session.finishTimedWalk()
-        if !session.hasRecordedWork {
-            showingEmptyFinishConfirmation = true
-        } else if session.completedMovementCount < session.drafts.count {
-            showingIncompleteFinishConfirmation = true
-        } else {
-            finishWorkout()
+        focusedInput = nil
+        switch session.finishDisposition() {
+        case .empty: showingEmptyFinishConfirmation = true
+        case .partial: showingIncompleteFinishConfirmation = true
+        case .complete: finishWorkout()
         }
     }
 
@@ -124,9 +122,13 @@ extension ActiveWorkoutView {
     }
 
     func discardWorkout() {
+        do { try ActiveWorkoutStore.clearChecked() }
+        catch {
+            saveErrorMessage = "Couldn’t discard the session. Try again."
+            return
+        }
         didEndSession = true
         snapshotSaveTask?.cancel()
-        ActiveWorkoutStore.clear()
         RestFeedbackService.shared.cancel()
         UIApplication.shared.isIdleTimerDisabled = false
         Task { await WorkoutLiveActivityController.forceEnd() }
@@ -135,9 +137,13 @@ extension ActiveWorkoutView {
 
     func saveAndClose() {
         guard !didEndSession else { return }
-        session.pause()
         snapshotSaveTask?.cancel()
-        persistImmediately()
+        do { try session.pauseAndSave { try ActiveWorkoutStore.save($0) } }
+        catch {
+            saveErrorMessage = "Your session is still open. Couldn’t save it for later; try Pause and close again."
+            return
+        }
+        RestFeedbackService.shared.cancel()
         UIApplication.shared.isIdleTimerDisabled = false
         Task { await WorkoutLiveActivityController.pause(snapshot: session.snapshot) }
         dismiss()
@@ -145,12 +151,10 @@ extension ActiveWorkoutView {
 
     func finishWorkout() {
         guard !didEndSession else { return }
-        session.pause()
         do {
-            let record = try WorkoutRepository.saveCompletedSession(
-                session,
-                in: modelContext
-            )
+            let record = try session.finish {
+                try WorkoutRepository.saveCompletedSession($0, in: modelContext)
+            }
             didEndSession = true
             snapshotSaveTask?.cancel()
             ActiveWorkoutStore.clear()

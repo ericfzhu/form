@@ -27,7 +27,6 @@ let package = Package(
                 "RestFeedbackService.swift",
                 "RootView.swift",
                 "WorkoutActivityAttributes.swift",
-                "WorkoutBackup.swift",
                 "WorkoutLiveActivityController.swift",
                 "DesignSystem.swift",
                 "TrainHomeView.swift",
@@ -53,6 +52,8 @@ let package = Package(
                 "WorkoutSessionState.swift",
                 "ActiveSessionStore.swift",
                 "WorkoutRepository.swift",
+                "WorkoutBackup.swift",
+                "HealthSyncQueueStore.swift",
                 "WorkoutFormatting.swift",
 
                 "Planning/WorkoutPlanning.swift",

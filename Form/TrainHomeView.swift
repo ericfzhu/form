@@ -114,7 +114,7 @@ struct RoutineListView: View {
 struct CloudIntegrationSection: View {
     var body: some View {
         VStack(spacing: 0) {
-            FieldSectionTitle(title: "iCloud")
+            FieldSectionTitle(title: "Storage")
             HStack(spacing: 14) {
                 Text(detail)
                     .font(.system(.caption, design: .default))
@@ -132,7 +132,7 @@ struct CloudIntegrationSection: View {
     private var detail: String {
         switch AppModelContainer.storageMode {
         case .iCloud: "Workout history syncs through your private iCloud database"
-        case .localFallback: "Using the on-device store until iCloud is available"
+        case .localFallback: "Workouts are stored on this iPhone. Use a backup to move them to another device."
         }
     }
 
@@ -145,6 +145,8 @@ struct CloudIntegrationSection: View {
 }
 
 struct HealthIntegrationSection: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var workouts: [WorkoutRecord]
     @ObservedObject var health: HealthKitService
     @ObservedObject var healthSync: HealthSyncCoordinator
 
@@ -207,7 +209,10 @@ struct HealthIntegrationSection: View {
         case .notConnected:
             Task { await health.requestAccess() }
         case .connected:
-            Task { await health.refresh() }
+            Task {
+                await health.refresh()
+                await healthSync.retryPending(in: modelContext, workouts: workouts)
+            }
         case .denied:
             guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
             UIApplication.shared.open(url)
@@ -239,6 +244,8 @@ struct TodayView: View {
     @State private var showingDiscardConfirmation = false
     @State private var showingSettings = false
 
+    @State private var recoveryError: String?
+
     private var welcomeDetail: String {
         if let snapshot {
             return "Started " + snapshot.startedAt.formatted(date: .abbreviated, time: .shortened)
@@ -261,21 +268,26 @@ struct TodayView: View {
                     Text("form.").font(AtelierType.script(30))
                     Spacer()
                     Button { showingSettings = true } label: {
-                        Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                        Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
                     }.accessibilityLabel("Settings")
                 }
                 Text("Today").font(AtelierType.script(46)).lineSpacing(-5)
                 Text(welcomeDetail).font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
                 PaperVignette(name: "arrive", height: 220)
+                if let recoveryError {
+                    Text(recoveryError).font(.subheadline).foregroundStyle(InkPalette.cinnabar)
+                    Button("Retry restoring session", action: reloadSession).frame(minHeight: 44)
+                }
                 Text(snapshot == nil ? "UP NEXT" : "IN PROGRESS")
                     .font(.caption2).tracking(2).foregroundStyle(InkPalette.softInk)
                 Text(next.name).font(.title3)
                 Text(next.focus).font(.subheadline).foregroundStyle(InkPalette.softInk)
                 Text("About 45 minutes").font(.caption).foregroundStyle(InkPalette.softInk)
                 InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
-                    presentedRoutine = next
-                }.padding(.top, 12)
-                if snapshot != nil {
+                    reloadSession()
+                    if recoveryError == nil { presentedRoutine = next }
+                }.padding(.top, 12).disabled(recoveryError != nil)
+                if snapshot != nil || recoveryError != nil {
                     Button("Discard session", role: .destructive) {
                         showingDiscardConfirmation = true
                     }
@@ -290,7 +302,9 @@ struct TodayView: View {
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("Discard this session?", isPresented: $showingDiscardConfirmation) {
             Button("Discard session", role: .destructive) {
-                ActiveWorkoutStore.clear()
+                do { try ActiveWorkoutStore.clearChecked() }
+                catch { recoveryError = "Couldn’t discard the saved session. Try again."; return }
+                recoveryError = nil
                 snapshot = nil
                 RestFeedbackService.shared.cancel()
                 Task { await WorkoutLiveActivityController.forceEnd() }
@@ -299,14 +313,14 @@ struct TodayView: View {
         } message: {
             Text("This removes the unfinished session. Your saved workout history is kept.")
         }
-        .onAppear { snapshot = ActiveWorkoutStore.load(completedWorkouts: history) }
+        .onAppear { reloadSession() }
         .onChange(of: history.map(\.persistentModelID)) { _, _ in
-            snapshot = ActiveWorkoutStore.load(completedWorkouts: history)
+            reloadSession()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { snapshot = ActiveWorkoutStore.load(completedWorkouts: history) }
+            if phase == .active { reloadSession() }
         }
-        .fullScreenCover(item: $presentedRoutine, onDismiss: { snapshot = ActiveWorkoutStore.load(completedWorkouts: history) }) { routine in
+        .fullScreenCover(item: $presentedRoutine, onDismiss: { reloadSession() }) { routine in
             ActiveWorkoutView(routine: routine, snapshot: snapshot)
         }
         .sheet(isPresented: $showingRoutine) {
@@ -333,6 +347,20 @@ struct TodayView: View {
             }
         }
         .sheet(isPresented: $showingSettings) { FormSettingsView() }
+    }
+
+    private func reloadSession() {
+        do {
+            let saved = try ActiveWorkoutStore.loadChecked(completedWorkouts: history)
+            guard saved == nil || saved?.resolvedRoutine != nil else {
+                throw ActiveSessionStore.RecoveryError.unreadable
+            }
+            snapshot = saved
+            recoveryError = nil
+        } catch {
+            snapshot = nil
+            recoveryError = error.localizedDescription
+        }
     }
 }
 

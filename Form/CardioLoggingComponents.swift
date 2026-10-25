@@ -74,7 +74,7 @@ struct CardioLoggingSection: View {
                 }
                 .font(AtelierType.script(17))
                 .frame(maxWidth: .infinity)
-                .frame(height: 48)
+                .frame(minHeight: 48)
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -82,36 +82,51 @@ struct CardioLoggingSection: View {
 }
 
 struct CardioEntryEditor: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var entry: CardioDraft
     var availableKinds: [CardioKind] = CardioKind.allCases
     let delete: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Picker("Cardio type", selection: $entry.kind) {
-                    ForEach(CardioKind.allCases.filter { availableKinds.contains($0) || $0 == entry.kind }) { kind in
-                        Text(kind.title).tag(kind)
+            let headerLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+            headerLayout {
+                Menu {
+                    Picker("Cardio type", selection: $entry.kind) {
+                        ForEach(CardioKind.allCases.filter { availableKinds.contains($0) || $0 == entry.kind }) { kind in
+                            Text(kind.title).tag(kind)
+                        }
                     }
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(entry.kind.title)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Image(systemName: "chevron.down").font(.system(size: 16))
+                    }
+                    .frame(minHeight: 44)
                 }
-                .pickerStyle(.menu)
+                .accessibilityLabel("Cardio type")
+                .accessibilityValue(entry.kind.title)
                 .tint(InkPalette.ink)
                 .font(.system(.body, design: .default))
-                Spacer()
+                .fixedSize(horizontal: false, vertical: true)
+                if !typeSize.isAccessibilitySize { Spacer() }
                 Button(action: delete) {
                     Image(systemName: "trash")
+                        .font(.system(size: 22))
                         .foregroundStyle(InkPalette.cinnabar)
                         .frame(width: 44, height: 44)
                 }
                 .buttonStyle(PressableButtonStyle())
-                .accessibilityLabel("Delete cardio entry")
+                .accessibilityLabel("Delete \(entry.kind.title) entry")
             }
 
-            HStack(spacing: 14) {
+            let fieldLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 14))
+            fieldLayout {
                 cardioField("MINUTES", value: $entry.durationMinutes, placeholder: "30")
                 cardioField("DISTANCE · KM", value: $entry.distanceKilometers, placeholder: "0")
             }
-            HStack(spacing: 14) {
+            fieldLayout {
                 cardioField("SPEED · KM/H", value: $entry.averageSpeed, placeholder: "0")
                 if entry.kind.supportsIncline {
                     cardioField("INCLINE · %", value: $entry.incline, placeholder: "0")
@@ -140,6 +155,7 @@ struct CardioEntryEditor: View {
                 value: value,
                 format: .number.precision(.fractionLength(0...2))
             )
+            .accessibilityLabel("\(entry.kind.title), \(label)")
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.leading)
             .inkInput()

@@ -33,12 +33,24 @@ struct WorkoutBackup: Transferable {
     @MainActor
     static func restore(
         data: Data,
-        into modelContext: ModelContext
+        into modelContext: ModelContext,
+        save: ((ModelContext) throws -> Void)? = nil
     ) throws -> Int {
         let payload = try decoder.decode(WorkoutBackupPayload.self, from: data)
         guard payload.version == 1 else {
             throw WorkoutBackupError.unsupportedVersion(payload.version)
         }
+
+        guard payload.workouts.allSatisfy({ workout in
+            workout.duration.isFinite && workout.duration >= 0
+                && workout.exercises.allSatisfy { exercise in
+                    exercise.sets.allSatisfy { $0.weight.isFinite && $0.weight >= 0 && $0.repetitions >= 0 }
+                }
+                && workout.cardio.allSatisfy { entry in
+                    [entry.durationMinutes, entry.distanceKilometers, entry.averageSpeed, entry.incline]
+                        .allSatisfy { $0.isFinite && $0 >= 0 }
+                }
+        }) else { throw WorkoutBackupError.invalidValues }
 
         let existing = try modelContext.fetch(FetchDescriptor<WorkoutRecord>())
         var identifiers = Set(existing.map(\.healthSyncIdentifier))
@@ -52,7 +64,12 @@ struct WorkoutBackup: Transferable {
         }
 
         if importedCount > 0 {
-            try modelContext.save()
+            do {
+                try (save ?? { try $0.save() })(modelContext)
+            } catch {
+                modelContext.rollback()
+                throw error
+            }
         }
         return importedCount
     }
@@ -198,9 +215,12 @@ struct BackupCardio: Codable {
 
 enum WorkoutBackupError: LocalizedError {
     case unsupportedVersion(Int)
+    case invalidValues
 
     var errorDescription: String? {
         switch self {
+        case .invalidValues:
+            "This backup contains invalid workout measurements."
         case .unsupportedVersion(let version):
             "This Form backup uses unsupported version \(version)."
         }

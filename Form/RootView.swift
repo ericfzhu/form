@@ -7,8 +7,10 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var history: [WorkoutRecord]
     @StateObject private var planner = PlannerStore()
+    @State private var recoveryError: String?
     @State private var liveRoute: LiveSessionRoute?
     @State private var selection: AppTab = .today
+    @State private var historyPath = NavigationPath()
 
     var body: some View {
         // Reserve layout space for the custom tabs, including pushed detail pages.
@@ -21,8 +23,8 @@ struct RootView: View {
                 }
                 .toolbar(.hidden, for: .tabBar)
                 .tabItem { Label("Today", systemImage: "sun.max") }.tag(AppTab.today)
-                NavigationStack {
-                    HistoryNavigationView()
+                NavigationStack(path: $historyPath) {
+                    HistoryView { historyPath.append($0) }
                         .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
                         .navigationDestination(for: WorkoutRecord.self) { WorkoutHistoryDetail(workout: $0) }
                 }
@@ -33,12 +35,18 @@ struct RootView: View {
         }
         .onOpenURL { url in
             guard let id = LiveWorkoutState.sessionID(from: url),
-                  !WorkoutLiveActivityController.isSessionPresented,
-                  let snapshot = ActiveWorkoutStore.load(completedWorkouts: history),
-                  snapshot.sessionID == id, snapshot.resolvedRoutine != nil else { return }
-            selection = .today
-            liveRoute = LiveSessionRoute(id: id, snapshot: snapshot)
+                  !WorkoutLiveActivityController.isSessionPresented else { return }
+            do {
+                guard let snapshot = try ActiveWorkoutStore.loadChecked(completedWorkouts: history),
+                      snapshot.sessionID == id else { return }
+                guard snapshot.resolvedRoutine != nil else { throw ActiveSessionStore.RecoveryError.unreadable }
+                selection = .today
+                liveRoute = LiveSessionRoute(id: id, snapshot: snapshot)
+            } catch { recoveryError = error.localizedDescription; selection = .today }
         }
+        .alert("Couldn’t restore session", isPresented: Binding(
+            get: { recoveryError != nil }, set: { if !$0 { recoveryError = nil } }
+        )) { Button("OK", role: .cancel) {} } message: { Text(recoveryError ?? "") }
         .fullScreenCover(item: $liveRoute) { route in
             if let routine = route.snapshot.resolvedRoutine {
                 ActiveWorkoutView(routine: routine, snapshot: route.snapshot)
@@ -53,14 +61,6 @@ struct RootView: View {
     }
 }
 
-private struct HistoryNavigationView: View {
-    @State private var selectedWorkout: WorkoutRecord?
-    var body: some View {
-        HistoryView { selectedWorkout = $0 }
-            .navigationDestination(item: $selectedWorkout) { WorkoutHistoryDetail(workout: $0) }
-    }
-}
-
 private struct LiveSessionRoute: Identifiable {
     let id: UUID
     let snapshot: ActiveWorkoutSnapshot
@@ -68,6 +68,7 @@ private struct LiveSessionRoute: Identifiable {
 
 
 private struct PaperTabBar: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var selection: AppTab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -93,12 +94,14 @@ private struct PaperTabBar: View {
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { selection = tab }
         } label: {
             VStack(spacing: 3) {
-                HStack(spacing: 9) {
+                let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 4)) : AnyLayout(HStackLayout(spacing: 9))
+                layout {
                     PaperTabSymbol(isBook: tab == .history)
                         .stroke(style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
                         .frame(width: 23, height: 23)
                         .accessibilityHidden(true)
-                    Text(title.lowercased()).font(AtelierType.script(24))
+                    Text(title.lowercased()).font(AtelierType.script(typeSize.isAccessibilitySize ? 16 : 24))
+                        .lineLimit(1).minimumScaleFactor(0.8)
                 }
                 .foregroundStyle(selected ? InkPalette.ink : InkPalette.softInk)
                 PaperSelectionMark()

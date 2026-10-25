@@ -36,6 +36,7 @@ struct LastPerformanceSummary: View {
 }
 
 struct SetLoggingRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let exerciseID: String
     let index: Int
     let measurement: ExerciseTemplate.Measurement
@@ -45,8 +46,11 @@ struct SetLoggingRow: View {
     let delete: () -> Void
     let didToggleCompletion: (Bool, SetKind) -> Void
 
+    private var exerciseName: String { WorkoutCatalog.exercise(id: exerciseID)?.name ?? exerciseID }
+
     var body: some View {
-        HStack(spacing: 8) {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        layout {
             Menu {
                 ForEach(SetKind.allCases) { kind in
                     Button {
@@ -68,13 +72,15 @@ struct SetLoggingRow: View {
                 }
                 .font(.system(.body, design: .default, weight: .semibold))
                 .foregroundStyle(set.kind == .warmup ? InkPalette.plum : InkPalette.softInk)
-                .frame(width: 40, height: 44)
+                .frame(minWidth: 40, minHeight: 44)
             }
             .tint(InkPalette.ink)
-            .accessibilityLabel("Set type: \(set.kind.title)")
+            .accessibilityLabel("\(exerciseName), set \(index), type: \(set.kind.title)")
 
             if measurement == .weighted || measurement == .weightedTimed {
+                if typeSize.isAccessibilitySize { Text("Weight · kg").font(.caption) }
                 TextField("0", value: $set.weight, format: .number.precision(.fractionLength(0...1)))
+                    .accessibilityLabel("\(exerciseName), set \(index), weight in kilograms")
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
@@ -89,10 +95,14 @@ struct SetLoggingRow: View {
                     .font(.system(.caption, design: .default))
                     .foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 42)
+                    .frame(minHeight: 42)
             }
 
+            if typeSize.isAccessibilitySize {
+                Text(measurement == .timed || measurement == .weightedTimed ? "Seconds" : "Repetitions").font(.caption)
+            }
             TextField("0", value: $set.repetitions, format: .number)
+                .accessibilityLabel("\(exerciseName), set \(index), \(measurement == .timed || measurement == .weightedTimed ? "seconds" : "repetitions")")
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
@@ -109,15 +119,15 @@ struct SetLoggingRow: View {
                 dismissKeyboard()
                 didToggleCompletion(completed, set.kind)
             } label: {
-                Image(systemName: set.completed ? "checkmark.square.fill" : "square")
+                Label(set.completed ? "Completed" : "Complete set", systemImage: set.completed ? "checkmark.square.fill" : "square")
+                    .labelStyle(SetCompletionLabelStyle(showTitle: typeSize.isAccessibilitySize))
                     .font(.system(size: 20, weight: .regular))
                     .foregroundStyle(set.completed ? InkPalette.ink : InkPalette.softInk.opacity(0.55))
-                .frame(width: 42, height: 42)
-                .frame(width: 52, height: 52)
+                .frame(minWidth: 52, minHeight: 52)
                 .contentShape(Rectangle())
             }
             .buttonStyle(PressableButtonStyle())
-            .accessibilityLabel(set.completed ? "Mark incomplete" : "Mark complete")
+            .accessibilityLabel("\(exerciseName), set \(index), \(set.completed ? "mark incomplete" : "mark complete")")
         }
         .padding(.vertical, 2)
     }
@@ -128,11 +138,21 @@ struct InkInput: ViewModifier {
         content
             .font(.body.monospacedDigit().weight(.medium))
             .foregroundStyle(InkPalette.ink)
-            .frame(height: 42)
+            .frame(minHeight: 42)
             .overlay(alignment: .bottom) { InkDivider() }
     }
 }
 
 extension View {
     func inkInput() -> some View { modifier(InkInput()) }
+}
+
+private struct SetCompletionLabelStyle: LabelStyle {
+    let showTitle: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.icon
+            if showTitle { configuration.title.font(.body) }
+        }
+    }
 }

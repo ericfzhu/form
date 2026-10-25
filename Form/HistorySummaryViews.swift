@@ -24,24 +24,34 @@ struct EmptyHistoryView: View {
 }
 
 struct HistoryCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let workout: WorkoutRecord
 
     var body: some View {
-        HStack(spacing: 20) {
-            VStack(spacing: 4) {
-                Text(workout.date.formatted(.dateTime.day())).font(.system(size: 28, weight: .light))
-                Text(workout.date.formatted(.dateTime.month(.abbreviated))).font(.caption2)
-            }.frame(width: 40)
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: 20))
+        layout {
+            if typeSize.isAccessibilitySize {
+                Text(workout.date.formatted(date: .abbreviated, time: .omitted)).font(.caption2)
+            } else {
+                VStack(spacing: 4) {
+                    Text(workout.date.formatted(.dateTime.day())).font(.system(size: 28, weight: .light))
+                    Text(workout.date.formatted(.dateTime.month(.abbreviated))).font(.caption2)
+                }.frame(width: 40)
+            }
             VStack(alignment: .leading, spacing: 7) {
                 Text(workout.displayName).font(.body)
                 Text(detailText).font(.caption).foregroundStyle(InkPalette.softInk)
             }
-            Spacer(minLength: 0)
-            Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(InkPalette.softInk)
-        }.foregroundStyle(InkPalette.ink)
-            .padding(.vertical, 22)
-            .overlay(alignment: .bottom) { InkDivider() }
-            .contentShape(Rectangle())
+            if !typeSize.isAccessibilitySize {
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(InkPalette.softInk)
+                    .accessibilityHidden(true)
+            }
+        }
+        .foregroundStyle(InkPalette.ink)
+        .padding(.vertical, 22)
+        .overlay(alignment: .bottom) { InkDivider() }
+        .contentShape(Rectangle())
     }
 
     private var detailText: String {

@@ -35,27 +35,46 @@ final class ActiveSessionStore {
         fileURL = directory.appendingPathComponent("active-workout.json")
     }
 
+    enum RecoveryError: LocalizedError {
+        case unreadable, newerVersion
+        var errorDescription: String? {
+            switch self {
+            case .unreadable: return "The saved session couldn’t be read. Retry, or discard it to start again."
+            case .newerVersion: return "This session was saved by a newer version of Form. Update the app to resume it."
+            }
+        }
+    }
+
     func load(completedWorkouts: [WorkoutRecord] = []) -> ActiveWorkoutSnapshot? {
+        try? loadChecked(completedWorkouts: completedWorkouts)
+    }
+
+    func loadChecked(completedWorkouts: [WorkoutRecord] = []) throws -> ActiveWorkoutSnapshot? {
         lock.lock()
         defer { lock.unlock() }
+        return try loadUnlocked(completedWorkouts: completedWorkouts)
+    }
 
-        if let data = try? Data(contentsOf: fileURL),
-           let envelope = try? JSONDecoder().decode(Envelope.self, from: data),
-           envelope.schemaVersion <= schemaVersion {
-            return resumable(envelope.snapshot, completedWorkouts: completedWorkouts)
+    private func loadUnlocked(completedWorkouts: [WorkoutRecord] = []) throws -> ActiveWorkoutSnapshot? {
+        let data: Data?
+        do { data = try Data(contentsOf: fileURL) }
+        catch let error as CocoaError where error.code == .fileReadNoSuchFile { data = nil }
+        catch { throw RecoveryError.unreadable }
+
+        if let data {
+            guard let envelope = try? JSONDecoder().decode(Envelope.self, from: data) else {
+                throw RecoveryError.unreadable
+            }
+            guard envelope.schemaVersion <= schemaVersion else { throw RecoveryError.newerVersion }
+            return try resumable(envelope.snapshot, completedWorkouts: completedWorkouts)
         }
-
-        guard let legacyData = defaults.data(forKey: legacyDefaultsKey),
-              let legacySnapshot = try? JSONDecoder().decode(
-                  ActiveWorkoutSnapshot.self,
-                  from: legacyData
-              ) else {
-            return nil
+        guard let legacyData = defaults.data(forKey: legacyDefaultsKey) else { return nil }
+        guard let snapshot = try? JSONDecoder().decode(ActiveWorkoutSnapshot.self, from: legacyData) else {
+            throw RecoveryError.unreadable
         }
-
-        try? saveUnlocked(legacySnapshot)
+        try saveUnlocked(snapshot)
         defaults.removeObject(forKey: legacyDefaultsKey)
-        return resumable(legacySnapshot, completedWorkouts: completedWorkouts)
+        return try resumable(snapshot, completedWorkouts: completedWorkouts)
     }
 
     // Older records have no shared session identifier, but retain the exact
@@ -63,12 +82,11 @@ final class ActiveSessionStore {
     private func resumable(
         _ snapshot: ActiveWorkoutSnapshot,
         completedWorkouts: [WorkoutRecord]
-    ) -> ActiveWorkoutSnapshot? {
+    ) throws -> ActiveWorkoutSnapshot? {
         guard !completedWorkouts.contains(where: {
             $0.routineID == snapshot.routineID && $0.date == snapshot.startedAt
         }) else {
-            try? FileManager.default.removeItem(at: fileURL)
-            defaults.removeObject(forKey: legacyDefaultsKey)
+            try clearUnlocked()
             return nil
         }
         return snapshot
@@ -77,13 +95,21 @@ final class ActiveSessionStore {
     func save(_ snapshot: ActiveWorkoutSnapshot) throws {
         lock.lock()
         defer { lock.unlock() }
+        _ = try loadUnlocked() // Never overwrite an unreadable or newer session.
         try saveUnlocked(snapshot)
     }
 
-    func clear() {
+    func clear() { try? clearChecked() }
+
+    func clearChecked() throws {
         lock.lock()
         defer { lock.unlock() }
-        try? FileManager.default.removeItem(at: fileURL)
+        try clearUnlocked()
+    }
+
+    private func clearUnlocked() throws {
+        do { try FileManager.default.removeItem(at: fileURL) }
+        catch let error as CocoaError where error.code == .fileNoSuchFile { }
         defaults.removeObject(forKey: legacyDefaultsKey)
     }
 
@@ -106,6 +132,12 @@ enum ActiveWorkoutStore {
     static func load(completedWorkouts: [WorkoutRecord] = []) -> ActiveWorkoutSnapshot? {
         ActiveSessionStore.shared.load(completedWorkouts: completedWorkouts)
     }
+
+    static func loadChecked(completedWorkouts: [WorkoutRecord] = []) throws -> ActiveWorkoutSnapshot? {
+        try ActiveSessionStore.shared.loadChecked(completedWorkouts: completedWorkouts)
+    }
+
+    static func clearChecked() throws { try ActiveSessionStore.shared.clearChecked() }
 
     static func save(_ snapshot: ActiveWorkoutSnapshot) throws {
         try ActiveSessionStore.shared.save(snapshot)
