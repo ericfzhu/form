@@ -3,11 +3,13 @@ import SwiftUI
 struct ExerciseIndexView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
 
     private var exercises: [ExerciseTemplate] {
         let all = WorkoutCatalog.allExercises.uniquedByName()
-        guard !searchText.isEmpty else { return all }
-        return all.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return all }
+        return all.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
     var body: some View {
@@ -29,14 +31,28 @@ struct ExerciseIndexView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 12))
                             .foregroundStyle(InkPalette.softInk)
-                        TextField("exercise", text: $searchText)
+                        TextField("Search exercises", text: $searchText)
+                            .accessibilityLabel("Search exercises")
+                            .focused($searchFocused)
+                            .submitLabel(.search)
+                            .onSubmit { searchFocused = false }
                             .font(.system(.body, design: .monospaced))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
+                        if !searchText.isEmpty {
+                            Button { searchText = ""; searchFocused = true } label: {
+                                Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
+                            }.accessibilityLabel("Clear search")
+                        }
                     }
                     .frame(minHeight: 52)
                     .padding(.horizontal, 20)
 
+                    if exercises.isEmpty {
+                        Text("No exercises match “\(searchText)”.")
+                            .font(.subheadline).foregroundStyle(InkPalette.softInk)
+                            .padding(20)
+                    }
                     List(exercises) { exercise in
                         NavigationLink(value: exercise) {
                             HStack(spacing: 14) {
@@ -56,6 +72,7 @@ struct ExerciseIndexView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                 }

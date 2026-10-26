@@ -11,12 +11,14 @@ struct WorkoutInputField: Hashable {
     let exerciseID: String
     let setID: UUID
     let value: Value
+    var id: String { value == .load ? EntryID.load(setID) : EntryID.count(setID) }
 }
 
 @MainActor
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.modelContext) var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) var history: [WorkoutRecord]
     @AppStorage("keep-screen-awake") var keepScreenAwake = true
@@ -35,8 +37,13 @@ struct ActiveWorkoutView: View {
     @State var isKeyboardVisible = false
     @State var didEndSession = false
     @State private var didPrefill = false
+    @State private var restArrival = 0
     @State var snapshotSaveTask: Task<Void, Never>?
-    @FocusState var focusedInput: WorkoutInputField?
+    @State var entryForm = NumberEntryForm()
+    var focusedInput: WorkoutInputField? {
+        get { inputFields.first { $0.id == entryForm.focusedID } }
+        nonmutating set { entryForm.focusedID = newValue?.id }
+    }
 
     init(
         routine: RoutineTemplate,
@@ -58,10 +65,12 @@ struct ActiveWorkoutView: View {
                     onDone()
                     dismiss()
                 }
+                .transition(.opacity)
             } else {
                 workoutLogger
             }
         }
+        .sensoryFeedback(.success, trigger: completedRecord != nil)
         .safeAreaInset(edge: .top, spacing: 0) {
             if completedRecord == nil {
                 ActiveWorkoutHeader(
@@ -74,6 +83,10 @@ struct ActiveWorkoutView: View {
             } else {
                 CompletionHeader()
             }
+        }
+        .environment(entryForm)
+        .onChange(of: numberFields, initial: true) { _, fields in
+            entryForm.configure(fields, order: fields.map(\.id))
         }
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("Discard this session?", isPresented: $showingDiscardConfirmation) {
@@ -160,9 +173,30 @@ struct ActiveWorkoutView: View {
     }
 
     private var workoutLogger: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: true) { workoutFields }
+                .scrollDismissesKeyboard(.interactively)
+                .background(PaperBackground())
+                .safeAreaInset(edge: .bottom, spacing: 0) { loggerFooter }
+                .task(id: entryForm.focusRequest) {
+                    await Task.yield()
+                    if let id = entryForm.focusedID {
+                        withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    if let id = entryForm.focusedID {
+                        withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+                    }
+                }
+                .sheet(isPresented: $showingExerciseList) { exerciseOrderSheet }
+        }
+    }
+
+    private var workoutFields: some View {
         @Bindable var session = session
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 24) {
+        return
+            VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(routine.name.lowercased()).font(AtelierType.script(38))
                     HStack {
@@ -181,7 +215,7 @@ struct ActiveWorkoutView: View {
                         draft: $draft,
                         previous: ProgressionEngine.latestCompleted(for: draft.template, in: history),
                         recommendation: nil,
-                        isExpanded: true, focusedInput: $focusedInput,
+                        isExpanded: true,
                         toggleExpanded: {},
                         didUpdateSet: { completed, kind in
                             focusedInput = nil
@@ -190,6 +224,7 @@ struct ActiveWorkoutView: View {
                                 for: draft.id, kind: kind,
                                 restSeconds: ExerciseRestPreference.seconds(for: draft.template)
                             )
+                            if session.restEnd != nil { restArrival += 1 }
                         }
                     )
                 }
@@ -217,20 +252,31 @@ struct ActiveWorkoutView: View {
             .padding(.horizontal, 20)
             .padding(.top, 16)
             .padding(.bottom, 24)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .background(PaperBackground())
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                if let end = session.restEnd {
+    }
+
+    private var loggerFooter: some View {
+        VStack(spacing: 0) {
+            if let end = session.restEnd {
+                VStack(spacing: 0) {
                     InkDivider()
-                    RestTimer(end: end, adjust: adjustRest, cancel: clearRest, complete: completeRest)
+                    RestTimer(end: end, arrival: restArrival, compact: isKeyboardVisible,
+                              adjust: adjustRest, cancel: clearRest, complete: completeRest)
                 }
-                if isKeyboardVisible { keyboardControls }
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
-            .background(InkPalette.paper)
+            if isKeyboardVisible {
+                if focusedInput != nil {
+                    EntryKeyboardControls(adjust: { adjustFocusedInput(by: $0) })
+                } else {
+                    EntryKeyboardControls()
+                }
+            }
         }
-        .sheet(isPresented: $showingExerciseList) {
+        .background(InkPalette.paper)
+        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.86), value: session.restEnd != nil)
+    }
+
+    private var exerciseOrderSheet: some View {
             NavigationStack {
                 List {
                     ForEach(session.drafts) { draft in
@@ -252,46 +298,6 @@ struct ActiveWorkoutView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { Button("Done") { showingExerciseList = false } }
             }
-        }
-    }
-
-    private var keyboardControls: some View {
-        HStack(spacing: 2) {
-            Button { moveInputFocus(by: -1) } label: {
-                Image(systemName: "chevron.up").font(.system(size: 20)).frame(width: 44, height: 44)
-            }
-            .disabled(!canMoveInputFocus(by: -1))
-            .accessibilityLabel("Previous field")
-
-            Button { moveInputFocus(by: 1) } label: {
-                Image(systemName: "chevron.down").font(.system(size: 20)).frame(width: 44, height: 44)
-            }
-            .disabled(!canMoveInputFocus(by: 1))
-            .accessibilityLabel("Next field")
-
-            Spacer(minLength: 8)
-
-            Button { adjustFocusedInput(by: -1) } label: {
-                Image(systemName: "minus").font(.system(size: 20)).frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Decrease value")
-
-            Button { adjustFocusedInput(by: 1) } label: {
-                Image(systemName: "plus").font(.system(size: 20)).frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("Increase value")
-
-            Button("Done") {
-                dismissKeyboard()
-                focusedInput = nil
-            }
-            .font(AtelierType.script(17))
-            .foregroundStyle(InkPalette.cinnabar)
-            .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-        .background(PaperSurface())
     }
 
 }

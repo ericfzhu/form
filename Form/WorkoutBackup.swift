@@ -42,13 +42,18 @@ struct WorkoutBackup: Transferable {
         }
 
         guard payload.workouts.allSatisfy({ workout in
-            workout.duration.isFinite && workout.duration >= 0
+            // Retain legacy zero durations, but apply the same safe numeric
+            // bounds as editing before history summaries convert to Int.
+            NumberEntryRule.load.problem(workout.duration / 60) == nil
                 && workout.exercises.allSatisfy { exercise in
-                    exercise.sets.allSatisfy { $0.weight.isFinite && $0.weight >= 0 && $0.repetitions >= 0 }
+                    exercise.sets.allSatisfy {
+                        NumberEntryRule.load.problem($0.weight) == nil
+                            && NumberEntryRule.count.problem(Double($0.repetitions)) == nil
+                    }
                 }
                 && workout.cardio.allSatisfy { entry in
                     [entry.durationMinutes, entry.distanceKilometers, entry.averageSpeed, entry.incline]
-                        .allSatisfy { $0.isFinite && $0 >= 0 }
+                        .allSatisfy { NumberEntryRule.load.problem($0) == nil }
                 }
         }) else { throw WorkoutBackupError.invalidValues }
 

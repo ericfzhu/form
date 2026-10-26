@@ -163,8 +163,12 @@ struct GymProfileView: View {
                 Text("My gym.").font(.system(size: 38, weight: .medium)).tracking(-1.5)
                 Text("A plan starts with what’s here.").font(.system(.title3, design: .rounded)).foregroundStyle(InkPalette.softInk)
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Gym name").font(.subheadline.weight(.medium))
-                    TextField("My gym", text: $draft.name).textFieldStyle(.roundedBorder).submitLabel(.done)
+                    Text("Gym name (optional)").font(.subheadline.weight(.medium))
+                    TextField("My gym", text: $draft.name)
+                        .accessibilityLabel("Gym name, optional")
+                        .textInputAutocapitalization(.words)
+                        .textFieldStyle(.roundedBorder).submitLabel(.done)
+                        .onSubmit { dismissKeyboard() }
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Equipment").font(.title2.weight(.medium))
@@ -207,6 +211,7 @@ struct GymProfileView: View {
                 }
                 if let message = planner.storageMessage { Text(message).foregroundStyle(.red) }
                 InkPrimaryButton(title: planner.profile.configured ? "Save gym & update plan" : "Make my plan") {
+                    dismissKeyboard()
                     draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                     if draft.name.isEmpty { draft.name = "My gym" }
                     draft.configured = true

@@ -55,9 +55,10 @@ struct HistoryCard: View {
     }
 
     private var detailText: String {
+        let movementCount = workout.exercises.filter { $0.sets.contains { $0.kind == .working } }.count
         var parts = [
             WorkoutValueFormatter.durationMinutes(workout.duration),
-            "\(workout.exercises.filter { $0.sets.contains { $0.kind == .working } }.count) movements"
+            "\(movementCount) movement\(movementCount == 1 ? "" : "s")"
         ]
         let cardioMinutes = Int(workout.cardioEntries.reduce(0) { $0 + $1.durationMinutes })
         if cardioMinutes > 0 { parts.append("\(cardioMinutes)m cardio") }

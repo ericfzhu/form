@@ -25,21 +25,21 @@ extension ActiveWorkoutView {
         }
     }
 
-    func canMoveInputFocus(by offset: Int) -> Bool {
-        guard let focusedInput,
-              let index = inputFields.firstIndex(of: focusedInput) else { return false }
-        return inputFields.indices.contains(index + offset)
-    }
-
-    func moveInputFocus(by offset: Int) {
-        guard let focusedInput,
-              let index = inputFields.firstIndex(of: focusedInput),
-              inputFields.indices.contains(index + offset) else { return }
-        self.focusedInput = inputFields[index + offset]
+    var numberFields: [NumberFieldSpec] {
+        session.drafts.flatMap { draft in
+            draft.sets.flatMap { set -> [NumberFieldSpec] in
+                var fields: [NumberFieldSpec] = []
+                if draft.template.recordsLoad {
+                    fields.append(NumberFieldSpec(id: EntryID.load(set.id), label: "\(draft.template.name), weight", value: set.weight, rule: .load))
+                }
+                fields.append(NumberFieldSpec(id: EntryID.count(set.id), label: "\(draft.template.name), \(draft.template.recordsTime ? "seconds" : "repetitions")", value: Double(set.repetitions), rule: .count))
+                return fields
+            }
+        } + session.cardioDrafts.flatMap(\.numberFields)
     }
 
     func adjustFocusedInput(by direction: Double) {
-        guard let focusedInput,
+        guard let focusedInput, entryForm.validate(ids: [focusedInput.id]),
               let exerciseIndex = session.drafts.firstIndex(where: {
                   $0.id == focusedInput.exerciseID
               }),
@@ -90,8 +90,9 @@ extension ActiveWorkoutView {
     }
 
     func requestFinish() {
-        guard !didEndSession else { return }
-        focusedInput = nil
+        guard !didEndSession, entryForm.validate() else { return }
+        entryForm.done()
+        dismissKeyboard()
         switch session.finishDisposition() {
         case .empty: showingEmptyFinishConfirmation = true
         case .partial: showingIncompleteFinishConfirmation = true
@@ -136,7 +137,9 @@ extension ActiveWorkoutView {
     }
 
     func saveAndClose() {
-        guard !didEndSession else { return }
+        guard !didEndSession, entryForm.validate() else { return }
+        entryForm.done()
+        dismissKeyboard()
         snapshotSaveTask?.cancel()
         do { try session.pauseAndSave { try ActiveWorkoutStore.save($0) } }
         catch {
@@ -150,7 +153,7 @@ extension ActiveWorkoutView {
     }
 
     func finishWorkout() {
-        guard !didEndSession else { return }
+        guard !didEndSession, entryForm.validate() else { return }
         do {
             let record = try session.finish {
                 try WorkoutRepository.saveCompletedSession($0, in: modelContext)
@@ -162,7 +165,7 @@ extension ActiveWorkoutView {
             RestFeedbackService.shared.cancel()
             UIApplication.shared.isIdleTimerDisabled = false
             Task { await WorkoutLiveActivityController.forceEnd() }
-            withAnimation(.easeOut(duration: 0.22)) {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.22)) {
                 completedRecord = record
             }
             Task {

@@ -4,6 +4,35 @@ import SwiftData
 
 final class BackupRecoveryTests: XCTestCase {
     @MainActor
+    func testFailedDeletionPreservesChildrenAndRetryDeletesOnlySelectedWorkout() throws {
+        let context = try context()
+        _ = try WorkoutBackup.restore(data: backupData(), into: context)
+        let record = try XCTUnwrap(context.fetch(FetchDescriptor<WorkoutRecord>()).first)
+        let other = WorkoutRecord(date: Date(), routineName: "Keep", duration: 180)
+        context.insert(other)
+        record.cardioEntries = [CardioRecord(kind: .treadmillWalk, order: 0, durationMinutes: 2)]
+        try context.save()
+        for _ in 0..<2 {
+            XCTAssertThrowsError(try WorkoutRepository.delete(record, in: context) { _ in
+                throw CocoaError(.fileWriteOutOfSpace)
+            })
+            XCTAssertEqual(record.exercises.first?.sets.first?.weight, 20)
+            XCTAssertEqual(record.cardioEntries.first?.durationMinutes, 2)
+            try context.save()
+            let fresh = ModelContext(context.container)
+            XCTAssertEqual(try fresh.fetch(FetchDescriptor<WorkoutRecord>()).count, 2)
+            XCTAssertEqual(try fresh.fetch(FetchDescriptor<SetRecord>()).count, 1)
+            XCTAssertEqual(try fresh.fetch(FetchDescriptor<CardioRecord>()).count, 1)
+        }
+        try WorkoutRepository.delete(record, in: context)
+        let fresh = ModelContext(context.container)
+        XCTAssertEqual(try fresh.fetch(FetchDescriptor<WorkoutRecord>()).map(\.routineName), ["Keep"])
+        XCTAssertTrue(try fresh.fetch(FetchDescriptor<ExerciseRecord>()).isEmpty)
+        XCTAssertTrue(try fresh.fetch(FetchDescriptor<SetRecord>()).isEmpty)
+        XCTAssertTrue(try fresh.fetch(FetchDescriptor<CardioRecord>()).isEmpty)
+    }
+
+    @MainActor
     private func context() throws -> ModelContext {
         let container = try ModelContainer(for: WorkoutRecord.self, ExerciseRecord.self, SetRecord.self, CardioRecord.self,
                                            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
@@ -63,6 +92,28 @@ final class BackupRecoveryTests: XCTestCase {
         object["workouts"] = workouts
         XCTAssertThrowsError(try WorkoutBackup.restore(data: JSONSerialization.data(withJSONObject: object), into: context))
         XCTAssertTrue(try context.fetch(FetchDescriptor<WorkoutRecord>()).isEmpty)
+    }
+
+    @MainActor
+    func testOversizedBackupValuesAreRejectedBeforeHistoryFormatting() throws {
+        let context = try context()
+        let source = try XCTUnwrap(JSONSerialization.jsonObject(with: backupData()) as? [String: Any])
+        for field in ["duration", "weight", "repetitions"] {
+            var object = source
+            var workouts = try XCTUnwrap(object["workouts"] as? [[String: Any]])
+            if field == "duration" {
+                workouts[0][field] = 1e100
+            } else {
+                var exercises = try XCTUnwrap(workouts[0]["exercises"] as? [[String: Any]])
+                var sets = try XCTUnwrap(exercises[0]["sets"] as? [[String: Any]])
+                sets[0][field] = field == "weight" ? 1e100 : 1_000_001
+                exercises[0]["sets"] = sets
+                workouts[0]["exercises"] = exercises
+            }
+            object["workouts"] = workouts
+            XCTAssertThrowsError(try WorkoutBackup.restore(data: JSONSerialization.data(withJSONObject: object), into: context), field)
+            XCTAssertTrue(try context.fetch(FetchDescriptor<WorkoutRecord>()).isEmpty)
+        }
     }
 
     @MainActor

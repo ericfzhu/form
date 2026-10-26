@@ -24,10 +24,34 @@ struct EditableExerciseDraft: Identifiable, Equatable {
 
 @MainActor
 enum WorkoutRepository {
+    static func delete(
+        _ workout: WorkoutRecord,
+        in modelContext: ModelContext,
+        save: ((ModelContext) throws -> Void)? = nil
+    ) throws {
+        // Materialize the full graph before SwiftData snapshots a cascade
+        // deletion; unfaulted child records cannot be restored by rollback.
+        _ = BackupWorkout(workout)
+        modelContext.delete(workout)
+        do {
+            try (save ?? { try $0.save() })(modelContext)
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
+
     static func saveCompletedSession(
         _ session: WorkoutSessionState,
         in modelContext: ModelContext
     ) throws -> WorkoutRecord {
+        for draft in session.drafts {
+            for set in draft.sets where set.completed {
+                try validate(set.weight, rule: .load)
+                try validate(Double(set.repetitions), rule: .count)
+            }
+        }
+        try validateCardio(session.cardioDrafts)
         let record = WorkoutRecord(
             date: session.startedAt,
             routineID: session.routine.id,
@@ -46,8 +70,8 @@ enum WorkoutRepository {
                 guard set.completed else { return nil }
                 return SetRecord(
                     order: setIndex,
-                    weight: max(0, set.weight),
-                    repetitions: max(0, set.repetitions),
+                    weight: set.weight,
+                    repetitions: set.repetitions,
                     kind: set.kind
                 )
             }
@@ -77,6 +101,14 @@ enum WorkoutRepository {
         exercises: [EditableExerciseDraft], cardioEntries: [CardioDraft],
         in sourceContext: ModelContext, save: ((ModelContext) throws -> Void)? = nil
     ) throws {
+        try validate(durationMinutes, rule: .duration)
+        for exercise in exercises {
+            for set in exercise.sets {
+                if exercise.template.recordsLoad { try validate(set.weight, rule: .load) }
+                try validate(Double(set.repetitions), rule: .count)
+            }
+        }
+        try validateCardio(cardioEntries)
         let modelContext = sourceContext
         let workout = source
         let originalTitle = workout.sessionTitle
@@ -90,7 +122,7 @@ enum WorkoutRepository {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         workout.sessionTitle = trimmed.isEmpty ? nil : trimmed
         workout.date = date
-        workout.duration = max(60, durationMinutes * 60)
+        workout.duration = durationMinutes * 60
 
         // Build replacement children without mutating the originals. A failed save
         // can then restore the exact objects still referenced by the editor drafts.
@@ -111,8 +143,8 @@ enum WorkoutRepository {
             record.sets = draft.sets.enumerated().map { index, set in
                 SetRecord(
                     order: index,
-                    weight: draft.template.recordsLoad ? max(0, set.weight) : 0,
-                    repetitions: max(0, set.repetitions),
+                    weight: draft.template.recordsLoad ? set.weight : 0,
+                    repetitions: set.repetitions,
                     kind: set.kind
                 )
             }
@@ -150,6 +182,18 @@ enum WorkoutRepository {
             workout.exercises = originalExercises
             workout.cardioEntries = originalCardio
             throw error
+        }
+    }
+
+    private static func validate(_ value: Double, rule: NumberEntryRule) throws {
+        if let message = rule.problem(value) {
+            throw NSError(domain: "Form.Input", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+        }
+    }
+
+    private static func validateCardio(_ entries: [CardioDraft]) throws {
+        for entry in entries {
+            for field in entry.numberFields { try validate(field.value, rule: field.rule) }
         }
     }
 }

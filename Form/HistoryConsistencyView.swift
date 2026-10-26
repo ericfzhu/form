@@ -13,7 +13,7 @@ struct HistoryConsistencyView: View {
         VStack(alignment: .leading, spacing: 16) {
             RecordSectionHeading(
                 title: "Consistency",
-                detail: "\(activeWeekCount) ACTIVE · \(twelveWeekSessionCount) SESSIONS"
+                detail: "\(activeWeekCount) ACTIVE · \(twelveWeekSessionCount) SESSION\(twelveWeekSessionCount == 1 ? "" : "S")"
             )
             calendarHeader
             LazyVGrid(columns: columns, spacing: 0) {
@@ -52,7 +52,7 @@ struct HistoryConsistencyView: View {
             .frame(width: 2, height: height)
             .frame(maxWidth: .infinity, alignment: .bottom)
             .accessibilityLabel(
-                "Week of \(week.id.formatted(date: .abbreviated, time: .omitted)), \(week.count) sessions"
+                "Week of \(week.id.formatted(date: .abbreviated, time: .omitted)), \(week.count) session\(week.count == 1 ? "" : "s")"
             )
     }
 

@@ -1,12 +1,15 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct WorkoutEditorView: View {
     let workout: WorkoutRecord
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @State private var entryForm = NumberEntryForm()
+    @State private var isKeyboardVisible = false
     @State private var sessionTitle: String
     @State private var date: Date
     @State private var durationMinutes: Double
@@ -15,16 +18,18 @@ struct WorkoutEditorView: View {
     @State private var saveErrorMessage: String?
     @State private var showingDiscardConfirmation = false
 
-    private let initialTitle: String
-    private let initialDate: Date
-    private let initialDuration: Double
-    private let initialExercises: [EditableExerciseDraft]
-    private let initialCardio: [CardioDraft]
+    // Keep the baseline alongside the drafts: SwiftUI can recreate this view
+    // while retaining its State, and new draft UUIDs would look like edits.
+    @State private var initialTitle: String
+    @State private var initialDate: Date
+    @State private var initialDuration: Double
+    @State private var initialExercises: [EditableExerciseDraft]
+    @State private var initialCardio: [CardioDraft]
 
     init(workout: WorkoutRecord) {
         self.workout = workout
         let title = workout.sessionTitle ?? ""
-        let duration = max(1, workout.duration / 60)
+        let duration = workout.duration / 60
         let exercises = workout.exercises.sorted { $0.order < $1.order }.map { exercise in
             EditableExerciseDraft(
                 record: exercise,
@@ -44,11 +49,11 @@ struct WorkoutEditorView: View {
             )
         }
         let cardio = workout.cardioEntries.sorted { $0.order < $1.order }.map(CardioDraft.init)
-        initialTitle = title
-        initialDate = workout.date
-        initialDuration = duration
-        initialExercises = exercises
-        initialCardio = cardio
+        _initialTitle = State(initialValue: title)
+        _initialDate = State(initialValue: workout.date)
+        _initialDuration = State(initialValue: duration)
+        _initialExercises = State(initialValue: exercises)
+        _initialCardio = State(initialValue: cardio)
         _sessionTitle = State(initialValue: title)
         _date = State(initialValue: workout.date)
         _durationMinutes = State(initialValue: duration)
@@ -57,10 +62,11 @@ struct WorkoutEditorView: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ZStack {
             PaperBackground()
             ScrollView {
-                LazyVStack(spacing: 18) {
+                VStack(spacing: 18) {
                     sessionDetails
                     ForEach($exercises) { $exercise in
                         EditableExerciseCard(
@@ -77,7 +83,25 @@ struct WorkoutEditorView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .keyboardDismissToolbar()
+        .onChange(of: numberFields, initial: true) { _, fields in
+            entryForm.configure(fields, order: [EntryID.title] + fields.map(\.id))
+        }
+        .task(id: entryForm.focusRequest) {
+            await Task.yield()
+            if let id = entryForm.focusedID {
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+            if let id = entryForm.focusedID {
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in isKeyboardVisible = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in isKeyboardVisible = false }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isKeyboardVisible { EntryKeyboardControls() }
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             InkTextHeader(
                 title: "edit session",
@@ -100,6 +124,8 @@ struct WorkoutEditorView: View {
         } message: {
             Text(saveErrorMessage ?? "")
         }
+        }
+        .environment(entryForm)
     }
 
     private var sessionDetails: some View {
@@ -112,7 +138,9 @@ struct WorkoutEditorView: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(InkPalette.softInk)
                 TextField(workout.routineName, text: $sessionTitle)
-                    .accessibilityLabel("Session title").inkInput()
+                    .accessibilityLabel("Session title, optional").inkInput()
+                    .textInputAutocapitalization(.sentences)
+                    .entryFocus(EntryID.title).id(EntryID.title)
             }
             if typeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 8) {
@@ -128,15 +156,7 @@ struct WorkoutEditorView: View {
                     .font(.system(.body, design: .monospaced))
                     .tint(InkPalette.cinnabar)
             }
-            VStack(alignment: .leading, spacing: 5) {
-                Text("DURATION · MINUTES")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(InkPalette.softInk)
-                TextField("60", value: $durationMinutes, format: .number.precision(.fractionLength(0...1)))
-                    .accessibilityLabel("Session duration in minutes")
-                    .keyboardType(.decimalPad)
-                    .inkInput()
-            }
+            NumberEntryField(id: EntryID.duration, label: "Session duration in minutes", value: $durationMinutes, caption: "DURATION · MINUTES")
         }
         .padding(.vertical, 12)
         .inkCard()
@@ -168,8 +188,22 @@ struct WorkoutEditorView: View {
         }
     }
 
+    private var numberFields: [NumberFieldSpec] {
+        [NumberFieldSpec(id: EntryID.duration, label: "Session duration in minutes", value: durationMinutes, rule: .duration)]
+            + exercises.flatMap { exercise in
+                exercise.sets.flatMap { set -> [NumberFieldSpec] in
+                    var fields: [NumberFieldSpec] = []
+                    if exercise.template.recordsLoad {
+                        fields.append(NumberFieldSpec(id: EntryID.load(set.id), label: "\(exercise.template.name), weight", value: set.weight, rule: .load))
+                    }
+                    fields.append(NumberFieldSpec(id: EntryID.count(set.id), label: "\(exercise.template.name), \(exercise.template.recordsTime ? "seconds" : "repetitions")", value: Double(set.repetitions), rule: .count))
+                    return fields
+                }
+            } + cardioEntries.flatMap(\.numberFields)
+    }
+
     private var hasUnsavedChanges: Bool {
-        sessionTitle != initialTitle
+        entryForm.hasInvalidEdits || sessionTitle != initialTitle
             || date != initialDate
             || durationMinutes != initialDuration
             || exercises != initialExercises
@@ -177,11 +211,16 @@ struct WorkoutEditorView: View {
     }
 
     private func requestCancel() {
+        entryForm.done()
+        dismissKeyboard()
         if hasUnsavedChanges { showingDiscardConfirmation = true }
         else { dismiss() }
     }
 
     private func save() {
+        guard entryForm.validate() else { return }
+        entryForm.done()
+        dismissKeyboard()
         let previousUUID = workout.healthKitWorkoutUUID
         do {
             try WorkoutRepository.update(
@@ -235,18 +274,14 @@ private struct EditableExerciseCard: View {
                     .accessibilityValue(set.kind.title)
                     .frame(minWidth: 44)
                     if exercise.template.recordsLoad {
-                        editField(exercise.template.loadLabel, value: $set.weight,
+                        editField(exercise.template.loadLabel, id: EntryID.load(set.id), value: $set.weight,
                                   accessibilityLabel: "\(exercise.template.name), set \(setNumber), weight in kilograms")
                     }
                     VStack(spacing: 4) {
                         Text(exercise.template.recordsTime ? "SEC" : "REPS")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(InkPalette.softInk)
-                        TextField("0", value: $set.repetitions, format: .number)
-                            .accessibilityLabel("\(exercise.template.name), set \(setNumber), \(exercise.template.recordsTime ? "seconds" : "repetitions")")
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.center)
-                            .inkInput()
+                        NumberEntryField(id: EntryID.count(set.id), label: "\(exercise.template.name), set \(setNumber), \(exercise.template.recordsTime ? "seconds" : "repetitions")", value: Binding(get: { Double(set.repetitions) }, set: { set.repetitions = Int($0) }), whole: true, alignment: .center)
                     }
                     .frame(maxWidth: .infinity)
                     Button {
@@ -281,16 +316,12 @@ private struct EditableExerciseCard: View {
         .inkCard()
     }
 
-    private func editField(_ label: String, value: Binding<Double>, accessibilityLabel: String) -> some View {
+    private func editField(_ label: String, id: String, value: Binding<Double>, accessibilityLabel: String) -> some View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(InkPalette.softInk)
-            TextField("0", value: value, format: .number.precision(.fractionLength(0...1)))
-                .accessibilityLabel(accessibilityLabel)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.center)
-                .inkInput()
+            NumberEntryField(id: id, label: accessibilityLabel, value: value, alignment: .center)
         }
         .frame(maxWidth: .infinity)
     }

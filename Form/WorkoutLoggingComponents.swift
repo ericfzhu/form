@@ -51,7 +51,6 @@ struct ExerciseLoggingCard: View {
     let previous: ExercisePerformance?
     let recommendation: ProgressionRecommendation?
     let isExpanded: Bool
-    @FocusState.Binding var focusedInput: WorkoutInputField?
     let toggleExpanded: () -> Void
     let didUpdateSet: (Bool, SetKind) -> Void
 
@@ -113,10 +112,8 @@ struct ExerciseLoggingCard: View {
                             index: setNumber(for: set.id),
                             measurement: draft.template.measurement,
                             set: $set,
-                            focusedInput: $focusedInput,
                             canDelete: draft.sets.count > draft.template.sets || set.kind == .warmup,
                             delete: {
-                                focusedInput = nil
                                 withAnimation(.easeOut(duration: 0.18)) {
                                     draft.sets.removeAll { $0.id == set.id }
                                 }
@@ -192,7 +189,8 @@ struct ExerciseLoggingCard: View {
 
     private func setNumber(for id: UUID) -> Int {
         guard let index = draft.sets.firstIndex(where: { $0.id == id }) else { return 1 }
-        return draft.sets.prefix(index + 1).filter { $0.kind == .working }.count
+        let kind = draft.sets[index].kind
+        return draft.sets.prefix(index + 1).filter { $0.kind == kind }.count
     }
 
     private var canApplyFirstWorkingSet: Bool {

@@ -121,15 +121,21 @@ struct CardioEntryEditor: View {
                 .accessibilityLabel("Delete \(entry.kind.title) entry")
             }
 
+            Text(entry.kind.supportsIncline ? "Distance, speed and incline are optional." : "Distance and speed are optional.")
+                .font(.caption)
+                .foregroundStyle(InkPalette.softInk)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+
             let fieldLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 14))
             fieldLayout {
-                cardioField("MINUTES", value: $entry.durationMinutes, placeholder: "30")
-                cardioField("DISTANCE · KM", value: $entry.distanceKilometers, placeholder: "0")
+                cardioField("MINUTES", field: "minutes", value: $entry.durationMinutes)
+                cardioField("DISTANCE · KM", field: "distance", value: $entry.distanceKilometers)
             }
             fieldLayout {
-                cardioField("SPEED · KM/H", value: $entry.averageSpeed, placeholder: "0")
+                cardioField("SPEED · KM/H", field: "speed", value: $entry.averageSpeed)
                 if entry.kind.supportsIncline {
-                    cardioField("INCLINE · %", value: $entry.incline, placeholder: "0")
+                    cardioField("INCLINE · %", field: "incline", value: $entry.incline)
                         .transition(.opacity)
                 }
             }
@@ -141,25 +147,9 @@ struct CardioEntryEditor: View {
 
     private func cardioField(
         _ label: String,
-        value: Binding<Double>,
-        placeholder: String
+        field: String,
+        value: Binding<Double>
     ) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(InkPalette.softInk)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            TextField(
-                placeholder,
-                value: value,
-                format: .number.precision(.fractionLength(0...2))
-            )
-            .accessibilityLabel("\(entry.kind.title), \(label)")
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.leading)
-            .inkInput()
-        }
-        .frame(maxWidth: .infinity)
+        NumberEntryField(id: EntryID.cardio(entry.id, field), label: entry.numberFields.first { $0.id == EntryID.cardio(entry.id, field) }?.label ?? label, value: value, caption: label)
     }
 }

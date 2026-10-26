@@ -37,6 +37,7 @@ let package = Package(
                 "CardioLoggingComponents.swift",
                 "WorkoutLoggingComponents.swift",
                 "SetLoggingComponents.swift",
+                "NumberEntryView.swift",
                 "RestTimerView.swift",
                 "HistorySharingViews.swift",
                 "HistorySummaryViews.swift",
@@ -55,6 +56,7 @@ let package = Package(
                 "WorkoutBackup.swift",
                 "HealthSyncQueueStore.swift",
                 "WorkoutFormatting.swift",
+                "NumberEntry.swift",
 
                 "Planning/WorkoutPlanning.swift",
                 "ActiveDuration.swift",

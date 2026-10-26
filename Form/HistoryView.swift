@@ -79,6 +79,10 @@ struct HistoryView: View {
                     Button("Sessions") { selectedSection = .sessions }
                     Button("Overview") { selectedSection = .overview }
                     Button("Exercise progress") { showingExerciseIndex = true }
+                    Divider()
+                    ShareLink(item: WorkoutBackup(workouts: workouts), preview: SharePreview("Form workout backup")) {
+                        Label("Export a backup", systemImage: "square.and.arrow.up")
+                    }
                     Button("Restore a backup") { showingBackupImporter = true }
                 } label: { Image(systemName: "ellipsis").font(.system(size: 22)).frame(width: 44, height: 44) }
                     .accessibilityLabel("History options")
@@ -127,11 +131,10 @@ struct HistoryView: View {
     private func delete(_ workout: WorkoutRecord) {
         let identifier = workout.healthSyncIdentifier
         let healthUUID = workout.healthKitWorkoutUUID
-        withAnimation(.easeOut(duration: 0.2)) {
-            modelContext.delete(workout)
-        }
         do {
-            try modelContext.save()
+            try withAnimation(.easeOut(duration: 0.2)) {
+                try WorkoutRepository.delete(workout, in: modelContext)
+            }
             Task {
                 await HealthSyncCoordinator.shared.enqueueDelete(
                     recordIdentifier: identifier,
@@ -139,7 +142,6 @@ struct HistoryView: View {
                 )
             }
         } catch {
-            modelContext.rollback()
             saveErrorMessage = "The session remains in the record. Try again."
         }
     }

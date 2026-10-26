@@ -6,7 +6,7 @@ Form is a minimal, offline-first iPhone workout log built with SwiftUI and Swift
 
 - macOS with Xcode 16 or newer
 - iOS 17 or newer
-- An Apple Account for device signing and private CloudKit sync
+- An Apple Account for physical-device signing; Simulator testing does not require a physical iPhone
 
 ## Run on an iPhone
 
@@ -14,13 +14,13 @@ Form is a minimal, offline-first iPhone workout log built with SwiftUI and Swift
 2. Open `Form.xcodeproj` in Xcode.
 3. Select the **Form** target, then **Signing & Capabilities**.
 4. Choose your Apple Account's Personal Team or developer team.
-5. Ensure the iCloud container `iCloud.com.eric.form` is available to that team, or replace it with a container owned by the team.
+5. The current build uses local storage; configuring an iCloud container is not required.
 6. Connect and select your iPhone as the run destination.
 7. Press Run. If prompted, enable Developer Mode on the iPhone under **Settings → Privacy & Security → Developer Mode**.
 
 ## Storage and sync
 
-Completed workouts are stored with SwiftData. Form opens a CloudKit-backed store using the user's private iCloud database when the configured container is available, and falls back to a local SwiftData store when it is not. There is no custom server or Form account.
+Completed workouts are stored locally with SwiftData. The current model configuration explicitly disables CloudKit, so this build does not sync history through iCloud. There is no custom server or Form account. Use JSON backups to transfer or recover workout history.
 
 The active workout is saved separately as a versioned, atomic local snapshot so it can be resumed safely. Workout history can also be exported to and restored from a JSON backup.
 
