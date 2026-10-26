@@ -246,13 +246,24 @@ struct TodayView: View {
 
     @State private var recoveryError: String?
 
-    private var welcomeDetail: String {
-        if let snapshot {
-            return "Started " + snapshot.startedAt.formatted(date: .abbreviated, time: .shortened)
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var illustration: String {
+        if recoveryError != nil { return "pages" }
+        if snapshot != nil { return "pause" }
+        if let last = history.first, Calendar.current.isDateInToday(last.date) { return "finished" }
+        return "arrive"
+    }
+
+    private var activeProgress: String? {
+        guard let snapshot else { return nil }
+        let sets = snapshot.exercises.reduce(0) { $0 + $1.sets.filter(\.completed).count }
+        var parts = ["\(sets) set\(sets == 1 ? "" : "s") recorded"]
+        if !snapshot.cardio.isEmpty {
+            parts.append("\(snapshot.cardio.count) cardio entr\(snapshot.cardio.count == 1 ? "y" : "ies")")
         }
-        guard let last = history.first else { return "Your first session starts here." }
-        if Calendar.current.isDateInToday(last.date) { return "Session saved today." }
-        return "Last session · " + last.date.formatted(date: .abbreviated, time: .omitted)
+        if snapshot.timedWalk != nil { parts.append("Walk in progress") }
+        return parts.joined(separator: " · ")
     }
 
     private var next: RoutineTemplate {
@@ -264,29 +275,50 @@ struct TodayView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("form.").font(AtelierType.script(30))
-                    Spacer()
-                    Button { showingSettings = true } label: {
-                        Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
-                    }.accessibilityLabel("Settings")
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Today").font(AtelierType.script(46))
+                            .accessibilityAddTraits(.isHeader)
+                        Text(Date().formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
+                            .font(.caption).foregroundStyle(InkPalette.softInk)
+                    }
+                    Spacer(minLength: 0)
+                    if !typeSize.isAccessibilitySize {
+                        DemonstrationImage(assetName: illustration)
+                            .scaleEffect(1.3)
+                            .frame(width: 128, height: 112)
+                    }
                 }
-                Text("Today").font(AtelierType.script(46)).lineSpacing(-5)
-                Text(welcomeDetail).font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
-                PaperVignette(name: "arrive", height: 220)
                 if let recoveryError {
-                    Text(recoveryError).font(.subheadline).foregroundStyle(InkPalette.cinnabar)
-                    Button("Retry restoring session", action: reloadSession).frame(minHeight: 44)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Session needs attention").font(AtelierType.script(24))
+                        Text(recoveryError).font(.subheadline)
+                        Button("Retry restoring session", action: reloadSession).frame(minHeight: 44)
+                    }
+                    .padding(18)
+                    .background(InkPalette.salvia.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                 }
-                Text(snapshot == nil ? "UP NEXT" : "IN PROGRESS")
-                    .font(.caption2).tracking(2).foregroundStyle(InkPalette.softInk)
-                Text(next.name).font(.title3)
-                Text(next.focus).font(.subheadline).foregroundStyle(InkPalette.softInk)
-                Text("About 45 minutes").font(.caption).foregroundStyle(InkPalette.softInk)
-                InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
-                    reloadSession()
-                    if recoveryError == nil { presentedRoutine = next }
-                }.padding(.top, 12).disabled(recoveryError != nil)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(snapshot != nil ? "in progress" : (history.isEmpty ? "your first session" : "next session"))
+                        .font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                    InkDivider()
+                    Text(next.name).font(AtelierType.script(30))
+                        .accessibilityAddTraits(.isHeader)
+                    Text(next.focus).font(.subheadline).foregroundStyle(InkPalette.softInk)
+                    if let snapshot, let activeProgress {
+                        Text(activeProgress).font(.subheadline)
+                        Text("Started " + snapshot.startedAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption).foregroundStyle(InkPalette.softInk)
+                    } else {
+                        Text("About 45 minutes").font(.caption).foregroundStyle(InkPalette.softInk)
+                    }
+                    InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
+                        reloadSession()
+                        if recoveryError == nil { presentedRoutine = next }
+                    }.padding(.top, 4).disabled(recoveryError != nil)
+                }
+                .padding(20)
+                .background(InkPalette.salvia.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
                 if snapshot != nil || recoveryError != nil {
                     Button("Discard session", role: .destructive) {
                         showingDiscardConfirmation = true
@@ -296,7 +328,41 @@ struct TodayView: View {
                 }
                 Button("View routine") { showingRoutine = true }
                     .font(AtelierType.script(20)).frame(maxWidth: .infinity, minHeight: 44)
-            }.padding(.horizontal, 28).padding(.bottom, 20)
+                if snapshot == nil, recoveryError == nil, let last = history.first {
+                    let noteLayout = typeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                        : AnyLayout(HStackLayout(alignment: .top, spacing: 14))
+                    noteLayout {
+                        InkCheckStroke()
+                            .stroke(InkPalette.ink, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                            .frame(width: 18, height: 18).padding(9)
+                            .background(InkPalette.salvia.opacity(0.22), in: RoundedRectangle(cornerRadius: 7))
+                            .rotationEffect(.degrees(-6)).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(Calendar.current.isDateInToday(last.date) ? "recorded today" : "last recorded")
+                                .font(AtelierType.script(20))
+                            Text(last.displayName).font(.subheadline)
+                            Text(last.date.formatted(date: .abbreviated, time: .omitted))
+                                .font(.caption).foregroundStyle(InkPalette.softInk)
+                            Text(SessionRecordSummary.text(for: last))
+                                .font(.caption).foregroundStyle(InkPalette.softInk)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                    .padding(.vertical, 12)
+                }
+            }.padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 20)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("form.").font(AtelierType.script(30))
+                Spacer()
+                Button { showingSettings = true } label: {
+                    Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
+                }.accessibilityLabel("Settings")
+            }
+            .padding(.horizontal, 28)
+            .background(InkPalette.paper.ignoresSafeArea(edges: .top))
         }
         .background(PaperBackground())
         .toolbar(.hidden, for: .navigationBar)

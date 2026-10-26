@@ -15,20 +15,44 @@ struct HistoryView: View {
     @State private var pendingDeletion: WorkoutRecord?
     let openWorkout: (WorkoutRecord) -> Void
 
+    private struct MonthPage: Identifiable {
+        let id: Date
+        let workouts: [WorkoutRecord]
+    }
+
+    private var months: [MonthPage] {
+        Dictionary(grouping: workouts) {
+            Calendar.current.dateInterval(of: .month, for: $0.date)?.start ?? $0.date
+        }
+        .map { MonthPage(id: $0.key, workouts: $0.value.sorted { $0.date > $1.date }) }
+        .sorted { $0.id > $1.id }
+    }
+
+    private var pageHeading: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("History").font(AtelierType.script(40)).accessibilityAddTraits(.isHeader)
+            if !workouts.isEmpty {
+                Text("\(workouts.count) saved session\(workouts.count == 1 ? "" : "s")")
+                    .font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                HistorySectionControl(selection: $selectedSection)
+            }
+        }
+    }
+
     var body: some View {
         ZStack {
             PaperBackground()
             if workouts.isEmpty {
-                VStack(spacing: 0) {
-                    EmptyHistoryView(showRestore: { showingBackupImporter = true })
-                        .frame(maxHeight: .infinity)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        pageHeading
+                        EmptyHistoryView(showRestore: { showingBackupImporter = true })
+                    }
+                    .padding(20)
                 }
             } else {
                 List {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("History").font(AtelierType.script(40))
-                        Text("\(workouts.count) saved session\(workouts.count == 1 ? "" : "s")").font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
-                    }.historyRow(top: 12, bottom: 12)
+                    pageHeading.historyRow(top: 12, bottom: 12)
                     if selectedSection == .overview {
                         HistoryWeeklySummary(workouts: workouts)
                             .historyRow(bottom: 18)
@@ -42,8 +66,12 @@ struct HistoryView: View {
                         )
                         .historyRow(bottom: 28)
                     } else {
-                        Section {
-                            ForEach(workouts) { workout in
+                        ForEach(months) { month in
+                            Text(month.id.formatted(.dateTime.month(.wide).year()).lowercased())
+                                .font(AtelierType.script(23)).foregroundStyle(InkPalette.softInk)
+                                .accessibilityAddTraits(.isHeader)
+                                .historyRow(top: 20, bottom: 0)
+                            ForEach(month.workouts) { workout in
                                 Button { openWorkout(workout) } label: {
                                     HistoryCard(workout: workout)
                                 }
@@ -62,8 +90,9 @@ struct HistoryView: View {
                                 }
                             }
                         }
-                        .listRowBackground(Color.clear)
-                        PaperVignette(name: "pages", height: 190).historyRow(bottom: 12)
+                        DemonstrationImage(assetName: "pages")
+                            .frame(maxWidth: .infinity).frame(height: 130)
+                            .historyRow(top: 12, bottom: 12)
                     }
                 }
                 .listStyle(.plain)
@@ -89,7 +118,7 @@ struct HistoryView: View {
                 Button { showingSettings = true } label: {
                     Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
                 }.accessibilityLabel("Settings")
-            }.padding(.horizontal, 28).background(.white)
+            }.padding(.horizontal, 28).background(InkPalette.paper.ignoresSafeArea(edges: .top))
         }
         .confirmationDialog("Delete this session?", isPresented: Binding(
             get: { pendingDeletion != nil },
@@ -183,30 +212,34 @@ private enum HistorySection: String, CaseIterable, Identifiable {
 
 private struct HistorySectionControl: View {
     @Binding var selection: HistorySection
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(spacing: 30) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 24))
+        return layout {
             ForEach(HistorySection.allCases) { section in
                 Button { selection = section } label: {
                     Text(section.title)
-                        .font(.system(.subheadline, design: .default))
+                        .font(AtelierType.script(22))
                         .foregroundStyle(selection == section
                             ? InkPalette.ink
                             : InkPalette.softInk.opacity(0.68))
                         .frame(minWidth: 84, minHeight: 46)
                         .overlay(alignment: .bottom) {
                             if selection == section {
-                                InkDivider()
-                                    .frame(width: 62)
-                                    .colorMultiply(InkPalette.mineral)
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(InkPalette.salvia)
+                                    .frame(width: 62, height: 4)
+                                    .rotationEffect(.degrees(-2))
                             }
                         }
                 }
                 .buttonStyle(PressableButtonStyle())
                 .accessibilityAddTraits(selection == section ? .isSelected : [])
             }
-            Spacer(minLength: 0)
+            if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
         }
-        .padding(.horizontal, 7)
     }
 }

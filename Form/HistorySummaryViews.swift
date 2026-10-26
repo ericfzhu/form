@@ -6,20 +6,24 @@ struct EmptyHistoryView: View {
     let showRestore: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(alignment: .leading, spacing: 18) {
             DemonstrationImage(assetName: "pages", outlined: false)
-                .frame(width: 230, height: 180)
-            Text("little by little.")
-                .font(AtelierType.script(38))
+                .frame(maxWidth: .infinity).frame(height: 180)
+            Text("No sessions yet")
+                .font(AtelierType.script(32))
+                .accessibilityAddTraits(.isHeader)
             Text("Completed sessions will appear here.")
                 .font(.system(.body, design: .default))
                 .foregroundStyle(InkPalette.softInk)
             Button("Restore a backup", action: showRestore)
-                .font(.system(.subheadline, design: .default, weight: .semibold))
+                .font(AtelierType.script(22))
                 .foregroundStyle(InkPalette.cinnabar)
                 .frame(minHeight: 44)
+                .buttonStyle(PressableButtonStyle())
         }
-        .padding(.bottom, 54)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(InkPalette.salvia.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
     }
 }
 
@@ -34,13 +38,21 @@ struct HistoryCard: View {
                 Text(workout.date.formatted(date: .abbreviated, time: .omitted)).font(.caption2)
             } else {
                 VStack(spacing: 4) {
-                    Text(workout.date.formatted(.dateTime.day())).font(.system(size: 28, weight: .light))
-                    Text(workout.date.formatted(.dateTime.month(.abbreviated))).font(.caption2)
-                }.frame(width: 40)
+                    Text(workout.date.formatted(.dateTime.day())).font(AtelierType.script(32))
+                    Text(workout.date.formatted(.dateTime.weekday(.abbreviated))).font(.caption2)
+                }
+                .frame(width: 48, height: 62)
+                .background {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(InkPalette.salvia.opacity(0.22))
+                        .rotationEffect(.degrees(-4))
+                }
+                .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 7) {
-                Text(workout.displayName).font(.body)
-                Text(detailText).font(.caption).foregroundStyle(InkPalette.softInk)
+                Text(workout.displayName).font(AtelierType.script(25))
+                Text(SessionRecordSummary.text(for: workout)).font(.caption).foregroundStyle(InkPalette.softInk)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if !typeSize.isAccessibilitySize {
                 Spacer(minLength: 0)
@@ -49,24 +61,32 @@ struct HistoryCard: View {
             }
         }
         .foregroundStyle(InkPalette.ink)
-        .padding(.vertical, 22)
+        .padding(.vertical, 18)
         .overlay(alignment: .bottom) { InkDivider() }
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(workout.date.formatted(date: .complete, time: .shortened)), \(workout.displayName), \(SessionRecordSummary.text(for: workout))")
     }
+}
 
-    private var detailText: String {
-        let movementCount = workout.exercises.filter { $0.sets.contains { $0.kind == .working } }.count
-        var parts = [
-            WorkoutValueFormatter.durationMinutes(workout.duration),
-            "\(movementCount) movement\(movementCount == 1 ? "" : "s")"
-        ]
-        let cardioMinutes = Int(workout.cardioEntries.reduce(0) { $0 + $1.durationMinutes })
-        if cardioMinutes > 0 { parts.append("\(cardioMinutes)m cardio") }
+/// The same factual record line is used on Today and in History.
+enum SessionRecordSummary {
+    static func text(for workout: WorkoutRecord) -> String {
+        let sets = workout.exercises.flatMap(\.sets)
+        let working = sets.filter { $0.kind == .working }.count
+        let warmups = sets.filter { $0.kind == .warmup }.count
+        var parts = [workout.duration < 60 ? "<1 min" : WorkoutValueFormatter.durationMinutes(workout.duration)]
+        if working > 0 { parts.append("\(working) working set\(working == 1 ? "" : "s")") }
+        if warmups > 0 { parts.append("\(warmups) warm-up\(warmups == 1 ? "" : "s")") }
+        let cardioMinutes = workout.cardioEntries.reduce(0) { $0 + $1.durationMinutes }
+        if cardioMinutes > 0 { parts.append("\(WorkoutValueFormatter.decimal(cardioMinutes)) min cardio") }
+        if sets.isEmpty && workout.cardioEntries.isEmpty { parts.append("No sets or cardio") }
         return parts.joined(separator: " · ")
     }
 }
 
 struct HistoryWeeklySummary: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     @EnvironmentObject private var planner: PlannerStore
     let workouts: [WorkoutRecord]
 
@@ -79,22 +99,24 @@ struct HistoryWeeklySummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             RecordSectionHeading(title: "This week")
-            HStack(spacing: 0) {
-                metric("\(weeklyWorkouts.count)", "SESSIONS")
-                metric("\(minutes)", "MINUTES")
-                metric("\(sets)", "SETS")
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+            layout {
+                metric("\(weeklyWorkouts.count)", "Sessions")
+                metric("\(minutes)", "Minutes")
+                metric("\(sets)", "Working sets")
             }
-            HStack {
-                Text("Your rhythm · \(planner.profile.sessionsPerWeek) / week")
-                Spacer()
-                Text("\(prCount) PR\(prCount == 1 ? "" : "s")")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Weekly plan · \(planner.profile.sessionsPerWeek) sessions")
+                if prCount > 0 { Text("\(prCount) personal record\(prCount == 1 ? "" : "s")") }
             }
             .font(.system(.caption, design: .default, weight: .semibold))
             .foregroundStyle(InkPalette.cinnabar)
             .monospacedDigit()
         }
-        .padding(.horizontal, 7)
-        .padding(.bottom, 16)
+        .padding(18)
+        .background(InkPalette.salvia.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var minutes: Int {
@@ -128,34 +150,41 @@ struct HistoryWeeklySummary: View {
     }
 
     private func metric(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(value)
-                .font(.system(.title3, design: .default, weight: .semibold))
+                .font(AtelierType.script(30))
                 .monospacedDigit()
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(InkPalette.softInk)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
 struct RecordSectionHeading: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let title: String
     var detail: String = ""
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+        return layout {
             Text(title)
-                .font(.system(.body, design: .default))
+                .font(AtelierType.script(26))
                 .foregroundStyle(InkPalette.ink)
-            Spacer()
+            if !typeSize.isAccessibilitySize { Spacer() }
             if !detail.isEmpty {
-                Text(detail)
-                    .font(.system(size: 9, weight: .medium, design: .default))
+                Text(detail.lowercased())
+                    .font(.caption2)
                     .foregroundStyle(InkPalette.softInk.opacity(0.72))
             }
         }
         .frame(minHeight: 38)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
