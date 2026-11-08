@@ -30,10 +30,10 @@ struct HistoryView: View {
 
     private var pageHeading: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("History").font(AtelierType.script(40)).accessibilityAddTraits(.isHeader)
+            Text("History").font(.title2.weight(.bold)).accessibilityAddTraits(.isHeader)
             if !workouts.isEmpty {
                 Text("\(workouts.count) saved session\(workouts.count == 1 ? "" : "s")")
-                    .font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
+                    .font(.caption).foregroundStyle(InkPalette.softInk)
                 HistorySectionControl(selection: $selectedSection)
             }
         }
@@ -68,7 +68,7 @@ struct HistoryView: View {
                     } else {
                         ForEach(months) { month in
                             Text(month.id.formatted(.dateTime.month(.wide).year()).lowercased())
-                                .font(AtelierType.script(23)).foregroundStyle(InkPalette.softInk)
+                                .font(.subheadline.weight(.medium)).foregroundStyle(InkPalette.softInk)
                                 .accessibilityAddTraits(.isHeader)
                                 .historyRow(top: 20, bottom: 0)
                             ForEach(month.workouts) { workout in
@@ -90,9 +90,6 @@ struct HistoryView: View {
                                 }
                             }
                         }
-                        DemonstrationImage(assetName: "pages")
-                            .frame(maxWidth: .infinity).frame(height: 130)
-                            .historyRow(top: 12, bottom: 12)
                     }
                 }
                 .listStyle(.plain)
@@ -102,7 +99,7 @@ struct HistoryView: View {
         }
         .safeAreaInset(edge: .top) {
             HStack {
-                Text("form.").font(AtelierType.script(30))
+                FormWordmark()
                 Spacer()
                 Menu {
                     Button("Sessions") { selectedSection = .sessions }
@@ -211,6 +208,8 @@ private enum HistorySection: String, CaseIterable, Identifiable {
 }
 
 private struct HistorySectionControl: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var selectionMark
     @Binding var selection: HistorySection
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -220,19 +219,18 @@ private struct HistorySectionControl: View {
             : AnyLayout(HStackLayout(spacing: 24))
         return layout {
             ForEach(HistorySection.allCases) { section in
-                Button { selection = section } label: {
+                Button { withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { selection = section } } label: {
                     Text(section.title)
-                        .font(AtelierType.script(22))
+                        .font(.subheadline)
                         .foregroundStyle(selection == section
                             ? InkPalette.ink
                             : InkPalette.softInk.opacity(0.68))
                         .frame(minWidth: 84, minHeight: 46)
                         .overlay(alignment: .bottom) {
                             if selection == section {
-                                RoundedRectangle(cornerRadius: 1)
-                                    .fill(InkPalette.salvia)
-                                    .frame(width: 62, height: 4)
-                                    .rotationEffect(.degrees(-2))
+                                Circle().fill(InkPalette.ink)
+                                    .frame(width: 4, height: 4)
+                                    .matchedGeometryEffect(id: "section", in: selectionMark)
                             }
                         }
                 }

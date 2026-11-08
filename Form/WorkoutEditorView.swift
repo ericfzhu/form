@@ -4,6 +4,7 @@ import SwiftUI
 import UIKit
 
 struct WorkoutEditorView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let workout: WorkoutRecord
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.dismiss) private var dismiss
@@ -89,12 +90,12 @@ struct WorkoutEditorView: View {
         .task(id: entryForm.focusRequest) {
             await Task.yield()
             if let id = entryForm.focusedID {
-                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+                withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { proxy.scrollTo(id, anchor: .center) }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
             if let id = entryForm.focusedID {
-                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+                withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { proxy.scrollTo(id, anchor: .center) }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in isKeyboardVisible = true }

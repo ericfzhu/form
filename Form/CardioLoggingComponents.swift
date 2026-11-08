@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CardioLoggingSection: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var planner: PlannerStore
     var prescribedWalk = false
     private var availableKinds: [CardioKind] {
@@ -58,14 +59,14 @@ struct CardioLoggingSection: View {
 
             ForEach($entries) { $entry in
                 CardioEntryEditor(entry: $entry, availableKinds: availableKinds) {
-                    withAnimation(.easeOut(duration: 0.18)) {
+                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) {
                         entries.removeAll { $0.id == entry.id }
                     }
                 }
             }
 
             Button {
-                withAnimation(.easeOut(duration: 0.18)) {
+                withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) {
                     entries.append(CardioDraft(kind: availableKinds.first ?? .other, durationMinutes: 0, averageSpeed: 0, incline: 0))
                 }
             } label: {
@@ -82,6 +83,7 @@ struct CardioLoggingSection: View {
 }
 
 struct CardioEntryEditor: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var entry: CardioDraft
     var availableKinds: [CardioKind] = CardioKind.allCases
@@ -142,7 +144,7 @@ struct CardioEntryEditor: View {
         }
         .padding(.vertical, 10)
         .inkCard()
-        .animation(.easeOut(duration: 0.18), value: entry.kind)
+        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: entry.kind)
     }
 
     private func cardioField(

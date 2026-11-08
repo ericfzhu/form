@@ -248,6 +248,9 @@ struct ActiveSetSnapshot: Codable, Equatable {
     var repetitions: Int
     var completed: Bool
     var kind: SetKind?
+    var id: UUID? = nil
+    var initialWeight: Double? = nil
+    var initialRepetitions: Int? = nil
 }
 
 struct ActiveExerciseSnapshot: Codable, Equatable {
@@ -276,6 +279,9 @@ struct ActiveWorkoutSnapshot: Codable, Equatable {
     var restEnd: Date?
     var sessionTimerStartedAt: Date? = nil
     var timedWalk: TimedWalk? = nil
+    var restSourceSetID: UUID? = nil
+    var entryTexts: [String: String]? = nil
+    var isCardioExpanded: Bool? = nil
 }
 
 struct CardioDraft: Identifiable, Equatable, Codable {

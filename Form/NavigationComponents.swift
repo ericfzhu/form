@@ -6,9 +6,18 @@ struct DemonstrationImage: View {
     var outlined = true
 
     var body: some View {
-        Image("paper-" + PaperArtwork.name(for: assetName))
-            .resizable().scaledToFit()
-            .accessibilityHidden(true)
+        if ["arrive", "pause", "finished", "pages"].contains(assetName) {
+            CounterweightFigure(resting: assetName != "arrive")
+        } else {
+            let name = PaperArtwork.name(for: assetName)
+            if name == "pages" {
+                CounterweightFigure()
+            } else {
+                Image("counterweight-" + name)
+                    .resizable().scaledToFit()
+                    .accessibilityHidden(true)
+            }
+        }
     }
 }
 
@@ -19,7 +28,7 @@ struct PressableButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
             .opacity(configuration.isPressed ? 0.84 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : CounterweightMotion.press, value: configuration.isPressed)
     }
 }
 

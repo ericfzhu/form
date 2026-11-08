@@ -2,6 +2,38 @@
 
 Reviewed 25–26 October 2026. This is a source review plus targeted regression testing, not a claim that every possible interaction has been verified on a device.
 
+## Counterweight native pass — 9 November 2026
+
+The core journey now uses Counterweight in SwiftUI, with nine distinct exercise/walk assets in both app and Live Activity bundles. The existing A/B prescription, records, editing, progression, backup and Health workflows remain available. Old paper artwork is retained as unused assets rather than deleting historical resources.
+
+- Today starts/resumes directly and links the most recent record. Exercise selection expands in place; reordering, warm-ups, set tools and previous performance remain available.
+- Rest is independent, retains its source set across schema-4 snapshots, and is suppressed after the last planned working set. Manual rest remains available. Logging strength no longer finishes an ongoing walk.
+- Raw number drafts and their original set identities survive pause/relaunch. Old snapshots still decode. Finish validates recorded work, reviews entered-but-unrecorded values or a running walk, and allows untouched partial routines to save directly. Empty finish clears the snapshot without inserting a History record.
+- First completion and History share `SavedWorkoutView`. Only first completion shows/animates the Saved acknowledgement. Editing opens the existing isolated draft editor. Exercise details retain progression links, legacy records, warm-ups and cardio measurements.
+- Custom tabs are individual accessible buttons with dedicated space below the retained navigation stacks. The saved-workout Done action is anchored separately from scrolling details. Decorative artwork is hidden from accessibility; exercise buttons announce expansion and recorded/planned counts.
+
+### Motion contract
+
+| Transition | Native treatment | Reduced motion / interruption |
+| --- | --- | --- |
+| Start / resume / pause | Native full-screen presentation and dismissal | System accessibility transition; no replayed logging effect |
+| Press / log / undo | Circular action mark, brief weight compression/release, local exercise artwork response, one haptic on valid logging | Instant state change; no artwork travel or symbol replacement animation |
+| Exercise / notes / set tools | Short spring disclosure; stable exercise/set IDs; focused fields reveal their parent | Root transaction removes custom animation; no automatic completion navigation |
+| Rest entry / skip / manual rest | Inline panel inserts/removes; keyboard uses compact rest above keyboard controls | Same controls without travel; expiration changes to Ready without navigation |
+| Walk / adding or removing rows | Local disclosure and row transition | State updates immediately; timer remains independent |
+| Finish / failure | Crossfade to the shared saved surface only after local save; character settles and mark resolves | Static saved state; failure stays in the logger and does not trigger completion feedback |
+| Saved details / edit / back | In-place details disclosure; native editor cover and navigation push/pop | No acknowledgement replay after editing or reopening |
+| Today / History; Sessions / Overview | Small matched selection dot and brief transition | Selection changes immediately |
+
+Animations never delay persistence or enable/disable actions. The common timing tokens are in `DesignSystem.swift`; the root also removes custom animations for Reduce Motion.
+
+### Evidence for this pass
+
+- iOS Simulator Debug build succeeds with Xcode 26.5 SDK, including the Live Activity extension.
+- 77 automated tests pass: 58 XCTest cases and 19 Swift Testing cases. Six added cases cover rest ownership/undo after relaunch, final-set/manual-rest behavior, concurrent walk and strength, raw invalid drafts and baselines, legacy snapshot decoding, and failed-finish rollback of an empty cardio draft.
+- Isolated **Form Counterweight Review** simulator: Today → start, field entry, set logging → inline rest with notifications declined, pause with `-` in an unrecorded weight, resume retaining `-` and 35 kg recorded weight, exclusion review, save, details, Done → next routine with no Resume, History → same record without first-save acknowledgement. Both bottom tabs are now individually exposed in the native accessibility tree. The expanded saved record scrolls to its final Health-status row with Done and both tabs visible. Switching to a later exercise retains the recorded set and the original rest source.
+- This pass does not certify every permutation, physical haptics, physical VoiceOver, or locked-device delivery. Physical-iPhone checks remain skipped at the user's request. Existing backup/Health failure tests pass, but their system pickers and permission flows were not exhaustively repeated for this visual change.
+
 ## Transition contract
 
 | State / action | Success | Cancel / failure | Evidence |

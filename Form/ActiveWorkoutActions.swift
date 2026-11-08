@@ -85,19 +85,47 @@ extension ActiveWorkoutView {
         }
         RestFeedbackService.shared.schedule(
             end: end,
-            exerciseName: session.currentExerciseName
+            exerciseName: session.restExerciseName
         )
     }
 
     func requestFinish() {
-        guard !didEndSession, entryForm.validate() else { return }
+        guard !didEndSession, validateRecordedFields() else { return }
         entryForm.done()
         dismissKeyboard()
         switch session.finishDisposition() {
         case .empty: showingEmptyFinishConfirmation = true
-        case .partial: showingIncompleteFinishConfirmation = true
-        case .complete: finishWorkout()
+        case .partial, .complete:
+            if !excludedEntries.isEmpty || session.timedWalk != nil {
+                showingIncompleteFinishConfirmation = true
+            } else { finishWorkout() }
         }
+    }
+
+    var excludedEntries: [String] {
+        session.drafts.flatMap { draft in
+            draft.sets.enumerated().compactMap { index, set in
+                guard !set.completed else { return nil }
+                let invalid = entryForm.invalidIDs.contains(EntryID.load(set.id)) || entryForm.invalidIDs.contains(EntryID.count(set.id))
+                return set.hasUnrecordedChanges || invalid ? "\(draft.template.name), set \(index + 1)" : nil
+            }
+        } + session.cardioDrafts.filter { $0.durationMinutes <= 0 }.map { _ in "Unrecorded cardio entry" }
+    }
+
+    var finishReviewMessage: String {
+        var lines: [String] = []
+        if !excludedEntries.isEmpty { lines.append("These unrecorded entries will be omitted: " + excludedEntries.joined(separator: "; ") + ".") }
+        if session.timedWalk != nil { lines.append("Your walk will be included up to the moment you finish.") }
+        return lines.joined(separator: "\n\n")
+    }
+
+    func validateRecordedFields() -> Bool {
+        let ids = session.drafts.flatMap { draft in
+            draft.sets.filter(\.completed).flatMap { set in
+                [EntryID.count(set.id)] + (draft.template.recordsLoad ? [EntryID.load(set.id)] : [])
+            }
+        } + session.cardioDrafts.filter { $0.durationMinutes > 0 }.flatMap { $0.numberFields.map(\.id) }
+        return entryForm.validate(ids: ids)
     }
 
     func scheduleSnapshotSave(_ snapshot: ActiveWorkoutSnapshot) {
@@ -137,7 +165,8 @@ extension ActiveWorkoutView {
     }
 
     func saveAndClose() {
-        guard !didEndSession, entryForm.validate() else { return }
+        guard !didEndSession else { return }
+        session.entryTexts = entryForm.editedTexts
         entryForm.done()
         dismissKeyboard()
         snapshotSaveTask?.cancel()
@@ -153,7 +182,7 @@ extension ActiveWorkoutView {
     }
 
     func finishWorkout() {
-        guard !didEndSession, entryForm.validate() else { return }
+        guard !didEndSession, validateRecordedFields() else { return }
         do {
             let record = try session.finish {
                 try WorkoutRepository.saveCompletedSession($0, in: modelContext)
@@ -165,7 +194,7 @@ extension ActiveWorkoutView {
             RestFeedbackService.shared.cancel()
             UIApplication.shared.isIdleTimerDisabled = false
             Task { await WorkoutLiveActivityController.forceEnd() }
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.22)) {
+            withAnimation(reduceMotion ? nil : CounterweightMotion.settle) {
                 completedRecord = record
             }
             Task {

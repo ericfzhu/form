@@ -7,19 +7,29 @@ struct SetDraft: Identifiable {
     var repetitions: Int
     var completed: Bool
     var kind: SetKind
+    var initialWeight: Double
+    var initialRepetitions: Int
+
+    var hasUnrecordedChanges: Bool {
+        !completed && (weight != initialWeight || repetitions != initialRepetitions)
+    }
 
     init(
         id: UUID = UUID(),
         weight: Double,
         repetitions: Int,
         completed: Bool = false,
-        kind: SetKind = .working
+        kind: SetKind = .working,
+        initialWeight: Double? = nil,
+        initialRepetitions: Int? = nil
     ) {
         self.id = id
         self.weight = weight
         self.repetitions = repetitions
         self.completed = completed
         self.kind = kind
+        self.initialWeight = initialWeight ?? weight
+        self.initialRepetitions = initialRepetitions ?? repetitions
     }
 }
 
@@ -42,6 +52,9 @@ final class WorkoutSessionState {
     var timedWalk: TimedWalk?
     var restEnd: Date?
     var expandedExerciseID: String?
+    var restSourceSetID: UUID?
+    var entryTexts: [String: String]
+    var isCardioExpanded: Bool
 
     private var duration: ActiveDurationAccumulator
 
@@ -67,10 +80,13 @@ final class WorkoutSessionState {
                 template: exercise,
                 sets: savedSets?.map {
                     SetDraft(
+                        id: $0.id ?? UUID(),
                         weight: $0.weight,
                         repetitions: $0.repetitions,
                         completed: $0.completed,
-                        kind: $0.kind ?? .working
+                        kind: $0.kind ?? .working,
+                        initialWeight: $0.initialWeight,
+                        initialRepetitions: $0.initialRepetitions
                     )
                 } ?? (0..<exercise.sets).map { _ in
                     SetDraft(
@@ -92,6 +108,9 @@ final class WorkoutSessionState {
         } ?? []
         expandedExerciseID = validSnapshot == nil ? routine.exercises.first?.id : validSnapshot?.expandedExerciseID
         restEnd = validSnapshot?.restEnd
+        restSourceSetID = validSnapshot?.restSourceSetID
+        entryTexts = validSnapshot?.entryTexts ?? [:]
+        isCardioExpanded = validSnapshot?.isCardioExpanded ?? (validSnapshot?.timedWalk != nil)
         timedWalk = validSnapshot?.timedWalk
         if let savedOrder = validSnapshot?.exercises.map(\.exerciseID) {
             drafts.sort {
@@ -100,7 +119,6 @@ final class WorkoutSessionState {
             }
         }
         timedWalk?.resume(at: now)
-        if timedWalk != nil { expandedExerciseID = nil }
     }
 
     var elapsedActiveDuration: TimeInterval {
@@ -147,7 +165,10 @@ final class WorkoutSessionState {
                             weight: $0.weight,
                             repetitions: $0.repetitions,
                             completed: $0.completed,
-                            kind: $0.kind
+                            kind: $0.kind,
+                            id: $0.id,
+                            initialWeight: $0.initialWeight,
+                            initialRepetitions: $0.initialRepetitions
                         )
                     }
                 )
@@ -165,7 +186,10 @@ final class WorkoutSessionState {
             expandedExerciseID: expandedExerciseID,
             restEnd: restEnd,
             sessionTimerStartedAt: sessionTimerStartedAt,
-            timedWalk: timedWalk
+            timedWalk: timedWalk,
+            restSourceSetID: restSourceSetID,
+            entryTexts: entryTexts,
+            isCardioExpanded: isCardioExpanded
         )
     }
 
@@ -190,6 +214,7 @@ final class WorkoutSessionState {
         let originalWalk = timedWalk
         let originalCardio = cardioDrafts
         pause(at: date)
+        cardioDrafts.removeAll { $0.durationMinutes <= 0 }
         finishTimedWalk(now: date)
         do { return try save(self) }
         catch {
@@ -218,8 +243,7 @@ final class WorkoutSessionState {
 
     func startTimedWalk(now: Date = Date()) {
         guard timedWalk == nil else { return }
-        restEnd = nil
-        expandedExerciseID = nil
+        isCardioExpanded = true
         timedWalk = TimedWalk(now: now)
     }
 
@@ -234,6 +258,26 @@ final class WorkoutSessionState {
 
     func clearRest() {
         restEnd = nil
+        restSourceSetID = nil
+    }
+
+    func undoSet(_ id: UUID) {
+        if restSourceSetID == id { clearRest() }
+    }
+
+    func startManualRest(now: Date = Date()) {
+        restSourceSetID = nil
+        restEnd = now.addingTimeInterval(60)
+    }
+
+    var hasRemainingWorkingSets: Bool {
+        drafts.contains { $0.sets.contains { $0.kind == .working && !$0.completed } }
+    }
+
+    var recordedSetCount: Int { drafts.reduce(0) { $0 + $1.sets.filter(\.completed).count } }
+
+    var restExerciseName: String {
+        drafts.first { $0.sets.contains { $0.id == restSourceSetID } }?.template.name ?? "Rest"
     }
 
     func isExerciseComplete(_ draft: ExerciseDraft) -> Bool {
@@ -244,16 +288,17 @@ final class WorkoutSessionState {
     func didCompleteSet(
         for exerciseID: String,
         kind: SetKind,
+        setID: UUID? = nil,
         restSeconds: Int? = nil,
         now: Date = Date()
     ) {
         guard let index = drafts.firstIndex(where: { $0.id == exerciseID }) else {
             return
         }
-        finishTimedWalk(now: now)
         let prescribedRest = max(0, restSeconds ?? drafts[index].template.restSeconds)
         let seconds = kind == .warmup ? min(90, prescribedRest) : prescribedRest
-        restEnd = seconds > 0 ? now.addingTimeInterval(TimeInterval(seconds)) : nil
+        restEnd = seconds > 0 && hasRemainingWorkingSets ? now.addingTimeInterval(TimeInterval(seconds)) : nil
+        restSourceSetID = restEnd == nil ? nil : setID
         // Logging updates the activity context without navigating away from the set.
         expandedExerciseID = exerciseID
     }
@@ -278,6 +323,8 @@ final class WorkoutSessionState {
             for (setIndex, previousSet) in zip(workingIndices, previousSets) {
                 drafts[draftIndex].sets[setIndex].weight = previousSet.weight
                 drafts[draftIndex].sets[setIndex].repetitions = previousSet.repetitions
+                drafts[draftIndex].sets[setIndex].initialWeight = previousSet.weight
+                drafts[draftIndex].sets[setIndex].initialRepetitions = previousSet.repetitions
             }
         }
     }

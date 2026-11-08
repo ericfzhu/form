@@ -108,22 +108,17 @@ struct SetLoggingRow: View {
             } label: {
                 HStack(spacing: 10) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 7)
-                            .fill(set.completed ? InkPalette.salvia.opacity(0.35) : .clear)
-                            .rotationEffect(.degrees(-6))
-                        RoundedRectangle(cornerRadius: 7)
-                            .strokeBorder(set.completed ? InkPalette.ink : InkPalette.softInk.opacity(0.55), lineWidth: 1.5)
-                            .rotationEffect(.degrees(-6))
-                        InkCheckStroke()
-                            .trim(from: 0, to: set.completed ? 1 : 0)
-                            .stroke(InkPalette.ink, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                            .padding(7)
-                            .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: set.completed)
+                        Circle().fill(set.completed ? InkPalette.ink : InkPalette.paper)
+                        Circle().strokeBorder(InkPalette.ink.opacity(set.completed ? 1 : 0.18), lineWidth: 1)
+                        Image(systemName: set.completed ? "checkmark" : "plus")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(set.completed ? InkPalette.paper : InkPalette.ink)
+                            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                     }
-                    .frame(width: 32, height: 32)
+                    .frame(width: 42, height: 42)
                     .phaseAnimator([0.0, 1.0, 0.0], trigger: completionPulse) { mark, phase in
-                        mark.scaleEffect(reduceMotion ? 1 : 1 + phase * 0.16)
-                    } animation: { _ in .spring(response: 0.22, dampingFraction: 0.6) }
+                        mark.scaleEffect(reduceMotion ? 1 : 1 + phase * 0.1)
+                    } animation: { _ in CounterweightMotion.press }
                     if typeSize.isAccessibilitySize {
                         Text(set.completed ? "Completed" : "Complete set").font(.body)
                     }
@@ -137,18 +132,14 @@ struct SetLoggingRow: View {
             .accessibilityValue(set.completed ? "Completed" : "Not completed")
         }
         .padding(.vertical, 2)
-        .background {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(InkPalette.salvia.opacity(set.completed ? 0.12 : 0))
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: set.completed)
-        }
+
     }
 }
 
 struct InkInput: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .font(.body.monospacedDigit().weight(.medium))
+            .font(.title3.monospacedDigit())
             .foregroundStyle(InkPalette.ink)
             .frame(minHeight: 42)
             .overlay(alignment: .bottom) { InkDivider() }

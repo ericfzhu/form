@@ -20,7 +20,39 @@ enum InkPalette {
 
 enum AtelierType {
     static func script(_ size: CGFloat) -> Font {
-        .custom("Gaegu-Regular", size: size, relativeTo: .title2)
+        .custom("HelveticaNeue-Medium", size: min(size, 28), relativeTo: size >= 24 ? .title2 : .body)
+    }
+}
+
+/// Short, interruptible feedback. Persistence never waits for decorative motion.
+enum CounterweightMotion {
+    static let press = Animation.spring(response: 0.22, dampingFraction: 0.78)
+    static let disclosure = Animation.spring(response: 0.34, dampingFraction: 0.9)
+    static let settle = Animation.spring(response: 0.46, dampingFraction: 0.8)
+    static let quiet = Animation.easeOut(duration: 0.18)
+    static func transition(reduced: Bool) -> AnyTransition {
+        reduced ? .opacity : .offset(y: 8).combined(with: .opacity)
+    }
+}
+
+struct CounterweightFigure: View {
+    var resting = false
+    var body: some View {
+        GeometryReader { geometry in
+            Image("counterweight-session").resizable()
+                .frame(width: geometry.size.width * 3, height: geometry.size.width)
+                .offset(x: -geometry.size.width * (resting ? 2 : 1))
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .clipped()
+        .accessibilityHidden(true)
+    }
+}
+
+struct FormWordmark: View {
+    var body: some View {
+        Text("form").font(.system(size: 27, weight: .bold)).tracking(-1.5)
+            .accessibilityHidden(true)
     }
 }
 
@@ -199,14 +231,13 @@ struct InkPrimaryButton: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Text(title)
-                    .font(AtelierType.script(21))
-                Spacer()
+                    .font(.subheadline.weight(.medium))
             }
             .foregroundStyle(InkPalette.paper)
             .padding(.horizontal, 22)
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 56)
-            .background(InkPalette.ink, in: RoundedRectangle(cornerRadius: 16))
+            .frame(minHeight: 48)
+            .background(InkPalette.ink, in: Capsule())
         }
         .buttonStyle(PressableButtonStyle())
     }

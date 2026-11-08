@@ -135,6 +135,21 @@ final class NumberEntryForm {
 
     var hasInvalidEdits: Bool { drafts.values.contains { $0.edited && problem($0) != nil } }
 
+    var editedTexts: [String: String] {
+        drafts.filter { $0.value.edited }.mapValues(\.text)
+    }
+
+    var invalidIDs: Set<String> {
+        Set(drafts.filter { problem($0.value) != nil }.keys)
+    }
+
+    func restoreEditedTexts(_ texts: [String: String]) {
+        for (id, text) in texts where drafts[id] != nil {
+            drafts[id]?.text = text
+            drafts[id]?.edited = true
+        }
+    }
+
     @discardableResult
     func validate(ids: [String]? = nil) -> Bool {
         let ids = ids ?? order

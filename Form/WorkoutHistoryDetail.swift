@@ -4,90 +4,118 @@ import SwiftUI
 struct WorkoutHistoryDetail: View {
     let workout: WorkoutRecord
     @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        SavedWorkoutView(workout: workout, justSaved: false, done: { dismiss() })
+            .background { InteractivePopGestureBridge(isEnabled: true) }
+    }
+}
+
+/// A saved workout has one presentation, whether it was just finished or reopened.
+struct SavedWorkoutView: View {
+    let workout: WorkoutRecord
+    var justSaved = false
+    let done: () -> Void
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showingEditor = false
+    @State private var details = false
+    @State private var arrived = false
 
     private var completedExercises: [ExerciseRecord] {
-        workout.exercises
-            .filter { !$0.sets.isEmpty }
-            .sorted { $0.order < $1.order }
+        workout.exercises.filter { !$0.sets.isEmpty }.sorted { $0.order < $1.order }
     }
 
     var body: some View {
-        ZStack {
-            PaperBackground()
-            ScrollView {
-                LazyVStack(spacing: 14) {
-                    HStack {
-                        Text(workout.date.formatted(date: .long, time: .omitted).lowercased())
-                            .font(AtelierType.script(17))
-                            .foregroundStyle(InkPalette.softInk)
-                        Spacer()
-                        Text(workout.healthSyncStatus.title.uppercased())
-                            .font(.system(size: 8, weight: .semibold, design: .default))
-                            .foregroundStyle(InkPalette.cinnabar)
-                    }
-
-                    ForEach(completedExercises) { exercise in
-                        if let template = WorkoutCatalog.exercise(for: exercise) {
-                            NavigationLink(value: template) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(workout.displayName).font(.title2.weight(.bold)).accessibilityAddTraits(.isHeader)
+                    Text(workout.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption).foregroundStyle(InkPalette.softInk)
+                }
+                CounterweightFigure(resting: true)
+                    .frame(width: typeSize.isAccessibilitySize ? 130 : 172, height: typeSize.isAccessibilitySize ? 130 : 172)
+                    .frame(maxWidth: .infinity)
+                    .offset(y: justSaved && !arrived && !reduceMotion ? -8 : 0)
+                    .scaleEffect(x: 1, y: justSaved && !arrived && !reduceMotion ? 1.04 : 1, anchor: .bottom)
+                if justSaved {
+                    HStack(spacing: 9) {
+                        Image(systemName: "checkmark").font(.caption.weight(.medium))
+                            .frame(width: 30, height: 30).background(InkPalette.salvia, in: Circle())
+                            .scaleEffect(arrived || reduceMotion ? 1 : 0.8)
+                        Text("Saved").font(.subheadline)
+                    }.frame(maxWidth: .infinity).accessibilityElement(children: .combine)
+                }
+                Text(SessionRecordSummary.text(for: workout))
+                    .font(.subheadline).foregroundStyle(InkPalette.softInk)
+                    .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                Button {
+                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { details.toggle() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(details ? "Hide details" : "View details")
+                        Image(systemName: "chevron.down").rotationEffect(.degrees(details ? 180 : 0))
+                    }.font(.subheadline).frame(maxWidth: .infinity, minHeight: 44)
+                }.buttonStyle(PressableButtonStyle()).accessibilityValue(details ? "Expanded" : "Collapsed")
+                if details {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if completedExercises.isEmpty && workout.cardioEntries.isEmpty {
+                            Text("No sets or cardio recorded.").font(.subheadline)
+                        }
+                        ForEach(completedExercises) { exercise in
+                            if let template = WorkoutCatalog.exercise(for: exercise) {
+                                NavigationLink(value: template) {
+                                    HistoryExerciseCard(exercise: exercise, records: records(for: exercise))
+                                }.buttonStyle(PressableButtonStyle())
+                            } else {
                                 HistoryExerciseCard(exercise: exercise, records: records(for: exercise))
                             }
-                            .buttonStyle(PressableButtonStyle())
-                        } else {
-                            HistoryExerciseCard(exercise: exercise, records: records(for: exercise))
+                            InkDivider()
                         }
-                    }
-
-                    if !workout.cardioEntries.isEmpty {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("cardio")
-                                .font(AtelierType.script(20))
-                                .foregroundStyle(InkPalette.softInk)
-                                .accessibilityAddTraits(.isHeader)
-                            ForEach(workout.cardioEntries.sorted { $0.order < $1.order }) {
-                                CardioHistoryCard(entry: $0)
+                        ForEach(workout.cardioEntries.sorted { $0.order < $1.order }) { entry in
+                            HStack(spacing: 14) {
+                                DemonstrationImage(assetName: "walk").frame(width: 54, height: 54)
+                                CardioHistoryCard(entry: entry)
                             }
                         }
-                    }
+                        Text(workout.healthSyncStatus.title).font(.caption).foregroundStyle(InkPalette.softInk)
+                    }.transition(CounterweightMotion.transition(reduced: reduceMotion))
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .padding(.bottom, 30)
             }
+            .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 32)
         }
+        .background(PaperBackground())
         .toolbar(.hidden, for: .navigationBar)
-        .background { InteractivePopGestureBridge(isEnabled: true) }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            InkTextHeader(
-                title: workout.displayName.lowercased(),
-                leadingTitle: "Back",
-                leadingAction: { dismiss() },
-                trailingTitle: "Edit",
-                trailingAction: { showingEditor = true }
-            )
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            InkPrimaryButton(title: "Done", action: done)
+                .padding(.horizontal, 24).padding(.vertical, 12)
+                .background(InkPalette.paper)
         }
-        .fullScreenCover(isPresented: $showingEditor) {
-            WorkoutEditorView(workout: workout)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                FormWordmark()
+                Spacer()
+                Button(action: done) { Image(systemName: "arrow.left").frame(width: 44, height: 44) }.accessibilityLabel("Back")
+                Button("Edit") { showingEditor = true }.font(.subheadline).frame(minWidth: 44, minHeight: 44)
+            }.buttonStyle(PressableButtonStyle()).padding(.horizontal, 24)
+                .background(InkPalette.paper)
+        }
+        .fullScreenCover(isPresented: $showingEditor) { WorkoutEditorView(workout: workout) }
+        .onAppear {
+            guard justSaved, !arrived else { return }
+            withAnimation(reduceMotion ? nil : CounterweightMotion.settle) { arrived = true }
         }
     }
 
     private func records(for exercise: ExerciseRecord) -> [ProgressRecord] {
         let performances = ProgressionEngine.performances(for: exercise, in: workouts)
-        guard let performance = performances.first(where: {
-            $0.id == workout.persistentModelID
-        }) else { return [] }
-        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement
-            ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
-        return ProgressionEngine.personalRecords(
-            for: performance,
-            measurement: measurement,
-            among: performances
-        )
+        guard let performance = performances.first(where: { $0.id == workout.persistentModelID }) else { return [] }
+        let measurement = WorkoutCatalog.exercise(for: exercise)?.measurement ?? (exercise.sets.contains { $0.weight > 0 } ? .weighted : .bodyweight)
+        return ProgressionEngine.personalRecords(for: performance, measurement: measurement, among: performances)
     }
 }
-
-private struct HistoryExerciseCard: View {
+struct HistoryExerciseCard: View {
     let exercise: ExerciseRecord
     let records: [ProgressRecord]
 
@@ -137,7 +165,7 @@ private struct HistoryExerciseCard: View {
     }
 }
 
-private struct CardioHistoryCard: View {
+struct CardioHistoryCard: View {
     let entry: CardioRecord
 
     var body: some View {

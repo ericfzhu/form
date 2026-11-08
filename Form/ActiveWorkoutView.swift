@@ -37,6 +37,7 @@ struct ActiveWorkoutView: View {
     @State var isKeyboardVisible = false
     @State var didEndSession = false
     @State private var didPrefill = false
+    @State private var didRestoreEntries = false
     @State private var restArrival = 0
     @State var snapshotSaveTask: Task<Void, Never>?
     @State var entryForm = NumberEntryForm()
@@ -58,7 +59,7 @@ struct ActiveWorkoutView: View {
         ))
     }
 
-    var body: some View {
+    private var presentation: some View {
         Group {
             if let completedRecord {
                 WorkoutCompletionView(record: completedRecord) {
@@ -81,35 +82,50 @@ struct ActiveWorkoutView: View {
                     requestDiscard: { showingDiscardConfirmation = true }
                 )
             } else {
-                CompletionHeader()
+                EmptyView()
             }
         }
         .environment(entryForm)
         .onChange(of: numberFields, initial: true) { _, fields in
             entryForm.configure(fields, order: fields.map(\.id))
+            if !didRestoreEntries {
+                entryForm.restoreEditedTexts(session.entryTexts)
+                didRestoreEntries = true
+            }
+        }
+        .onChange(of: entryForm.editedTexts) { _, texts in session.entryTexts = texts }
+        .onChange(of: entryForm.focusedID) { _, id in
+            guard let id else { return }
+            if let field = inputFields.first(where: { $0.id == id }) {
+                session.expandedExerciseID = field.exerciseID
+            } else if id.hasPrefix("cardio-") { session.isCardioExpanded = true }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var guardedPresentation: some View {
+        presentation
         .confirmationDialog("Discard this session?", isPresented: $showingDiscardConfirmation) {
             Button("Discard session", role: .destructive, action: discardWorkout)
             Button("Keep training", role: .cancel) {}
         }
-        .confirmationDialog(
-            "Finish without recording anything?",
+        .alert(
+            "End this workout?",
             isPresented: $showingEmptyFinishConfirmation
         ) {
-            Button("Finish empty session", role: .destructive, action: finishWorkout)
+            Button("End workout", role: .destructive, action: discardWorkout)
             Button("Keep training", role: .cancel) {}
         } message: {
             Text("No completed sets or cardio entries will be saved.")
         }
-        .confirmationDialog(
-            "Finish this partial session?",
+        .alert(
+            "Finish workout?",
             isPresented: $showingIncompleteFinishConfirmation
         ) {
-            Button("Save partial session", action: finishWorkout)
+            Button("Save recorded work", action: finishWorkout)
             Button("Keep training", role: .cancel) {}
         } message: {
-            Text("\(session.completedMovementCount) of \(session.drafts.count) movements are complete. Only completed sets and cardio entries will be saved.")
+            Text(finishReviewMessage)
         }
         .leadingEdgeSwipe {
             if completedRecord == nil { saveAndClose() }
@@ -122,6 +138,10 @@ struct ActiveWorkoutView: View {
         } message: {
             Text(saveErrorMessage ?? "")
         }
+    }
+
+    var body: some View {
+        guardedPresentation
         .onAppear {
             guard !didEndSession, completedRecord == nil else { return }
             WorkoutLiveActivityController.isSessionPresented = true
@@ -181,12 +201,12 @@ struct ActiveWorkoutView: View {
                 .task(id: entryForm.focusRequest) {
                     await Task.yield()
                     if let id = entryForm.focusedID {
-                        withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+                        withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { proxy.scrollTo(id, anchor: .center) }
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
                     if let id = entryForm.focusedID {
-                        withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
+                        withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { proxy.scrollTo(id, anchor: .center) }
                     }
                 }
                 .sheet(isPresented: $showingExerciseList) { exerciseOrderSheet }
@@ -195,71 +215,101 @@ struct ActiveWorkoutView: View {
 
     private var workoutFields: some View {
         @Bindable var session = session
-        return
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(routine.name.lowercased()).font(AtelierType.script(38))
-                    HStack {
-                        Text("Choose any movement. Check off each set.")
-                            .font(.caption).foregroundStyle(InkPalette.softInk)
-                        Spacer()
-                        Button { focusedInput = nil; showingExerciseList = true } label: {
-                            Image(systemName: "arrow.up.arrow.down").font(.system(size: 20)).frame(width: 44, height: 44)
-                        }
-                        .accessibilityLabel("Reorder exercises")
-                    }
-                }
-
-                ForEach($session.drafts) { $draft in
-                    ExerciseLoggingCard(
-                        draft: $draft,
-                        previous: ProgressionEngine.latestCompleted(for: draft.template, in: history),
-                        recommendation: nil,
-                        isExpanded: true,
-                        toggleExpanded: {},
-                        didUpdateSet: { completed, kind in
-                            focusedInput = nil
-                            guard completed else { return }
-                            session.didCompleteSet(
-                                for: draft.id, kind: kind,
-                                restSeconds: ExerciseRestPreference.seconds(for: draft.template)
-                            )
-                            if session.restEnd != nil { restArrival += 1 }
-                        }
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    InkDivider()
-                    HStack {
-                        Text("cardio").font(AtelierType.script(30))
-                        Spacer()
-                        DemonstrationImage(assetName: "walk").frame(width: 64, height: 64)
-                    }
-                    Text("Treadmill walk · 15 min suggested")
-                        .font(.subheadline).foregroundStyle(InkPalette.softInk)
-                    Text("Speed 5 · incline 7.5. Check console units and keep the effort conversational.")
-                        .font(.caption).foregroundStyle(InkPalette.softInk)
-                    CardioLoggingSection(
-                        prescribedWalk: true, entries: $session.cardioDrafts,
-                        timedWalk: session.timedWalk,
-                        startWalk: { focusedInput = nil; session.startTimedWalk() },
-                        finishWalk: { session.finishTimedWalk() }
-                    )
-                }
-                InkPrimaryButton(title: "Finish session", action: requestFinish)
+        return VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(routine.name).font(.title2.weight(.bold)).accessibilityAddTraits(.isHeader)
+                Text("\(session.recordedSetCount) set\(session.recordedSetCount == 1 ? "" : "s") recorded")
+                    .font(.caption).foregroundStyle(InkPalette.softInk).contentTransition(.numericText())
+            }.padding(.vertical, 24)
+            if let end = session.restEnd, !isKeyboardVisible {
+                RestTimer(end: end, arrival: restArrival, exerciseName: session.restExerciseName,
+                          adjust: adjustRest, cancel: clearRest, complete: completeRest)
+                    .padding(.bottom, 18)
+                    .transition(CounterweightMotion.transition(reduced: reduceMotion))
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
+            HStack {
+                Text("Exercises").font(.caption).foregroundStyle(InkPalette.softInk)
+                Spacer()
+                Button("Reorder") { entryForm.done(); showingExerciseList = true }
+                    .font(.subheadline).frame(minHeight: 44)
+            }.padding(.bottom, 8)
+            ForEach($session.drafts) { $draft in
+                ExerciseLoggingCard(
+                    draft: $draft,
+                    previous: ProgressionEngine.latestCompleted(for: draft.template, in: history.filter { $0.date < session.startedAt }),
+                    recommendation: nil,
+                    isExpanded: session.expandedExerciseID == draft.id,
+                    toggleExpanded: {
+                        entryForm.done(); dismissKeyboard()
+                        withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) {
+                            session.expandedExerciseID = session.expandedExerciseID == draft.id ? nil : draft.id
+                        }
+                    },
+                    didUpdateSet: { id, completed, kind in
+                        focusedInput = nil
+                        withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) {
+                            if completed {
+                                session.didCompleteSet(for: draft.id, kind: kind, setID: id,
+                                                       restSeconds: ExerciseRestPreference.seconds(for: draft.template))
+                                if session.restEnd != nil { restArrival += 1 }
+                            } else { session.undoSet(id) }
+                        }
+                    },
+                    didRemoveSet: { session.undoSet($0) }
+                ).id(draft.id)
+            }
+            InkDivider()
+            Button {
+                entryForm.done(); dismissKeyboard()
+                withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { session.isCardioExpanded.toggle() }
+            } label: {
+                HStack(spacing: 14) {
+                    DemonstrationImage(assetName: "walk").frame(width: 54, height: 54)
+                    Text("Walk").font(.headline)
+                    Spacer()
+                    Text(session.timedWalk != nil ? "In progress" : session.cardioDrafts.isEmpty ? "Optional" : "Recorded")
+                        .font(.caption).foregroundStyle(InkPalette.softInk)
+                    Image(systemName: "chevron.down").font(.caption)
+                        .rotationEffect(.degrees(session.isCardioExpanded ? 180 : 0))
+                }.padding(.vertical, 14).contentShape(Rectangle())
+            }.buttonStyle(PressableButtonStyle())
+                .accessibilityValue(session.isCardioExpanded ? "Expanded" : "Collapsed")
+            if session.isCardioExpanded {
+                CardioLoggingSection(prescribedWalk: true, entries: $session.cardioDrafts,
+                                     timedWalk: session.timedWalk,
+                                     startWalk: { focusedInput = nil; session.startTimedWalk() },
+                                     finishWalk: { session.finishTimedWalk() })
+                    .padding(.bottom, 20)
+                    .transition(CounterweightMotion.transition(reduced: reduceMotion))
+            }
+            InkDivider()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 20) { finishControls }
+                VStack(alignment: .leading, spacing: 12) { finishControls }
+            }.padding(.top, 20)
+            if session.restEnd == nil {
+                Button("Rest") {
+                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { session.startManualRest() }
+                }.font(.subheadline).frame(maxWidth: .infinity, minHeight: 44)
+            }
+        }
+        .padding(.horizontal, 24).padding(.bottom, 28)
+        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.restEnd != nil)
+        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.isCardioExpanded)
+    }
+
+    @ViewBuilder private var finishControls: some View {
+        Text("\(session.recordedSetCount) set\(session.recordedSetCount == 1 ? "" : "s")")
+            .font(.caption).foregroundStyle(InkPalette.softInk)
+        InkPrimaryButton(title: "Finish workout", action: requestFinish)
     }
 
     private var loggerFooter: some View {
         VStack(spacing: 0) {
-            if let end = session.restEnd {
+            if let end = session.restEnd, isKeyboardVisible {
                 VStack(spacing: 0) {
                     InkDivider()
-                    RestTimer(end: end, arrival: restArrival, compact: isKeyboardVisible,
+                    RestTimer(end: end, arrival: restArrival, compact: true, exerciseName: session.restExerciseName,
                               adjust: adjustRest, cancel: clearRest, complete: completeRest)
                 }
                 .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
@@ -273,7 +323,7 @@ struct ActiveWorkoutView: View {
             }
         }
         .background(InkPalette.paper)
-        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.86), value: session.restEnd != nil)
+        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.restEnd != nil)
     }
 
     private var exerciseOrderSheet: some View {
@@ -281,6 +331,7 @@ struct ActiveWorkoutView: View {
                 List {
                     ForEach(session.drafts) { draft in
                         HStack {
+                            DemonstrationImage(assetName: draft.template.assetName).frame(width: 44, height: 44)
                             Text(draft.template.name)
                             Spacer()
                             Text("\(draft.sets.filter { $0.completed && $0.kind == .working }.count)/\(draft.sets.filter { $0.kind == .working }.count)")

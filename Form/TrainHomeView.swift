@@ -274,95 +274,60 @@ struct TodayView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Today").font(AtelierType.script(46))
-                            .accessibilityAddTraits(.isHeader)
-                        Text(Date().formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
-                            .font(.caption).foregroundStyle(InkPalette.softInk)
-                    }
-                    Spacer(minLength: 0)
-                    if !typeSize.isAccessibilitySize {
-                        DemonstrationImage(assetName: illustration)
-                            .scaleEffect(1.3)
-                            .frame(width: 128, height: 112)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Today").font(.title2.weight(.bold)).accessibilityAddTraits(.isHeader)
                 if let recoveryError {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Session needs attention").font(AtelierType.script(24))
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Session needs attention").font(.headline)
                         Text(recoveryError).font(.subheadline)
                         Button("Retry restoring session", action: reloadSession).frame(minHeight: 44)
                     }
-                    .padding(18)
-                    .background(InkPalette.salvia.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                 }
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(snapshot != nil ? "in progress" : (history.isEmpty ? "your first session" : "next session"))
-                        .font(AtelierType.script(20)).foregroundStyle(InkPalette.softInk)
-                    InkDivider()
-                    Text(next.name).font(AtelierType.script(30))
-                        .accessibilityAddTraits(.isHeader)
-                    Text(next.focus).font(.subheadline).foregroundStyle(InkPalette.softInk)
+                CounterweightFigure(resting: snapshot != nil)
+                    .frame(width: 172, height: 172).frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                VStack(spacing: 12) {
+                    Text(next.name).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     if let snapshot, let activeProgress {
-                        Text(activeProgress).font(.subheadline)
+                        Text(activeProgress).font(.caption).foregroundStyle(InkPalette.softInk)
                         Text("Started " + snapshot.startedAt.formatted(date: .abbreviated, time: .shortened))
                             .font(.caption).foregroundStyle(InkPalette.softInk)
                     } else {
-                        Text("About 45 minutes").font(.caption).foregroundStyle(InkPalette.softInk)
+                        Text("\(next.exercises.count) exercises · optional walk").font(.caption).foregroundStyle(InkPalette.softInk)
                     }
-                    InkPrimaryButton(title: snapshot == nil ? "Start session →" : "Resume session →") {
+                    Button {
                         reloadSession()
                         if recoveryError == nil { presentedRoutine = next }
-                    }.padding(.top, 4).disabled(recoveryError != nil)
-                }
-                .padding(20)
-                .background(InkPalette.salvia.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
-                if snapshot != nil || recoveryError != nil {
-                    Button("Discard session", role: .destructive) {
-                        showingDiscardConfirmation = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "arrow.right").frame(width: 50, height: 50)
+                                .foregroundStyle(InkPalette.paper).background(InkPalette.ink, in: Circle())
+                            Text(snapshot == nil ? "Start workout" : "Resume workout").font(.subheadline.weight(.semibold))
+                        }.padding(.vertical, 16).frame(maxWidth: .infinity)
+                    }.buttonStyle(PressableButtonStyle()).disabled(recoveryError != nil)
+                    Button("View routine") { showingRoutine = true }.font(.subheadline).frame(minHeight: 44)
+                    if snapshot != nil || recoveryError != nil {
+                        Button("Discard workout", role: .destructive) { showingDiscardConfirmation = true }
+                            .font(.subheadline).frame(minHeight: 44)
                     }
-                    .font(AtelierType.script(20))
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                }.frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                if let last = history.first {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Last workout").font(.caption).foregroundStyle(InkPalette.softInk)
+                        NavigationLink(value: last) { HistoryCard(workout: last) }
+                            .buttonStyle(PressableButtonStyle())
+                    }.padding(.top, 24)
                 }
-                Button("View routine") { showingRoutine = true }
-                    .font(AtelierType.script(20)).frame(maxWidth: .infinity, minHeight: 44)
-                if snapshot == nil, recoveryError == nil, let last = history.first {
-                    let noteLayout = typeSize.isAccessibilitySize
-                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-                        : AnyLayout(HStackLayout(alignment: .top, spacing: 14))
-                    noteLayout {
-                        InkCheckStroke()
-                            .stroke(InkPalette.ink, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                            .frame(width: 18, height: 18).padding(9)
-                            .background(InkPalette.salvia.opacity(0.22), in: RoundedRectangle(cornerRadius: 7))
-                            .rotationEffect(.degrees(-6)).accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(Calendar.current.isDateInToday(last.date) ? "recorded today" : "last recorded")
-                                .font(AtelierType.script(20))
-                            Text(last.displayName).font(.subheadline)
-                            Text(last.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(.caption).foregroundStyle(InkPalette.softInk)
-                            Text(SessionRecordSummary.text(for: last))
-                                .font(.caption).foregroundStyle(InkPalette.softInk)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                    .padding(.vertical, 12)
-                }
-            }.padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 20)
+            }.padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 32)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
-                Text("form.").font(AtelierType.script(30))
+                FormWordmark()
                 Spacer()
                 Button { showingSettings = true } label: {
-                    Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
+                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
                 }.accessibilityLabel("Settings")
-            }
-            .padding(.horizontal, 28)
-            .background(InkPalette.paper.ignoresSafeArea(edges: .top))
+            }.padding(.horizontal, 24).background(InkPalette.paper)
         }
         .background(PaperBackground())
         .toolbar(.hidden, for: .navigationBar)
@@ -404,7 +369,7 @@ struct TodayView: View {
                                     }
                                 }
                             }
-                            Text("Then, a 15 min treadmill walk.").font(AtelierType.script(20))
+                            Text("Optional: a 15 min treadmill walk.").font(AtelierType.script(20))
                         }
                     }
                 }.scrollContentBackground(.hidden).background(.white)

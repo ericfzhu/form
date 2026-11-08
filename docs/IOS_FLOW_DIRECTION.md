@@ -1,6 +1,6 @@
 # Form — Counterweight flow and state model
 
-Status: proposed product model, 8 November 2026. This replaces the earlier flow proposal; it does not describe an implemented SwiftUI redesign. The Counterweight conversation previews are interaction studies with synthetic records and simulated persistence. Native behavior and prior verification are documented in [IOS_STATE_AUDIT.md](IOS_STATE_AUDIT.md).
+Status: native core journey implemented, 9 November 2026. Today, the expandable workout, independent rest/walk, shared saved-workout surface, and History now use Counterweight. The coverage table remains the acceptance checklist, not a claim of exhaustive device verification. See [IOS_STATE_AUDIT.md](IOS_STATE_AUDIT.md) for current evidence and limits.
 
 ## Product contract
 
@@ -100,7 +100,7 @@ Finish is always reachable. Show the amount of recorded work nearby, so finishin
 | Local save failure | Keep the active session and values. Explain the failure at the finish action with Retry; remain in the workout. Do not show Saved or play completion feedback. |
 | Local save success | Transition this workout to its saved presentation; end active timers/notifications, clear or retire the active snapshot, advance A/B once. Optional Health sync proceeds independently. |
 
-The exclusion sheet is driven by draft dirtiness, not simply by incomplete planned rows. Prefilled defaults or suggestions are not user-authored drafts. A change to an already recorded set is part of the work being saved and must validate. Multiple reasons for review (walk plus draft exclusion) share one sheet, not stacked dialogs.
+The exclusion sheet is driven by draft dirtiness, not simply by incomplete planned rows. Prefilled defaults or suggestions are not user-authored drafts. A change to an already recorded set is part of the work being saved and must validate. Multiple reasons for review (walk plus draft exclusion) share one confirmation, not stacked dialogs.
 
 The no-empty-record decision is an intentional change from the existing native Finish empty session branch. Historical empty or legacy records remain readable and are not migrated away.
 
@@ -145,13 +145,13 @@ Model these independently rather than constructing one enum for every visual com
 
 Rest can coexist with editing, movement selection or a walk. A saved workout cannot coexist with an active timer for the same session. A save failure cannot produce the saved presentation. Pause closes only after the snapshot write succeeds. Acknowledgement animations are transient view effects and never persisted lifecycle states.
 
-Persist dirty raw drafts and stable set IDs in a versioned snapshot before allowing invalid unfinished input to survive Pause and close. The existing native snapshot retains only valid numbers and currently recreates set UUIDs on restoration. Until migration and restoration are implemented, retain its current validation-before-pause behavior; do not silently claim raw-draft or rest-source restoration.
+Snapshot schema 4 now persists stable set IDs, initial values, raw edited number strings, the rest source set, and walk disclosure state. Versions 1–3 still decode with defaults. Pause preserves unfinished text; finishing validates recorded work and reviews exclusions. Rest-source identity survives restoration.
 
 If a write succeeds but snapshot cleanup fails, durable saved-session identity must suppress Resume for that session. Preserve the repository's completed-record reconciliation and exercise it again in migration tests.
 
 ## Coverage reconciliation against the repository
 
-“Preserve” means the responsibility survives. “Merge” changes presentation. “Change” is intentional behavior that needs implementation and regression coverage. All rows below are proposed Counterweight coverage, not completed validation.
+“Preserve” means the responsibility survives. “Merge” changes presentation. “Change” is intentional behavior that needs implementation and regression coverage. Rows below describe the target coverage. The dated native audit distinguishes implemented behavior, automated evidence, and remaining device checks.
 
 | Existing reachable responsibility | Counterweight destination / decision | Treatment | Acceptance evidence required |
 | --- | --- | --- | --- |

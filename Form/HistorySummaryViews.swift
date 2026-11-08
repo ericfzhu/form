@@ -23,7 +23,7 @@ struct EmptyHistoryView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(InkPalette.salvia.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+
     }
 }
 
@@ -34,23 +34,9 @@ struct HistoryCard: View {
     var body: some View {
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: 20))
         layout {
-            if typeSize.isAccessibilitySize {
-                Text(workout.date.formatted(date: .abbreviated, time: .omitted)).font(.caption2)
-            } else {
-                VStack(spacing: 4) {
-                    Text(workout.date.formatted(.dateTime.day())).font(AtelierType.script(32))
-                    Text(workout.date.formatted(.dateTime.weekday(.abbreviated))).font(.caption2)
-                }
-                .frame(width: 48, height: 62)
-                .background {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(InkPalette.salvia.opacity(0.22))
-                        .rotationEffect(.degrees(-4))
-                }
-                .accessibilityHidden(true)
-            }
             VStack(alignment: .leading, spacing: 7) {
-                Text(workout.displayName).font(AtelierType.script(25))
+                Text(workout.displayName).font(.headline)
+                Text(workout.date.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundStyle(InkPalette.softInk)
                 Text(SessionRecordSummary.text(for: workout)).font(.caption).foregroundStyle(InkPalette.softInk)
                     .fixedSize(horizontal: false, vertical: true)
             }

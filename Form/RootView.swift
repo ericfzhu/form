@@ -4,6 +4,7 @@ import SwiftUI
 private enum AppTab: Hashable { case today, history }
 
 struct RootView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var modelContext
     @Query private var history: [WorkoutRecord]
     @StateObject private var planner = PlannerStore()
@@ -13,23 +14,27 @@ struct RootView: View {
     @State private var historyPath = NavigationPath()
 
     var body: some View {
-        // Reserve layout space for the custom tabs, including pushed detail pages.
+        // Keep both navigation stacks alive without a hidden system tab bar
+        // competing with the custom bar for the bottom safe area.
         VStack(spacing: 0) {
-            TabView(selection: $selection) {
+            ZStack {
                 NavigationStack {
                     TodayView()
+                        .navigationDestination(for: WorkoutRecord.self) { WorkoutHistoryDetail(workout: $0) }
                         .navigationDestination(for: RoutineTemplate.self) { RoutineDetailView(routine: $0) }
                         .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
                 }
-                .toolbar(.hidden, for: .tabBar)
-                .tabItem { Label("Today", systemImage: "sun.max") }.tag(AppTab.today)
+                .opacity(selection == .today ? 1 : 0)
+                .allowsHitTesting(selection == .today)
+                .accessibilityHidden(selection != .today)
                 NavigationStack(path: $historyPath) {
                     HistoryView { historyPath.append($0) }
                         .navigationDestination(for: ExerciseTemplate.self) { ExerciseProgressView(exercise: $0) }
                         .navigationDestination(for: WorkoutRecord.self) { WorkoutHistoryDetail(workout: $0) }
                 }
-                .toolbar(.hidden, for: .tabBar)
-                .tabItem { Label("History", systemImage: "book.closed") }.tag(AppTab.history)
+                .opacity(selection == .history ? 1 : 0)
+                .allowsHitTesting(selection == .history)
+                .accessibilityHidden(selection != .history)
             }
             PaperTabBar(selection: $selection)
         }
@@ -57,6 +62,7 @@ struct RootView: View {
         .preferredColorScheme(.light)
         .tint(InkPalette.ink)
         .environment(\.font, .system(.body))
+        .transaction { if reduceMotion { $0.animation = nil } }
         .task { try? WorkoutDataMigration.backfillLegacyRecords(in: modelContext) }
     }
 }
@@ -68,6 +74,7 @@ private struct LiveSessionRoute: Identifiable {
 
 
 private struct PaperTabBar: View {
+    @Namespace private var tabMark
     @Environment(\.dynamicTypeSize) private var typeSize
     @Binding var selection: AppTab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -84,8 +91,6 @@ private struct PaperTabBar: View {
             .padding(.bottom, 2)
         }
         .background(InkPalette.paper.ignoresSafeArea(edges: .bottom))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Main navigation")
     }
 
     private func tab(_ tab: AppTab, title: String) -> some View {
@@ -94,20 +99,11 @@ private struct PaperTabBar: View {
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { selection = tab }
         } label: {
             VStack(spacing: 3) {
-                let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 4)) : AnyLayout(HStackLayout(spacing: 9))
-                layout {
-                    PaperTabSymbol(isBook: tab == .history)
-                        .stroke(style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
-                        .frame(width: 23, height: 23)
-                        .accessibilityHidden(true)
-                    Text(title.lowercased()).font(AtelierType.script(typeSize.isAccessibilitySize ? 16 : 24))
-                        .lineLimit(1).minimumScaleFactor(0.8)
-                }
-                .foregroundStyle(selected ? InkPalette.ink : InkPalette.softInk)
-                PaperSelectionMark()
-                    .fill(selected ? InkPalette.salvia : .clear)
-                    .frame(width: 55, height: 5)
-                    .accessibilityHidden(true)
+                Text(title).font(.subheadline.weight(selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? InkPalette.ink : InkPalette.softInk)
+                ZStack {
+                    if selected { Circle().fill(InkPalette.ink).matchedGeometryEffect(id: "tab", in: tabMark) }
+                }.frame(width: 4, height: 4).accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity, minHeight: 52)
             .contentShape(Rectangle())
@@ -115,45 +111,5 @@ private struct PaperTabBar: View {
         .buttonStyle(PressableButtonStyle())
         .accessibilityLabel(title)
         .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
-// Small ink drawings and a cut-paper underline keep navigation in the same
-// visual language as the illustrations without competing with the page.
-private struct PaperSelectionMark: Shape {
-    func path(in rect: CGRect) -> Path {
-        Path { path in
-            path.move(to: CGPoint(x: 1, y: rect.height * 0.25))
-            path.addLine(to: CGPoint(x: rect.width - 2, y: 0))
-            path.addLine(to: CGPoint(x: rect.width, y: rect.height * 0.8))
-            path.addLine(to: CGPoint(x: 0, y: rect.height))
-            path.closeSubpath()
-        }
-    }
-}
-
-private struct PaperTabSymbol: Shape {
-    var isBook: Bool
-    func path(in rect: CGRect) -> Path {
-        let scale = CGAffineTransform(scaleX: rect.width / 24, y: rect.height / 24)
-        var path = Path()
-        if isBook {
-            path.move(to: CGPoint(x: 12, y: 5))
-            path.addLines([CGPoint(x: 3, y: 3), CGPoint(x: 2, y: 19), CGPoint(x: 12, y: 21), CGPoint(x: 22, y: 18), CGPoint(x: 22, y: 3), CGPoint(x: 12, y: 5), CGPoint(x: 12, y: 21)])
-            path.move(to: CGPoint(x: 6, y: 8))
-            path.addLine(to: CGPoint(x: 9, y: 9))
-            path.move(to: CGPoint(x: 6, y: 12))
-            path.addLine(to: CGPoint(x: 9, y: 13))
-        } else {
-            path.move(to: CGPoint(x: 7, y: 12))
-            path.addCurve(to: CGPoint(x: 12, y: 6), control1: CGPoint(x: 6, y: 8), control2: CGPoint(x: 9, y: 6))
-            path.addCurve(to: CGPoint(x: 18, y: 12), control1: CGPoint(x: 16, y: 5), control2: CGPoint(x: 19, y: 9))
-            path.addCurve(to: CGPoint(x: 12, y: 18), control1: CGPoint(x: 18, y: 16), control2: CGPoint(x: 15, y: 19))
-            path.addCurve(to: CGPoint(x: 7, y: 12), control1: CGPoint(x: 8, y: 18), control2: CGPoint(x: 6, y: 15))
-            for (start, end) in [(CGPoint(x: 12, y: 1), CGPoint(x: 12, y: 3)), (CGPoint(x: 20, y: 4), CGPoint(x: 19, y: 5)), (CGPoint(x: 21, y: 12), CGPoint(x: 23, y: 12)), (CGPoint(x: 19, y: 20), CGPoint(x: 20, y: 22)), (CGPoint(x: 12, y: 21), CGPoint(x: 12, y: 23)), (CGPoint(x: 3, y: 20), CGPoint(x: 5, y: 18)), (CGPoint(x: 1, y: 11), CGPoint(x: 3, y: 11)), (CGPoint(x: 3, y: 3), CGPoint(x: 5, y: 5))] {
-                path.move(to: start); path.addLine(to: end)
-            }
-        }
-        return path.applying(scale)
     }
 }

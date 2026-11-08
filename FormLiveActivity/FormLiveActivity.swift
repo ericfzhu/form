@@ -19,7 +19,7 @@ struct FormWorkoutLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 7) {
                         PaperPlateMark().frame(width: 22, height: 22)
-                        Text("form.").font(.custom("Gaegu-Regular", size: 20))
+                        Text("form").font(.system(size: 20, weight: .bold)).tracking(-1)
                     }
                     .foregroundStyle(.white)
                 }
@@ -224,13 +224,13 @@ private struct PaperLockActivity: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("form.").font(.custom("Gaegu-Regular", size: 23))
+                Text("form").font(.system(size: 23, weight: .bold)).tracking(-1)
                 Spacer()
                 Text(phase.title).font(.caption2).foregroundStyle(ActivityInk.quiet)
             }
             HStack(spacing: 12) {
                 if !typeSize.isAccessibilitySize {
-                    Image("activity-\(artwork)").resizable().scaledToFit()
+                    CounterweightActivityArtwork(name: artwork)
                         .frame(width: 72, height: 64)
                         .opacity(isLuminanceReduced ? 0.7 : 1)
                         .accessibilityHidden(true)
@@ -285,3 +285,18 @@ private extension LiveWorkoutState {
     FormWorkoutLiveActivity()
 } contentStates: { LiveWorkoutState.resting }
 #endif
+
+private struct CounterweightActivityArtwork: View {
+    let name: String
+    var body: some View {
+        if ["pause", "arrive", "finished", "pages"].contains(name) {
+            GeometryReader { proxy in
+                Image("counterweight-session").resizable()
+                    .frame(width: proxy.size.width * 3, height: proxy.size.width)
+                    .offset(x: -proxy.size.width * (name == "arrive" ? 1 : 2))
+            }.aspectRatio(1, contentMode: .fit).clipped()
+        } else {
+            Image("counterweight-" + name).resizable().scaledToFit()
+        }
+    }
+}
