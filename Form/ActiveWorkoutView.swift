@@ -31,12 +31,21 @@ struct ActiveWorkoutView: View {
 
     @State var session: WorkoutSessionState
     @State var showingExerciseList = false
-    @State var showingDiscardConfirmation = false
-    @State private var discardAfterSheet = false
-    @State private var finishAfterSheet = false
-    @State private var endAfterSheet = false
-    @State var showingEmptyFinishConfirmation = false
-    @State var showingIncompleteFinishConfirmation = false
+    enum WorkoutDrawerPage {
+        case options, emptyFinish, finishReview, discard
+        var title: String {
+            switch self {
+            case .options: "Workout"
+            case .emptyFinish: "End this workout?"
+            case .finishReview: "Finish workout?"
+            case .discard: "Discard workout?"
+            }
+        }
+    }
+    enum WorkoutDrawerAction { case finish, discard, revealInvalidFields }
+    @State var showingWorkoutDrawer = false
+    @State var workoutDrawerPage: WorkoutDrawerPage = .options
+    @State var pendingDrawerAction: WorkoutDrawerAction?
     @State var completedRecord: WorkoutRecord?
     @State var saveErrorMessage: String?
     @State var isKeyboardVisible = false
@@ -75,13 +84,9 @@ struct ActiveWorkoutView: View {
             } else {
                 workoutLogger
                     .safeAreaInset(edge: .top, spacing: 0) {
-                        ActiveWorkoutHeader(
-                            index: routine.id,
-                            progress: "\(session.completedMovementCount) of \(session.drafts.count) movements",
-                            requestFinish: requestFinish,
-                            pause: saveAndClose,
-                            requestDiscard: { showingDiscardConfirmation = true }
-                        )
+                        ActiveWorkoutHeader(pause: saveAndClose, showOptions: {
+                            presentWorkoutDrawer(.options)
+                        })
                     }
                     .transition(.opacity)
             }
@@ -108,37 +113,53 @@ struct ActiveWorkoutView: View {
 
     private var guardedPresentation: some View {
         presentation
-        .sheet(isPresented: $showingDiscardConfirmation, onDismiss: {
-            if discardAfterSheet { discardAfterSheet = false; discardWorkout() }
+        .sheet(isPresented: $showingWorkoutDrawer, onDismiss: {
+            let action = pendingDrawerAction
+            pendingDrawerAction = nil
+            switch action {
+            case .finish: finishWorkout()
+            case .discard: discardWorkout()
+            case .revealInvalidFields: _ = validateRecordedFields()
+            case nil: break
+            }
         }) {
-            CounterweightDiscardSheet(discard: {
-                discardAfterSheet = true; showingDiscardConfirmation = false
-            }, keep: { showingDiscardConfirmation = false })
-        }
-        .sheet(isPresented: $showingEmptyFinishConfirmation, onDismiss: {
-            if endAfterSheet { endAfterSheet = false; discardWorkout() }
-        }) {
-            CounterweightConfirmationSheet(
-                title: "End this workout?", message: "No completed sets or cardio entries will be saved.",
-                actionTitle: "End workout", destructive: true, cancelTitle: "Keep training",
-                confirm: { endAfterSheet = true; showingEmptyFinishConfirmation = false },
-                cancel: { showingEmptyFinishConfirmation = false }
-            )
-        }
-        .sheet(isPresented: $showingIncompleteFinishConfirmation, onDismiss: {
-            if finishAfterSheet { finishAfterSheet = false; finishWorkout() }
-        }) {
-            CounterweightConfirmationSheet(
-                title: "Finish workout?", message: finishReviewMessage,
-                actionTitle: "Save recorded work", cancelTitle: "Keep training",
-                confirm: { finishAfterSheet = true; showingIncompleteFinishConfirmation = false },
-                cancel: { showingIncompleteFinishConfirmation = false }
-            )
+            CounterweightSheet(title: workoutDrawerPage.title) {
+                workoutDrawerContent
+            }
         }
         .leadingEdgeSwipe {
             if completedRecord == nil { saveAndClose() }
         }
         .counterweightNotice("Couldn’t save session", message: $saveErrorMessage)
+    }
+
+    @ViewBuilder private var workoutDrawerContent: some View {
+        switch workoutDrawerPage {
+        case .options:
+            CounterweightActionRow(title: "Finish workout", symbol: "checkmark", action: requestFinish)
+            InkDivider()
+            CounterweightActionRow(title: "Discard workout", symbol: "trash", destructive: true) {
+                presentWorkoutDrawer(.discard)
+            }
+        case .emptyFinish:
+            CounterweightConfirmationContent(
+                message: "No completed sets or cardio entries will be saved.",
+                actionTitle: "End workout", destructive: true, cancelTitle: "Keep training",
+                confirm: { completeWorkoutDrawer(with: .discard) },
+                cancel: { showingWorkoutDrawer = false }
+            )
+        case .finishReview:
+            CounterweightConfirmationContent(
+                message: finishReviewMessage, actionTitle: "Save recorded work", cancelTitle: "Keep training",
+                confirm: { completeWorkoutDrawer(with: .finish) },
+                cancel: { showingWorkoutDrawer = false }
+            )
+        case .discard:
+            CounterweightDiscardContent(
+                discard: { completeWorkoutDrawer(with: .discard) },
+                keep: { showingWorkoutDrawer = false }
+            )
+        }
     }
 
     var body: some View {

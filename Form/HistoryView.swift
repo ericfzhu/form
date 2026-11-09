@@ -9,11 +9,8 @@ struct HistoryView: View {
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var showingSettings = false
     @State private var showingOptions = false
-    @State private var pendingOption: HistoryOption?
-    private enum HistoryOption { case exercises, restore }
     @State private var saveErrorMessage: String?
     @State private var selectedSection: HistorySection = .sessions
-    @State private var showingExerciseIndex = false
     @State private var showingBackupImporter = false
     @State private var restoreMessage: String?
     @State private var pendingDeletion: WorkoutRecord?
@@ -121,38 +118,17 @@ struct HistoryView: View {
                 cancel: { pendingDeletion = nil }
             )
         }
-        .sheet(isPresented: $showingOptions, onDismiss: {
-            let option = pendingOption; pendingOption = nil
-            if option == .exercises { showingExerciseIndex = true }
-            if option == .restore { showingBackupImporter = true }
-        }) {
-            CounterweightSheet(title: "History") {
-                CounterweightActionRow(title: "Exercise progress", symbol: "chart.xyaxis.line") {
-                    pendingOption = .exercises; showingOptions = false
-                }
-                InkDivider()
-                ShareLink(item: WorkoutBackup(workouts: workouts), preview: SharePreview("Form workout backup")) {
-                    HStack(spacing: 14) {
-                        Image(systemName: "square.and.arrow.up").font(.system(size: 16, weight: .medium))
-                            .frame(width: 40, height: 40).background(InkPalette.mist, in: Circle())
-                        Text("Export a backup").font(.subheadline.weight(.medium))
-                        Spacer()
-                    }.foregroundStyle(InkPalette.ink).padding(.vertical, 5).contentShape(Rectangle())
-                }.buttonStyle(PressableButtonStyle())
-                CounterweightActionRow(title: "Restore a backup", symbol: "arrow.down.document") {
-                    pendingOption = .restore; showingOptions = false
-                }
-            }
+        .sheet(isPresented: $showingOptions) {
+            HistoryOptionsDrawer(workouts: workouts, restore: restore)
         }
         .sheet(isPresented: $showingSettings) { FormSettingsView() }
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showingExerciseIndex) { ExerciseIndexView() }
         .fileImporter(
             isPresented: $showingBackupImporter,
             allowedContentTypes: [.json],
             allowsMultipleSelection: false
         ) { result in
-            restore(result)
+            restoreMessage = restore(result)
         }
         .counterweightNotice("Form record", message: Binding(
             get: { saveErrorMessage ?? restoreMessage },
@@ -178,22 +154,22 @@ struct HistoryView: View {
         }
     }
 
-    private func restore(_ result: Result<[URL], Error>) {
+    private func restore(_ result: Result<[URL], Error>) -> String? {
         do {
-            guard let url = try result.get().first else { return }
+            guard let url = try result.get().first else { return nil }
             let accessed = url.startAccessingSecurityScopedResource()
             defer { if accessed { url.stopAccessingSecurityScopedResource() } }
             let count = try WorkoutBackup.restore(
                 data: Data(contentsOf: url),
                 into: modelContext
             )
-            restoreMessage = count == 0
+            return count == 0
                 ? "This backup contains no new sessions."
                 : "Restored \(count) session\(count == 1 ? "" : "s")."
         } catch let error as CocoaError where error.code == .userCancelled {
-            return
+            return nil
         } catch {
-            restoreMessage = "The backup could not be restored. \(error.localizedDescription)"
+            return "The backup could not be restored. \(error.localizedDescription)"
         }
     }
 }
@@ -210,40 +186,26 @@ private enum HistorySection: String, CaseIterable, Identifiable {
     case sessions
     case overview
     var id: String { rawValue }
-    var title: String { rawValue }
+    var title: String { rawValue.capitalized }
 }
 
 private struct HistorySectionControl: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var selectionMark
     @Binding var selection: HistorySection
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-            : AnyLayout(HStackLayout(spacing: 24))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
         return layout {
             ForEach(HistorySection.allCases) { section in
-                Button { withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { selection = section } } label: {
-                    Text(section.title)
-                        .font(.subheadline)
-                        .foregroundStyle(selection == section
-                            ? InkPalette.ink
-                            : InkPalette.softInk.opacity(0.68))
-                        .frame(minWidth: 84, minHeight: 46)
-                        .overlay(alignment: .bottom) {
-                            if selection == section {
-                                Circle().fill(InkPalette.ink)
-                                    .frame(width: 4, height: 4)
-                                    .matchedGeometryEffect(id: "section", in: selectionMark)
-                            }
-                        }
+                CounterweightChoice(title: section.title, selected: selection == section) {
+                    selection = section
                 }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityAddTraits(selection == section ? .isSelected : [])
             }
-            if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
         }
+        .padding(.top, 8)
+        .animation(reduceMotion ? nil : CounterweightMotion.quiet, value: selection)
     }
 }

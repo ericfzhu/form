@@ -1,0 +1,17 @@
+{
+  "tool": "Built-in image_gen",
+  "reference": "Form/Assets.xcassets/counterweight-session.imageset/artwork.png",
+  "light": {
+    "asset": "Form/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+    "generatedImage": "exec-9e5385ef-078f-4211-9dd0-25710a8b7f5d.png",
+    "prompt": "Use case: logo-brand. Create the production iOS app icon for Form, adapting the MIDDLE character in the reference sprite sheet. The reference is the established Counterweight mascot: broad rounded dark navy ink silhouette, tiny white face with two dark vertical eyes, large curved arms holding a muted powder-blue circular weight at the belly, widely planted chunky feet, subtly asymmetric relaxed stance. Preserve this exact character identity and flat shapes. ONE character only, holding ONE blue disk. Square 1024 by 1024 opaque pure white canvas. Character centered optically, occupying approximately 70% width and 73% height with generous margins for iOS corner clipping. Crisp solid shapes, navy #051230, muted blue #97ACC8, white. No gradients, texture, outline, shadow, frame, lettering, watermarks, rounded background corners, device mockup, extra icons or sprite sheet. The character and weight should read clearly at small Home Screen icon sizes. Deliver only the finished square icon artwork."
+  },
+  "dark": {
+    "asset": "Form/Assets.xcassets/AppIcon.appiconset/AppIcon-dark.png",
+    "generatedImage": "exec-d328e307-e632-46e1-b4d4-4f6222e8e61a.png",
+    "reference": "Generated light icon",
+    "prompt": "Use case: precise-object-edit. Create the DARK APPEARANCE iOS app-icon variant of this exact Form Counterweight icon. Change ONLY the colors. Preserve exactly the silhouette, framing, eye positions, shape geometry, body position and blue disk shape from the input. Replace the white square background with flat deep navy #051230. Replace the deep navy body silhouette with muted powder blue #97ACC8. Replace the blue held weight with pale blue #D4DFEE. Keep face white and its two eyes deep navy #051230. Flat solid opaque fills, crisp edges, no texture, gradient or shadows. No text or extra elements. Full square 1024 by 1024, no baked rounded corners."
+  },
+  "exports": "Generated icons are resized to opaque 1024-square PNGs. Light icon also supplies public/form-icon.png, public/brand/form-icon-preview.png and the 180-square apple-touch icon. Tinted Home Screen appearance remains system-derived.",
+  "compactMark": "Native paths in CounterweightActivityMark, mirrored by tools/render-counterweight-mark.swift for SVG and 16/32/48px favicons. These are simplified face marks, not raster crops of the full character."
+}

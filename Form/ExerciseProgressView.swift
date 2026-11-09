@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ExerciseProgressView: View {
     let exercise: ExerciseTemplate
+    var closeDrawer: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -63,11 +64,15 @@ struct ExerciseProgressView: View {
         .toolbar(.hidden, for: .navigationBar)
         .background { InteractivePopGestureBridge(isEnabled: true) }
         .safeAreaInset(edge: .top, spacing: 0) {
-            InkTextHeader(
-                title: exercise.name,
-                leadingTitle: "Back",
-                leadingAction: { dismiss() }
-            )
+            if let closeDrawer {
+                CounterweightSheetHeader(title: exercise.name, back: { dismiss() }, close: closeDrawer)
+            } else {
+                InkTextHeader(
+                    title: exercise.name,
+                    leadingTitle: "Back",
+                    leadingAction: { dismiss() }
+                )
+            }
         }
         .onAppear {
             if !availableMetrics.contains(selectedMetric) {

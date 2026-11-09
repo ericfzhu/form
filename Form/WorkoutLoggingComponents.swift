@@ -1,39 +1,17 @@
 import SwiftUI
 
 struct ActiveWorkoutHeader: View {
-    @State private var showingActions = false
-    @State private var pendingAction: Action?
-    private enum Action { case finish, discard }
-    let index: String
-    let progress: String
-    let requestFinish: () -> Void
     let pause: () -> Void
-    let requestDiscard: () -> Void
+    let showOptions: () -> Void
 
     var body: some View {
         CounterweightHeader {
-            CounterweightControl(title: "Pause", symbol: "pause") { pause() }
+            CounterweightControl(title: "Pause", symbol: "pause", action: pause)
                 .accessibilityLabel("Pause and close")
                 .accessibilityHint("Saves this session so you can resume it from Today")
-            CounterweightIconButton(symbol: "ellipsis", label: "Workout options") { showingActions = true }
-
+            CounterweightIconButton(symbol: "ellipsis", label: "Workout options", action: showOptions)
         }
         .buttonStyle(PressableButtonStyle())
-        .sheet(isPresented: $showingActions, onDismiss: {
-            let action = pendingAction; pendingAction = nil
-            if action == .finish { requestFinish() }
-            if action == .discard { requestDiscard() }
-        }) {
-            CounterweightSheet(title: "Workout") {
-                CounterweightActionRow(title: "Finish workout", symbol: "checkmark") {
-                    pendingAction = .finish; showingActions = false
-                }
-                InkDivider()
-                CounterweightActionRow(title: "Discard workout", symbol: "trash", destructive: true) {
-                    pendingAction = .discard; showingActions = false
-                }
-            }
-        }
     }
 }
 

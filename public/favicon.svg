@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#fff"/><g stroke="#051230" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 30Q7 32 8 40L9 44 5 52 10 54 16 47 21 53 26 50 21 42 22 36 29 33 28 29 20 33Z" fill="#fff"/><ellipse cx="16" cy="23" rx="5" ry="5.5" fill="#fff"/><path d="M26 31C25 18 33 10 43 10 54 10 62 19 61 32 61 44 53 55 43 55 32 55 26 45 26 31Z" fill="#97acc8"/><ellipse cx="44" cy="32" rx="5" ry="5.5" fill="#fff"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">Form — Counterweight</title>
+  <path fill="#97acc8" d="M5 70C10 39 34 8 60 10C84 9 92 42 96 72C100 94 2 96 5 70Z"/>
+  <path fill="#fff" d="M19 66C24 43 41 22 60 23C75 23 81 47 82 65C85 79 15 80 19 66Z"/>
+  <g fill="#051230"><ellipse cx="44" cy="55.5" rx="4" ry="7.5"/><ellipse cx="65" cy="54.5" rx="4" ry="7.5"/></g>
+</svg>

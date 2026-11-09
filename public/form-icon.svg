@@ -1,15 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
-  <title id="title">Form</title>
-  <rect width="1024" height="1024" fill="#713229"/>
-  <rect x="144" y="144" width="736" height="736" fill="none" stroke="#b09a69" stroke-width="14"/>
-  <rect x="172" y="172" width="680" height="680" fill="none" stroke="#e9e3d5" stroke-opacity="0.62" stroke-width="4"/>
-  <text
-    x="509"
-    y="720"
-    fill="#f3eee3"
-    font-family="Georgia, 'Times New Roman', serif"
-    font-size="600"
-    font-weight="400"
-    text-anchor="middle"
-  >F</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">Form — Counterweight</title>
+  <path fill="#97acc8" d="M5 70C10 39 34 8 60 10C84 9 92 42 96 72C100 94 2 96 5 70Z"/>
+  <path fill="#fff" d="M19 66C24 43 41 22 60 23C75 23 81 47 82 65C85 79 15 80 19 66Z"/>
+  <g fill="#051230"><ellipse cx="44" cy="55.5" rx="4" ry="7.5"/><ellipse cx="65" cy="54.5" rx="4" ry="7.5"/></g>
 </svg>

@@ -10,7 +10,7 @@ struct FormLiveActivityBundle: WidgetBundle {
 struct FormWorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            PaperLockActivity(state: context.state, isStale: context.isStale, url: sessionURL(context))
+            CounterweightLockActivity(state: context.state, isStale: context.isStale, url: sessionURL(context))
                 .activityBackgroundTint(.white)
                 .activitySystemActionForegroundColor(ActivityInk.ink)
                 .widgetURL(sessionURL(context))
@@ -18,7 +18,7 @@ struct FormWorkoutLiveActivity: Widget {
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 7) {
-                        PaperPlateMark().frame(width: 22, height: 22)
+                        CounterweightActivityMark().frame(width: 22, height: 22)
                         Text("form").font(.system(size: 20, weight: .bold)).tracking(-1)
                     }
                     .foregroundStyle(.white)
@@ -26,16 +26,17 @@ struct FormWorkoutLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.trailing) {
                     Text(context.state.phase(at: .now, isStale: context.isStale).title)
                         .font(.caption2).foregroundStyle(ActivityInk.islandQuiet)
+                        .padding(.trailing, 8)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    PaperExpandedActivity(state: context.state, isStale: context.isStale, url: sessionURL(context))
+                    CounterweightExpandedActivity(state: context.state, isStale: context.isStale, url: sessionURL(context))
                 }
             } compactLeading: {
-                PaperPlateMark().frame(width: 22, height: 22)
+                CounterweightActivityMark().frame(width: 22, height: 22)
             } compactTrailing: {
-                PaperCompactActivity(state: context.state, isStale: context.isStale)
+                CounterweightCompactActivity(state: context.state, isStale: context.isStale)
             } minimal: {
-                PaperPlateMark().frame(width: 24, height: 24)
+                CounterweightActivityMark().frame(width: 24, height: 24)
             }
             .keylineTint(ActivityInk.blue)
             .widgetURL(sessionURL(context))
@@ -60,46 +61,59 @@ private extension LiveWorkoutState.Phase {
         switch self {
         case .lifting: "Lifting"
         case .resting: "Resting"
-        case .ready: "Ready when you are"
+        case .ready: "Ready"
         case .walking: "Walking"
         case .paused: "Paused"
         }
     }
-    var context: String {
-        switch self {
-        case .lifting: "CURRENT EXERCISE"
-        case .resting, .ready: "UP NEXT"
-        case .walking: "TREADMILL"
-        case .paused: "RETURN TO"
-        }
-    }
     var timerLabel: String {
         switch self {
-        case .lifting: "session elapsed"
-        case .resting: "rest remaining"
-        case .ready: "rest complete"
-        case .walking: "walk elapsed"
-        case .paused: "session paused"
+        case .lifting: "elapsed"
+        case .resting: "rest"
+        case .ready: "rest"
+        case .walking: "walk"
+        case .paused: "elapsed"
         }
     }
 }
 
-/// The mark is drawn natively so it stays crisp in the smallest Island region.
-private struct PaperPlateMark: View {
+/// The mascot's face is reduced to three shapes for the smallest Island regions.
+private struct CounterweightActivityMark: View {
     var body: some View {
-        GeometryReader { geometry in
+        GeometryReader { proxy in
+            let scale = CGAffineTransform(scaleX: proxy.size.width / 100, y: proxy.size.height / 100)
             ZStack {
-                Ellipse().fill(ActivityInk.blue).rotationEffect(.degrees(-8))
-                Circle().fill(.black).frame(width: geometry.size.width * 0.32)
-                Path { path in
-                    path.move(to: CGPoint(x: geometry.size.width * 0.77, y: geometry.size.height * 0.80))
-                    path.addLine(to: CGPoint(x: geometry.size.width * 0.92, y: geometry.size.height * 0.60))
-                    path.addLine(to: CGPoint(x: geometry.size.width * 0.86, y: geometry.size.height * 0.89))
-                    path.closeSubpath()
-                }.fill(Color(red: 0.85, green: 0.90, blue: 0.96))
+                Path { p in
+                    p.move(to: CGPoint(x: 5, y: 70))
+                    p.addCurve(to: CGPoint(x: 60, y: 10), control1: CGPoint(x: 10, y: 39), control2: CGPoint(x: 34, y: 8))
+                    p.addCurve(to: CGPoint(x: 96, y: 72), control1: CGPoint(x: 84, y: 9), control2: CGPoint(x: 92, y: 42))
+                    p.addCurve(to: CGPoint(x: 5, y: 70), control1: CGPoint(x: 100, y: 94), control2: CGPoint(x: 2, y: 96))
+                }.transform(scale).fill(ActivityInk.blue)
+                Path { p in
+                    p.move(to: CGPoint(x: 19, y: 66))
+                    p.addCurve(to: CGPoint(x: 60, y: 23), control1: CGPoint(x: 24, y: 43), control2: CGPoint(x: 41, y: 22))
+                    p.addCurve(to: CGPoint(x: 82, y: 65), control1: CGPoint(x: 75, y: 23), control2: CGPoint(x: 81, y: 47))
+                    p.addCurve(to: CGPoint(x: 19, y: 66), control1: CGPoint(x: 85, y: 79), control2: CGPoint(x: 15, y: 80))
+                }.transform(scale).fill(.white)
+                Path { p in
+                    p.addEllipse(in: CGRect(x: 40, y: 48, width: 8, height: 15))
+                    p.addEllipse(in: CGRect(x: 61, y: 47, width: 8, height: 15))
+                }.transform(scale).fill(ActivityInk.ink)
             }
         }
         .accessibilityLabel("Form workout")
+    }
+}
+
+private extension LiveWorkoutState {
+    func artwork(for phase: Phase) -> String {
+        switch phase {
+        case .resting, .paused: return "pause"
+        case .walking: return "walk"
+        case .lifting, .ready:
+            let supported = ["squat", "bench-press", "seated-row", "leg-curl", "rdl", "incline-press", "pulldown", "reverse-lunge"]
+            return exerciseArtwork.flatMap { supported.contains($0) ? $0 : nil } ?? "arrive"
+        }
     }
 }
 
@@ -115,10 +129,14 @@ private struct ActivityTimer: View {
                     Text(timerInterval: min(Date.now, end)...end, countsDown: true)
                 }
             case .walking:
-                if let start = state.walkTimerStartedAt { Text(start, style: .timer) }
+                if let start = state.walkTimerStartedAt {
+                    Text(timerInterval: start...Date.distantFuture, countsDown: false, showsHours: false)
+                }
                 else { Text("0:00") }
             case .lifting:
-                if let start = state.sessionTimerStartedAt { Text(start, style: .timer) }
+                if let start = state.sessionTimerStartedAt {
+                    Text(timerInterval: start...Date.distantFuture, countsDown: false, showsHours: false)
+                }
             case .ready: Text("Ready")
             case .paused:
                 let seconds = max(0, Int(state.pausedDuration))
@@ -129,9 +147,10 @@ private struct ActivityTimer: View {
         .lineLimit(1)
         .minimumScaleFactor(0.75)
     }
+
 }
 
-private struct PaperCompactActivity: View {
+private struct CounterweightCompactActivity: View {
     let state: LiveWorkoutState
     let isStale: Bool
     private var phase: LiveWorkoutState.Phase { state.phase(isStale: isStale) }
@@ -152,39 +171,41 @@ private struct PaperCompactActivity: View {
     }
 }
 
-private struct PaperExpandedActivity: View {
+private struct CounterweightExpandedActivity: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let state: LiveWorkoutState
     let isStale: Bool
     let url: URL
     private var phase: LiveWorkoutState.Phase { state.phase(isStale: isStale) }
     var body: some View {
-        VStack(spacing: 15) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(phase.context).font(.system(size: 9)).foregroundStyle(ActivityInk.islandQuiet)
-                    Text(state.currentExercise).font(.subheadline).foregroundStyle(.white)
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-                VStack(alignment: .trailing, spacing: 3) {
-                    ActivityTimer(state: state, phase: phase)
-                        .font(.system(size: phase == .ready ? 25 : 32, weight: .light))
-                        .foregroundStyle(ActivityInk.islandBlue)
-                        .frame(width: 94, alignment: .trailing)
-                    Text(phase.timerLabel).font(.system(size: 9)).foregroundStyle(ActivityInk.islandQuiet)
-                }
+        HStack(spacing: 12) {
+            if !typeSize.isAccessibilitySize {
+                CounterweightActivityArtwork(name: state.artwork(for: phase))
+                    .padding(5).frame(width: 48, height: 48)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 14))
+                    .accessibilityHidden(true)
             }
-            HStack(spacing: 10) {
-                ActivityProgress(state: state, dark: true)
-                Spacer(minLength: 0)
-                Link(destination: url) {
-                    Text("Open ↗").font(.caption2)
-                        .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(Color.white.opacity(0.13), in: Capsule())
-                }.foregroundStyle(.white).accessibilityLabel("Open workout session")
+            Link(destination: url) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(state.currentExercise).font(.subheadline).foregroundStyle(.white)
+                        .lineLimit(2)
+                    HStack(spacing: 5) {
+                        Text(state.progress).lineLimit(2)
+                        Image(systemName: "arrow.up.right").accessibilityHidden(true)
+                    }.font(.system(size: 10)).foregroundStyle(ActivityInk.islandQuiet)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }.accessibilityLabel("Open workout session, \(state.currentExercise), \(state.progress)")
+            VStack(alignment: .trailing, spacing: 3) {
+                ActivityTimer(state: state, phase: phase)
+                    .font(.system(size: phase == .ready ? 22 : 27, weight: .medium))
+                    .foregroundStyle(ActivityInk.islandBlue)
+                    .frame(width: 84, alignment: .trailing)
+                Text(phase.timerLabel).font(.system(size: 9)).foregroundStyle(ActivityInk.islandQuiet)
             }
         }
-        .padding(.top, 8)
+        .padding(.top, 8).padding(.horizontal, 6).padding(.bottom, 6)
     }
 }
 
@@ -207,57 +228,54 @@ private struct ActivityProgress: View {
     }
 }
 
-private struct PaperLockActivity: View {
+private struct CounterweightLockActivity: View {
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.dynamicTypeSize) private var typeSize
     let state: LiveWorkoutState
     let isStale: Bool
     let url: URL
     private var phase: LiveWorkoutState.Phase { state.phase(isStale: isStale) }
-    private var artwork: String {
-        switch phase {
-        case .resting, .paused: "pause"
-        case .walking: "walk"
-        default: state.exerciseArtwork ?? "arrive"
-        }
-    }
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             HStack {
-                Text("form").font(.system(size: 23, weight: .bold)).tracking(-1)
+                Text("form").font(.system(size: 20, weight: .bold)).tracking(-1)
                 Spacer()
-                Text(phase.title).font(.caption2).foregroundStyle(ActivityInk.quiet)
+                Text(phase.title).font(.caption.weight(.medium)).foregroundStyle(ActivityInk.ink)
+                    .padding(.horizontal, 10).padding(.vertical, 3)
+                    .background(ActivityInk.blue.opacity(0.18), in: Capsule())
             }
             HStack(spacing: 12) {
                 if !typeSize.isAccessibilitySize {
-                    CounterweightActivityArtwork(name: artwork)
-                        .frame(width: 72, height: 64)
+                    CounterweightActivityArtwork(name: state.artwork(for: phase))
+                        .frame(width: 56, height: 56)
                         .opacity(isLuminanceReduced ? 0.7 : 1)
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(phase.context).font(.system(size: 9)).foregroundStyle(ActivityInk.quiet)
                     Text(state.currentExercise).font(.subheadline)
                         .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
                 VStack(alignment: .trailing, spacing: 3) {
                     ActivityTimer(state: state, phase: phase)
-                        .font(.system(size: phase == .ready ? 22 : 29, weight: .regular))
-                        .frame(width: 84, alignment: .trailing)
+                        .font(.system(size: isLuminanceReduced ? 20 : (phase == .ready ? 22 : 29), weight: .regular))
+                        .frame(width: isLuminanceReduced ? 112 : 84, alignment: .trailing)
                     Text(phase.timerLabel).font(.system(size: 9)).foregroundStyle(ActivityInk.quiet)
                 }
             }
-            Rectangle().fill(ActivityInk.blue.opacity(0.22)).frame(height: 0.5)
             HStack {
                 ActivityProgress(state: state)
                 Spacer(minLength: 6)
-                Link("Open session ↗", destination: url).font(.caption2)
-                    .padding(.vertical, 5).accessibilityLabel("Open workout session")
+                Link(destination: url) {
+                    Label("Open", systemImage: "arrow.up.right")
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 14).frame(minHeight: 44)
+                        .background(ActivityInk.blue.opacity(0.18), in: Capsule())
+                }.accessibilityLabel("Open workout session")
             }
         }
         .foregroundStyle(ActivityInk.ink)
-        .padding(.horizontal, 18).padding(.vertical, 15)
+        .padding(.horizontal, 18).padding(.vertical, 8)
     }
 }
 
@@ -277,10 +295,10 @@ private extension LiveWorkoutState {
 } contentStates: { LiveWorkoutState.resting; LiveWorkoutState.ready; LiveWorkoutState.walking; LiveWorkoutState.paused; LiveWorkoutState.lifting }
 #Preview("Expanded", as: .dynamicIsland(.expanded), using: WorkoutActivityAttributes.preview) {
     FormWorkoutLiveActivity()
-} contentStates: { LiveWorkoutState.resting; LiveWorkoutState.ready; LiveWorkoutState.walking; LiveWorkoutState.paused }
+} contentStates: { LiveWorkoutState.lifting; LiveWorkoutState.resting; LiveWorkoutState.ready; LiveWorkoutState.walking; LiveWorkoutState.paused }
 #Preview("Compact", as: .dynamicIsland(.compact), using: WorkoutActivityAttributes.preview) {
     FormWorkoutLiveActivity()
-} contentStates: { LiveWorkoutState.resting; LiveWorkoutState.ready; LiveWorkoutState.walking; LiveWorkoutState.paused }
+} contentStates: { LiveWorkoutState.lifting; LiveWorkoutState.resting; LiveWorkoutState.ready; LiveWorkoutState.walking; LiveWorkoutState.paused }
 #Preview("Minimal", as: .dynamicIsland(.minimal), using: WorkoutActivityAttributes.preview) {
     FormWorkoutLiveActivity()
 } contentStates: { LiveWorkoutState.resting }

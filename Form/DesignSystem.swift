@@ -118,10 +118,14 @@ struct CounterweightSheet<Content: View>: View {
 struct CounterweightSheetHeader: View {
     let title: String
     var subtitle: String? = nil
+    var back: (() -> Void)? = nil
     let close: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
+            if let back {
+                CounterweightIconButton(symbol: "arrow.left", label: "Back", action: back)
+            }
             VStack(alignment: .leading, spacing: 6) {
                 Text(title).font(.title3.weight(.semibold))
                     .frame(minHeight: 44, alignment: .leading)
@@ -174,6 +178,23 @@ struct CounterweightConfirmationSheet: View {
 
     var body: some View {
         CounterweightSheet(title: title) {
+            CounterweightConfirmationContent(message: message, actionTitle: actionTitle,
+                destructive: destructive, cancelTitle: cancelTitle, confirm: confirm, cancel: cancel)
+        }
+    }
+}
+
+/// Content can advance inside an already-presented drawer without replacing its shell.
+struct CounterweightConfirmationContent: View {
+    let message: String
+    let actionTitle: String
+    var destructive = false
+    var cancelTitle = "Cancel"
+    let confirm: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
             Text(message).font(.subheadline).foregroundStyle(InkPalette.softInk)
                 .fixedSize(horizontal: false, vertical: true)
             if destructive {
@@ -189,21 +210,16 @@ struct CounterweightConfirmationSheet: View {
 
 extension View {
     func counterweightNotice(_ title: String, message: Binding<String?>) -> some View {
-        sheet(item: Binding(get: { message.wrappedValue.map(CounterweightNoticeMessage.init) }, set: {
-            if $0 == nil { message.wrappedValue = nil }
-        })) { notice in
+        sheet(isPresented: Binding(get: { message.wrappedValue != nil }, set: {
+            if !$0 { message.wrappedValue = nil }
+        })) {
             CounterweightSheet(title: title) {
-                Text(notice.text).font(.subheadline).foregroundStyle(InkPalette.softInk)
+                Text(message.wrappedValue ?? "").font(.subheadline).foregroundStyle(InkPalette.softInk)
                     .fixedSize(horizontal: false, vertical: true)
                 InkPrimaryButton(title: "Done") { message.wrappedValue = nil }
             }
         }
     }
-}
-
-private struct CounterweightNoticeMessage: Identifiable {
-    let text: String
-    var id: String { text }
 }
 
 struct CounterweightActionRow: View {
@@ -230,6 +246,16 @@ struct CounterweightDiscardSheet: View {
     let keep: () -> Void
     var body: some View {
         CounterweightSheet(title: "Discard workout?") {
+            CounterweightDiscardContent(discard: discard, keep: keep)
+        }
+    }
+}
+
+struct CounterweightDiscardContent: View {
+    let discard: () -> Void
+    let keep: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
             Text("This removes the unfinished session. Your saved workout history is kept.")
                 .font(.subheadline).foregroundStyle(InkPalette.softInk)
             CounterweightActionRow(title: "Discard workout", symbol: "trash", destructive: true, action: discard)

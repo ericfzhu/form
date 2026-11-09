@@ -89,16 +89,46 @@ extension ActiveWorkoutView {
         )
     }
 
+    func presentWorkoutDrawer(_ page: WorkoutDrawerPage) {
+        entryForm.done()
+        dismissKeyboard()
+        if showingWorkoutDrawer {
+            withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { workoutDrawerPage = page }
+        } else {
+            pendingDrawerAction = nil
+            workoutDrawerPage = page
+            showingWorkoutDrawer = true
+        }
+    }
+
+    func completeWorkoutDrawer(with action: WorkoutDrawerAction) {
+        pendingDrawerAction = action
+        showingWorkoutDrawer = false
+    }
+
     func requestFinish() {
-        guard !didEndSession, validateRecordedFields() else { return }
+        guard !didEndSession else { return }
+        guard validateRecordedFields() else {
+            if showingWorkoutDrawer {
+                // Reveal the invalid field only after the drawer is out of the way.
+                entryForm.done()
+                dismissKeyboard()
+                completeWorkoutDrawer(with: .revealInvalidFields)
+            }
+            return
+        }
         entryForm.done()
         dismissKeyboard()
         switch session.finishDisposition() {
-        case .empty: showingEmptyFinishConfirmation = true
+        case .empty: presentWorkoutDrawer(.emptyFinish)
         case .partial, .complete:
             if !excludedEntries.isEmpty || session.timedWalk != nil {
-                showingIncompleteFinishConfirmation = true
-            } else { finishWorkout() }
+                presentWorkoutDrawer(.finishReview)
+            } else if showingWorkoutDrawer {
+                completeWorkoutDrawer(with: .finish)
+            } else {
+                finishWorkout()
+            }
         }
     }
 

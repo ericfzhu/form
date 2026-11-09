@@ -2,6 +2,40 @@
 
 Reviewed 25–26 October 2026. This is a source review plus targeted regression testing, not a claim that every possible interaction has been verified on a device.
 
+## Related drawer continuity — 10 November 2026
+
+- Removed History options → dismiss → new exercise-index sheet. One sheet now owns menu → exercise index → progress detail navigation. Back moves within it, search survives detail/back, and Close dismisses the entire drawer from any depth. Opening the index expands the same drawer to provide room for the list; subsequent navigation preserves its detent. Accessibility text sizes use the large detent.
+- History's Files picker is now presented by the open drawer. Cancellation returns to its menu; restore success/no-new-sessions/failure replaces the menu body within that same drawer. Back returns to the actions. Export's native share/Save to Files flow also retains the drawer beneath it. Standalone restore entry points on Overview/empty History retain their native picker and result notice.
+- Shared notices now use boolean presentation identity, so changing their message while visible updates content instead of replacing a sheet identified by the message text.
+
+Source audit: checked sheet, full-screen cover, notice, confirmation and dismissal call sites across the current Today, workout, saved record/editor, History and progress routes. Technique, reorder, rest duration, set actions, exercise/cardio/set-type pickers, Settings, routine and delete/discard confirmations do not contain another normal app-drawer handoff. Their final actions appropriately return to the underlying screen. System Files/share/Health surfaces remain native. Dormant planner/routine routes were inspected but not redesigned. Persistence-failure notices after a final action remain a recovery presentation; their failure branches were not simulated.
+
+Validation: simulator Debug build and all 82 core regression tests passed. In Form Transition Audit, checked options → index → detail, search preservation on Back, Back to options, Files cancellation, export to local Files, duplicate-backup restore result, result Back, and Close from detail to History. The synthetic saved-session count stayed at one; the paused audit workout was untouched. Updated build installed on Form Counterweight Review. Restore with new records/malformed files, maximum Dynamic Type and live Reduce Motion behavior were not separately rerun in this pass; their state/layout guards were reviewed in source. Physical-iPhone checks remain excluded.
+
+## Continuous workout drawer — 9 November 2026
+
+- Workout options, empty-workout confirmation, finish review and discard confirmation now share one presented `CounterweightSheet`. Choosing an action replaces its contents in place, keeping the drawer and backdrop mounted. The transition respects Reduce Motion.
+- Saving or discarding runs after the final dismissal. Cancel, close and swipe dismissal carry no pending action. Invalid recorded fields dismiss the drawer before restoring field focus. Existing finish eligibility and review copy are unchanged.
+- Shared confirmation bodies are reusable inside the drawer; other screens retain their existing sheet wrappers.
+
+Validation: simulator Debug build succeeded and all 82 core regression tests passed. In Form Transition Audit, invoking the shared finish callback while options were open changed the existing drawer to “End this workout?”; Escape dismissed it back to the intact workout. The synthetic session was then paused. The simulator's accessibility tree exposed the underlying footer rather than the menu row, and coordinate targeting failed, so the exact menu-row tap and recorded-work confirmation were not independently exercised this pass. The update was installed in Form Counterweight Review without editing its workout records.
+
+## Counterweight app icon and Live Activity — 9 November 2026
+
+- Replaced the outlined plate-pusher app icon with the established Counterweight character holding its blue weight. Opaque 1024px light/dark variants are included in AppIcon; tinted appearance remains system-derived. The web touch icon and full-size PNG use the same artwork.
+- Dynamic Island compact/minimal regions use a native simplified face mark, also exported to the SVG and 16/32/48px favicon assets. `tools/render-counterweight-mark.swift` reproduces these vector exports. Generated icon provenance and exact built-in imagegen prompts are recorded in `tools/counterweight-artwork.json`.
+- Lock-screen and expanded activity share phase-specific Counterweight art: exercise art while lifting/ready, resting character during rest/pause, walk art while walking, and a safe session fallback for missing/unknown artwork. Legacy plate drawing and paper-named view types are removed from the active extension code.
+- Reduced repeated labels; the lock card has a matching Open pill. Expanded Island content fits one compact row, with artwork, the linked exercise/progress and timer. Safe-area spacing keeps the phase and timer captions clear of the Island's rounded edges.
+- Elapsed timers use system-updating numeric intervals. Dimmed presentation reserves a wider, smaller timer column; system Always-On second suppression remains intact rather than freezing a manually calculated snapshot.
+
+Validation: app/extension Debug build succeeded; all 10 LiveWorkoutState regression tests passed. Simulator review covered the Home Screen icon, compact and expanded lifting/rest activities, the expanded activity's return link, awake and dimmed lock-screen layout, and installation on Form Counterweight Review. The audit session is left paused with no rest countdown. Existing review records were untouched. Dark source artwork and asset-catalog inclusion were inspected; dark/tinted Home Screen selection, minimal Island alongside a second activity, all long-text permutations and physical-device Always-On scheduling were not separately exercised. Old unused illustration assets remain archived in the catalogs; they are not used by these updated entry points.
+
+## History control affordance — 9 November 2026
+
+Sessions/Overview now reuse `CounterweightChoice`: equal-width filled capsules, ink/white selected state, mist/ink unselected state, 44-point minimum targets and shared press feedback. Labels use sentence case. At accessibility sizes they stack vertically. The selected accessibility trait is retained. Animation is scoped to the control and respects Reduce Motion, rather than animating the entire History list when the section changes.
+
+Validation: simulator Debug build succeeded; Sessions → Overview → Sessions was checked in the review simulator, including stable header/control positions and selected accessibility states. No workout records changed. This view-only change does not alter the model; the core test suite was not repeated.
+
 ## Connected-screen consistency audit — 9 November 2026
 
 This pass follows the current Today → workout → completion → saved record → History routes, plus their reachable sheets and editors. Changes preserve Counterweight's artwork, palette and minimal copy.
