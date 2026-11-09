@@ -18,6 +18,7 @@ struct WorkoutInputField: Hashable {
 struct ActiveWorkoutView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.modelContext) var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) var history: [WorkoutRecord]
@@ -25,6 +26,7 @@ struct ActiveWorkoutView: View {
     @AppStorage("progression-load-increment") var loadIncrement = 2.5
 
     let routine: RoutineTemplate
+    private let isRestoringSession: Bool
     let onDone: () -> Void
 
     @State var session: WorkoutSessionState
@@ -54,6 +56,7 @@ struct ActiveWorkoutView: View {
         onDone: @escaping () -> Void = {}
     ) {
         self.routine = routine
+        self.isRestoringSession = snapshot != nil
         self.onDone = onDone
         _session = State(initialValue: WorkoutSessionState(
             routine: routine,
@@ -71,22 +74,19 @@ struct ActiveWorkoutView: View {
                 .transition(.opacity)
             } else {
                 workoutLogger
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        ActiveWorkoutHeader(
+                            index: routine.id,
+                            progress: "\(session.completedMovementCount) of \(session.drafts.count) movements",
+                            requestFinish: requestFinish,
+                            pause: saveAndClose,
+                            requestDiscard: { showingDiscardConfirmation = true }
+                        )
+                    }
+                    .transition(.opacity)
             }
         }
         .sensoryFeedback(.success, trigger: completedRecord != nil)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if completedRecord == nil {
-                ActiveWorkoutHeader(
-                    index: routine.id,
-                    progress: "\(session.completedMovementCount) of \(session.drafts.count) movements",
-                    requestFinish: requestFinish,
-                    pause: saveAndClose,
-                    requestDiscard: { showingDiscardConfirmation = true }
-                )
-            } else {
-                EmptyView()
-            }
-        }
         .environment(entryForm)
         .onChange(of: numberFields, initial: true) { _, fields in
             entryForm.configure(fields, order: fields.map(\.id))
@@ -201,7 +201,7 @@ struct ActiveWorkoutView: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) { loggerFooter }
                 .task {
                     await Task.yield()
-                    guard entryForm.focusedID == nil, let id = session.expandedExerciseID else { return }
+                    guard isRestoringSession, entryForm.focusedID == nil, let id = session.expandedExerciseID else { return }
                     proxy.scrollTo(id, anchor: .top)
                 }
                 .task(id: entryForm.focusRequest) {
@@ -227,9 +227,12 @@ struct ActiveWorkoutView: View {
                 Text("\(session.recordedSetCount) set\(session.recordedSetCount == 1 ? "" : "s") recorded")
                     .font(.caption).foregroundStyle(InkPalette.softInk).contentTransition(.numericText())
             }.padding(.vertical, 24)
-            HStack {
+            let exerciseHeadingLayout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout())
+            exerciseHeadingLayout {
                 Text("Exercises").font(.caption).foregroundStyle(InkPalette.softInk)
-                Spacer()
+                if !typeSize.isAccessibilitySize { Spacer() }
                 CounterweightControl(title: "Reorder", symbol: "arrow.up.arrow.down") {
                     entryForm.done(); showingExerciseList = true
                 }
@@ -264,27 +267,31 @@ struct ActiveWorkoutView: View {
             InkDivider()
             Button {
                 entryForm.done(); dismissKeyboard()
-                withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { session.isCardioExpanded.toggle() }
+                withAnimation(reduceMotion ? nil : CounterweightMotion.expand) { session.isCardioExpanded.toggle() }
             } label: {
                 HStack(spacing: 14) {
-                    DemonstrationImage(assetName: "walk").frame(width: 54, height: 54)
-                    Text("Walk").font(.headline)
-                    Spacer()
-                    Text(session.timedWalk != nil ? "In progress" : session.cardioDrafts.isEmpty ? "Optional" : "Recorded")
-                        .font(.caption).foregroundStyle(InkPalette.softInk)
-                    Image(systemName: "chevron.down").font(.caption)
-                        .rotationEffect(.degrees(session.isCardioExpanded ? 180 : 0))
-                }.padding(.vertical, 14).contentShape(Rectangle())
+                    DemonstrationImage(assetName: "walk").frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Walk").font(.headline)
+                        Text(session.timedWalk != nil ? "In progress" : session.cardioDrafts.isEmpty ? "Optional" : "Recorded")
+                            .font(.caption).foregroundStyle(InkPalette.softInk)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: session.isCardioExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 44, height: 44).background(InkPalette.mist, in: Circle())
+                        .overlay { Circle().strokeBorder(InkPalette.ink.opacity(0.09), lineWidth: 1) }
+                }.padding(.vertical, 16).contentShape(Rectangle())
             }.buttonStyle(PressableButtonStyle())
                 .accessibilityValue(session.isCardioExpanded ? "Expanded" : "Collapsed")
-            if session.isCardioExpanded {
+            CounterweightRevealLayout(amount: session.isCardioExpanded ? 1 : 0) {
                 CardioLoggingSection(prescribedWalk: true, entries: $session.cardioDrafts,
                                      timedWalk: session.timedWalk,
                                      startWalk: { focusedInput = nil; session.startTimedWalk() },
                                      finishWalk: { session.finishTimedWalk() })
                     .padding(.bottom, 20)
-                    .transition(CounterweightMotion.transition(reduced: reduceMotion))
             }
+            .clipped().allowsHitTesting(session.isCardioExpanded).accessibilityHidden(!session.isCardioExpanded)
             InkDivider()
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 20) { finishControls }
@@ -292,7 +299,7 @@ struct ActiveWorkoutView: View {
             }.padding(.top, 20)
         }
         .padding(.horizontal, 24).padding(.bottom, 28)
-        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.isCardioExpanded)
+        .animation(reduceMotion ? nil : CounterweightMotion.expand, value: session.isCardioExpanded)
     }
 
     @ViewBuilder private var finishControls: some View {
@@ -351,22 +358,20 @@ struct ActiveWorkoutView: View {
                                 .font(.caption.monospacedDigit()).foregroundStyle(InkPalette.softInk)
                         }.padding(.vertical, 8)
                             .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 0, leading: CounterweightLayout.pageInset, bottom: 0, trailing: CounterweightLayout.pageInset))
                     }
                     .onMove { source, destination in
                         session.drafts.move(fromOffsets: source, toOffset: destination)
                     }
                 }
                 .listStyle(.plain)
+                .contentMargins(.top, 12, for: .scrollContent)
                 .environment(\.editMode, .constant(.active))
                 .scrollContentBackground(.hidden)
                 .background(PaperBackground())
                 .toolbar(.hidden, for: .navigationBar)
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    HStack {
-                        Text("Exercise order").font(.title3.weight(.semibold))
-                        Spacer()
-                        CounterweightIconButton(symbol: "xmark", label: "Close exercise order") { showingExerciseList = false }
-                    }.padding(24).background(InkPalette.paper)
+                    CounterweightSheetHeader(title: "Exercise order") { showingExerciseList = false }
                 }
             }
             .presentationBackground(InkPalette.paper)

@@ -313,6 +313,7 @@ struct TodayView: View {
 }
 
 struct FormSettingsView: View {
+    @ScaledMetric(relativeTo: .subheadline) private var incrementChoiceWidth = 88
     @AppStorage("progression-load-increment") private var loadIncrement = 2.5
     @AppStorage("keep-screen-awake") private var keepScreenAwake = true
     @StateObject private var health = HealthKitService.shared
@@ -322,7 +323,7 @@ struct FormSettingsView: View {
         CounterweightSheet(title: "Settings") {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Load increment").font(.subheadline.weight(.medium))
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 8) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: incrementChoiceWidth))], spacing: 8) {
                     ForEach([1.0, 1.25, 2, 2.5, 5], id: \.self) { value in
                         CounterweightChoice(title: "\(WorkoutValueFormatter.decimal(value)) kg", selected: loadIncrement == value) {
                             loadIncrement = value

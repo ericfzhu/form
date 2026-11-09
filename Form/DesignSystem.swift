@@ -104,14 +104,7 @@ struct CounterweightSheet<Content: View>: View {
                 .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 32)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
-                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(InkPalette.softInk) }
-                }
-                Spacer(minLength: 0)
-                CounterweightIconButton(symbol: "xmark", label: "Close \(title)") { dismiss() }
-            }.padding(24).background(InkPalette.paper)
+            CounterweightSheetHeader(title: title, subtitle: subtitle) { dismiss() }
         }
         .background(InkPalette.paper)
         .foregroundStyle(InkPalette.ink)
@@ -119,6 +112,32 @@ struct CounterweightSheet<Content: View>: View {
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
         .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+    }
+}
+
+struct CounterweightSheetHeader: View {
+    let title: String
+    var subtitle: String? = nil
+    let close: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title).font(.title3.weight(.semibold))
+                    .frame(minHeight: 44, alignment: .leading)
+                    .accessibilityAddTraits(.isHeader)
+                if let subtitle {
+                    Text(subtitle).font(.caption).foregroundStyle(InkPalette.softInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+            CounterweightIconButton(symbol: "xmark", label: "Close \(title)", action: close)
+        }
+        .padding(.horizontal, CounterweightLayout.pageInset)
+        .padding(.vertical, 6)
+        .foregroundStyle(InkPalette.ink)
+        .background(InkPalette.paper.ignoresSafeArea(edges: .top))
     }
 }
 
@@ -367,29 +386,52 @@ struct InkTextHeader: View {
     var trailingAction: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            if typeSize.isAccessibilitySize {
-                Text(title).font(AtelierType.script(16)).padding(.horizontal, 16)
-                    .accessibilityAddTraits(.isHeader)
-            }
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(HStackLayout(spacing: 12))
+                : AnyLayout(CounterweightNavigationLayout())
+            layout {
                 CounterweightControl(title: leadingTitle, symbol: leadingTitle == "Back" ? "arrow.left" : "xmark", action: leadingAction)
+                    .lineLimit(1).minimumScaleFactor(0.75)
                 if typeSize.isAccessibilitySize { Spacer(minLength: 0) }
                 else {
-                    Text(title).font(AtelierType.script(16)).lineLimit(1)
+                    Text(title).font(.subheadline.weight(.medium)).lineLimit(1)
                         .minimumScaleFactor(0.76).frame(maxWidth: .infinity)
                         .accessibilityAddTraits(.isHeader)
                 }
                 if let trailingTitle, let trailingAction {
                     CounterweightControl(title: trailingTitle, symbol: "checkmark", action: trailingAction)
+                        .lineLimit(1).minimumScaleFactor(0.75)
                 } else if !typeSize.isAccessibilitySize {
-                    Color.clear.frame(width: 60, height: 52).accessibilityHidden(true)
+                    Color.clear.frame(width: 0, height: 44).accessibilityHidden(true)
                 }
             }
-            .padding(.horizontal, 12).padding(.vertical, 6)
-            .buttonStyle(PressableButtonStyle())
+            .frame(minHeight: CounterweightLayout.headerHeight)
+            if typeSize.isAccessibilitySize {
+                Text(title).font(.headline).fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8).padding(.bottom, 12).accessibilityAddTraits(.isHeader)
+            }
         }
+        .padding(.horizontal, CounterweightLayout.pageInset)
         .background { PaperSurface().ignoresSafeArea(edges: .top) }
+    }
+}
+
+/// Balance the title around the screen center, regardless of the two action widths.
+private struct CounterweightNavigationLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 350
+        let side = max(subviews[0].sizeThatFits(.unspecified).width, subviews[2].sizeThatFits(.unspecified).width)
+        let title = subviews[1].sizeThatFits(ProposedViewSize(width: max(0, width - 2 * (side + 12)), height: nil))
+        return CGSize(width: width, height: max(44, title.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let side = max(subviews[0].sizeThatFits(.unspecified).width, subviews[2].sizeThatFits(.unspecified).width)
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.midY), anchor: .leading, proposal: .unspecified)
+        subviews[1].place(at: CGPoint(x: bounds.midX, y: bounds.midY), anchor: .center,
+                          proposal: ProposedViewSize(width: max(0, bounds.width - 2 * (side + 12)), height: nil))
+        subviews[2].place(at: CGPoint(x: bounds.maxX, y: bounds.midY), anchor: .trailing, proposal: .unspecified)
     }
 }
 

@@ -71,7 +71,10 @@ struct SavedWorkoutView: View {
                             InkDivider()
                         }
                         ForEach(workout.cardioEntries.sorted { $0.order < $1.order }) { entry in
-                            HStack(spacing: 14) {
+                            let layout = typeSize.isAccessibilitySize
+                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+                                : AnyLayout(HStackLayout(spacing: 14))
+                            layout {
                                 DemonstrationImage(assetName: "walk").frame(width: 54, height: 54)
                                 CardioHistoryCard(entry: entry)
                             }
@@ -111,6 +114,7 @@ struct SavedWorkoutView: View {
     }
 }
 struct HistoryExerciseCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let exercise: ExerciseRecord
     let records: [ProgressRecord]
 
@@ -136,11 +140,14 @@ struct HistoryExerciseCard: View {
             }
             .padding(.vertical, 11)
             ForEach(exercise.sets.sorted { $0.order < $1.order }) { set in
-                HStack {
+                let layout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                    : AnyLayout(HStackLayout())
+                layout {
                     Text(set.kind == .warmup ? "Warm-up" : "Set \(workingSetNumber(for: set))")
                         .font(.system(.body, design: .default))
                         .foregroundStyle(set.kind == .warmup ? InkPalette.cinnabar : InkPalette.softInk)
-                    Spacer()
+                    if !typeSize.isAccessibilitySize { Spacer() }
                     Text(WorkoutValueFormatter.setText(
                         set,
                         template: WorkoutCatalog.exercise(for: exercise)
@@ -161,6 +168,7 @@ struct HistoryExerciseCard: View {
 }
 
 struct CardioHistoryCard: View {
+    @ScaledMetric(relativeTo: .subheadline) private var metricWidth = 112
     let entry: CardioRecord
 
     var body: some View {
@@ -168,7 +176,7 @@ struct CardioHistoryCard: View {
             Text(entry.kind.title)
                 .font(.system(.headline, design: .default, weight: .semibold))
                 .accessibilityAddTraits(.isHeader)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), alignment: .leading)], spacing: 12) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: metricWidth), alignment: .leading)], spacing: 12) {
                 metric("\(WorkoutValueFormatter.decimal(entry.durationMinutes)) min", "TIME")
                 if entry.distanceKilometers > 0 {
                     metric("\(WorkoutValueFormatter.decimal(entry.distanceKilometers)) km", "DISTANCE")

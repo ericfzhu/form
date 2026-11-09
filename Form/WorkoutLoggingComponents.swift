@@ -41,6 +41,7 @@ struct ExerciseLoggingCard: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(NumberEntryForm.self) private var entryForm
+    @ScaledMetric(relativeTo: .subheadline) private var setMarkSize = 48
     @Namespace private var selectionMark
     @State private var logPulse = 0
     @State private var showingTechnique = false
@@ -62,7 +63,10 @@ struct ExerciseLoggingCard: View {
             InkDivider()
             HStack(spacing: 4) {
                 Button(action: toggleExpanded) {
-                    HStack(spacing: 14) {
+                    let headerLayout = typeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
+                        : AnyLayout(HStackLayout(spacing: 14))
+                    headerLayout {
                         DemonstrationImage(assetName: draft.template.assetName)
                             .frame(width: 64, height: 64)
                             .phaseAnimator([0.0, 1.0, 0.0], trigger: logPulse) { art, phase in
@@ -75,8 +79,9 @@ struct ExerciseLoggingCard: View {
                             Text(isExpanded ? draft.template.targetText + (draft.id == "reverse-lunge" ? " / side" : "") : "\(completedSetCount)/\(workingSetCount) recorded")
                                 .font(.caption).foregroundStyle(InkPalette.softInk)
                         }
-                        Spacer(minLength: 0)
+                        if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .foregroundStyle(InkPalette.ink).padding(.vertical, 16).contentShape(Rectangle())
                 }
                 .accessibilityLabel(draft.template.name)
@@ -113,7 +118,10 @@ struct ExerciseLoggingCard: View {
                         .id(draft.sets[index].id)
                         .transition(.identity)
                     }
-                    HStack(spacing: 20) {
+                    let additionLayout = typeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                        : AnyLayout(HStackLayout(spacing: 20))
+                    additionLayout {
                         CounterweightControl(title: "Set", symbol: "plus") { addSet(warmup: false) }
                             .accessibilityLabel("Add working set")
                         CounterweightControl(title: "Warm-up", symbol: "plus") { addSet(warmup: true) }
@@ -150,7 +158,7 @@ struct ExerciseLoggingCard: View {
                                     Text(set.kind == .warmup ? "W\(setNumber(for: set.id))" : "\(setNumber(for: set.id))")
                                         .font(.subheadline.monospacedDigit().weight(.medium))
                                         .foregroundStyle(set.completed ? InkPalette.paper : InkPalette.ink)
-                                }.frame(width: 48, height: 48)
+                                }.frame(width: setMarkSize, height: setMarkSize)
                                 HStack(spacing: 3) {
                                     if set.completed { Image(systemName: "checkmark").font(.system(size: 8, weight: .bold)) }
                                     Text(set.completed ? shortResult(set) : "—")

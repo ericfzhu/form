@@ -81,7 +81,7 @@ struct WorkoutEditorView: View {
                     CardioLoggingSection(entries: $cardioEntries)
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 14)
+                .padding(.top, 24)
                 .padding(.bottom, 36)
             }
         }

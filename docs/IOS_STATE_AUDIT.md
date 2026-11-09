@@ -2,6 +2,52 @@
 
 Reviewed 25–26 October 2026. This is a source review plus targeted regression testing, not a claim that every possible interaction has been verified on a device.
 
+## Connected-screen consistency audit — 9 November 2026
+
+This pass follows the current Today → workout → completion → saved record → History routes, plus their reachable sheets and editors. Changes preserve Counterweight's artwork, palette and minimal copy.
+
+### Corrections
+
+- Modal titles and close buttons now share one top-aligned header. Subtitles grow beneath the title instead of moving it. Exercise index and reorder reuse it; the normal-size header row uses the same 56-point height and 24-point horizontal inset as page navigation.
+- Editor/progress navigation titles are centered independently of unequal action widths. At accessibility sizes the title occupies its own row; Cancel/Save remain unbroken. Editor, progress, index, reorder and empty-History margins now follow the shared page inset.
+- A new workout starts at the routine title; only restoring a session scrolls to its selected exercise. The logger and completion each own their top inset so finishing does not remove an inset around the incoming saved screen.
+- Walk uses the strength-exercise artwork size, status placement and circular disclosure treatment. Its mounted content reveals by height, without an extra fade/offset transition.
+- Rest action slots retain their width when Skip becomes Done, with a vertical fallback for large text. Progress-chart changes and History deletion explicitly respect Reduce Motion.
+- Large-text checks exposed split Settings numbers, hyphenated editor/reorder controls, cramped exercise headings and saved values. Increment/metric grids now scale their minimum widths; exercise headings, set-addition controls and saved-set/cardio details reflow at accessibility sizes. Set marks scale with their numerals.
+- Coaching-report and backup counts use the singular for one session.
+
+### Simulator coverage
+
+Used a new **Form Transition Audit** iPhone 17 Pro / iOS 26.5 simulator with synthetic records, separate from the existing review simulator.
+
+| Route / state | Checked this pass |
+| --- | --- |
+| Today ↔ History | Empty and populated History, fixed brand/settings positions, first start, last-workout link, no Resume after completion |
+| Routine / Settings / History options | Open/close, standard sheet chrome, Settings at both detents, options → exercise index |
+| Workout / keyboard | Fresh-start position, weight/repetition entry, keyboard controls, log → recorded result → next set, copied unrecorded draft |
+| Rest / exercise changes | Running → Ready, stable actions, source retained while switching exercises, manual rest/skip at maximum text size |
+| Technique / set actions / reorder | Subtitle header, copy after dismissal, accessible Move up preserving recorded counts |
+| Walk / pause / resume | Expand, start, pause/restore selected exercise and ongoing walk, finish includes elapsed walk |
+| Finish / completion | Review unrecorded draft omission, save recorded work, saved acknowledgement, details reveal, footer clearance, editor cancel and progress back preserve details |
+| History / saved record / progress | Reopen without Saved acknowledgement, overview bottom clearance, exercise baseline and empty period, longer title, no-match search and clear recovery |
+| Backup picker | Native Files presentation and cancellation from empty History |
+| Dynamic Type | Accessibility-XXXL launch override and isolated simulator content-size override: Today, Settings, saved details, editor, progress, workout headings/set marks and rest; normal size restored afterward |
+
+Validation: simulator Debug build succeeded; all 82 core regression tests passed (63 XCTest + 19 Swift Testing). UI-only follow-up corrections were rebuilt and checked in the simulator. No existing review workout was edited or deleted. The audit simulator retains its synthetic saved workout and a paused empty second workout.
+
+### Checklist for subsequent UI changes
+
+Before treating a new screen or interaction as complete:
+
+1. Compare incoming/outgoing header anchors, title baseline, page inset and trailing action position. Check top and scrolled positions.
+2. Open, close and revisit every affected sheet; include subtitles, long titles, sheet-to-sheet actions and editor cancellation.
+3. Check idle, editing, recorded, resting and Ready states without moving unrelated controls; preserve selection and drafts across pause/return.
+4. Reach the last content/action above the keyboard, rest dock, Done button and bottom tabs. Check expanded content as well as initial content.
+5. Exercise empty, populated, no-result, validation and failure branches affected by the change. Keep system-owned pickers/permissions native.
+6. Inspect maximum Dynamic Type and Reduce Motion handling; use accessible names/values for collapsed or icon-only controls.
+
+Limits: this is source coverage plus the concrete simulator routes above, not certification of every content/device/accessibility permutation. Reduce Motion guards were reviewed in source; live chart/deletion motion and a full VoiceOver traversal were not rerun. Native UI automation sometimes required accessibility-targeted scrolling; modal visual checks were used when full-screen-cover sheets did not expose their own accessibility tree. Physical-iPhone checks remain excluded. The dormant planner/profile routes remain outside the current launch graph, as documented below.
+
 ## Persistent-header alignment — 9 November 2026
 
 - Replaced separate Today, History, active-workout and saved-workout brand bars with `CounterweightHeader`: a shared 24-point side inset, 56-point minimum height, explicit 8-point action spacing, and an opaque background covering the top safe area. Trailing actions grow toward the wordmark, keeping the last control anchored at the same right edge.

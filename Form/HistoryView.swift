@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var showingSettings = false
     @State private var showingOptions = false
@@ -163,7 +164,7 @@ struct HistoryView: View {
         let identifier = workout.healthSyncIdentifier
         let healthUUID = workout.healthKitWorkoutUUID
         do {
-            try withAnimation(.easeOut(duration: 0.2)) {
+            try withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) {
                 try WorkoutRepository.delete(workout, in: modelContext)
             }
             Task {

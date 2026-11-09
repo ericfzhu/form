@@ -6,6 +6,7 @@ struct ExerciseProgressView: View {
     let exercise: ExerciseTemplate
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var selectedMetric: TrendMetric = .load
@@ -54,8 +55,8 @@ struct ExerciseProgressView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.horizontal, CounterweightLayout.pageInset)
+                .padding(.top, 24)
                 .padding(.bottom, 30)
             }
         }
@@ -223,7 +224,7 @@ struct ExerciseProgressView: View {
                 }
             }
             .frame(height: 220)
-            .animation(.easeOut(duration: 0.2), value: selectedMetric)
+            .animation(reduceMotion ? nil : CounterweightMotion.quiet, value: selectedMetric)
         }
     }
 

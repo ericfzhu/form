@@ -17,13 +17,7 @@ struct ExerciseIndexView: View {
             ZStack {
                 PaperBackground()
                 VStack(spacing: 0) {
-                    HStack {
-                        Text("Exercise progress")
-                            .font(.title3.weight(.semibold))
-                        Spacer()
-                        CounterweightIconButton(symbol: "xmark", label: "Close exercise progress") { dismiss() }
-                    }
-                    .padding(24)
+                    CounterweightSheetHeader(title: "Exercise progress") { dismiss() }
 
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
@@ -69,9 +63,11 @@ struct ExerciseIndexView: View {
                         }
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 0, leading: CounterweightLayout.pageInset, bottom: 0, trailing: CounterweightLayout.pageInset))
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .listStyle(.plain)
+                    .contentMargins(.top, 0, for: .scrollContent)
                     .scrollContentBackground(.hidden)
                 }
             }
@@ -97,7 +93,7 @@ struct CoachingReportShareRow: View {
         ) {
             recordAction(
                 title: "Coaching report",
-                detail: "12 weeks · \(includedSessionCount) sessions",
+                detail: "12 weeks · \(includedSessionCount) session\(includedSessionCount == 1 ? "" : "s")",
                 symbol: "square.and.arrow.up"
             )
         }
@@ -121,7 +117,7 @@ struct BackupManagementView: View {
             ) {
                 recordAction(
                     title: "Workout backup",
-                    detail: "\(workouts.count) sessions",
+                    detail: "\(workouts.count) session\(workouts.count == 1 ? "" : "s")",
                     symbol: "square.and.arrow.up"
                 )
             }
@@ -154,7 +150,6 @@ private func recordAction(
             .frame(width: 44, height: 44).background(InkPalette.mist, in: Circle())
             .accessibilityHidden(true)
     }
-    .padding(.horizontal, 7)
     .frame(minHeight: 72)
     .contentShape(Rectangle())
 }

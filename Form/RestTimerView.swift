@@ -31,11 +31,9 @@ struct RestTimer: View {
                 .accessibilityValue(remaining == 0 ? "Ready" : "\(remaining / 60) minutes, \(remaining % 60) seconds")
                 .accessibilityHint(exerciseName)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
-                HStack(spacing: 0) {
-                    Button("−30") { adjust(-30) }.accessibilityLabel("Subtract 30 seconds from rest")
-                    Button("+30") { adjust(30) }.accessibilityLabel("Add 30 seconds to rest")
-                    Button(remaining == 0 ? "Done" : "Skip", action: cancel)
-                        .accessibilityLabel(remaining == 0 ? "Dismiss rest timer" : "Skip rest")
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 0) { actions(remaining: remaining) }
+                    VStack(alignment: .leading, spacing: 0) { actions(remaining: remaining) }
                 }.font(.caption).buttonStyle(RestNoteButtonStyle())
             }
             .padding(.horizontal, 12).padding(.vertical, compact ? 6 : 12)
@@ -44,13 +42,22 @@ struct RestTimer: View {
             .onChange(of: remaining) { _, value in if value == 0 { complete() } }
         }
     }
+    @ViewBuilder private func actions(remaining: Int) -> some View {
+        Button("−30") { adjust(-30) }.accessibilityLabel("Subtract 30 seconds from rest")
+        Button("+30") { adjust(30) }.accessibilityLabel("Add 30 seconds to rest")
+        Button(remaining == 0 ? "Done" : "Skip", action: cancel)
+            .accessibilityLabel(remaining == 0 ? "Dismiss rest timer" : "Skip rest")
+    }
+
 }
 
 private struct RestNoteButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .caption) private var width = 48
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.foregroundStyle(InkPalette.ink)
-            .frame(minWidth: 44, minHeight: 44)
+            .fixedSize(horizontal: true, vertical: false)
+            .frame(minWidth: width, minHeight: 44)
             .opacity(configuration.isPressed ? 0.65 : 1)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
             .animation(reduceMotion ? nil : CounterweightMotion.press, value: configuration.isPressed)

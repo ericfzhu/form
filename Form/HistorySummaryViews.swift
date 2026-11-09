@@ -17,7 +17,7 @@ struct EmptyHistoryView: View {
                 .foregroundStyle(InkPalette.softInk)
             CounterweightControl(title: "Restore a backup", symbol: "arrow.down.document", action: showRestore)
         }
-        .padding(20)
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
 
     }
