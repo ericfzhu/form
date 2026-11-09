@@ -19,11 +19,11 @@ struct ExerciseIndexView: View {
                 VStack(spacing: 0) {
                     HStack {
                         Text("Exercise progress")
-                            .font(.headline)
+                            .font(.title3.weight(.semibold))
                         Spacer()
                         CounterweightIconButton(symbol: "xmark", label: "Close exercise progress") { dismiss() }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(24)
 
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
@@ -38,13 +38,13 @@ struct ExerciseIndexView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                         if !searchText.isEmpty {
-                            Button { searchText = ""; searchFocused = true } label: {
-                                Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
-                            }.accessibilityLabel("Clear search")
+                            CounterweightIconButton(symbol: "xmark", label: "Clear search") { searchText = ""; searchFocused = true }
                         }
                     }
                     .frame(minHeight: 52)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 14)
+                    .background(InkPalette.mist, in: RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal, 24).padding(.bottom, 12)
 
                     if exercises.isEmpty {
                         Text("No exercises match “\(searchText)”.")
@@ -80,7 +80,10 @@ struct ExerciseIndexView: View {
                 ExerciseProgressView(exercise: $0)
             }
         }
-        .tint(InkPalette.cinnabar)
+        .tint(InkPalette.ink)
+        .presentationBackground(InkPalette.paper)
+        .presentationCornerRadius(28)
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -94,8 +97,8 @@ struct CoachingReportShareRow: View {
         ) {
             recordAction(
                 title: "Coaching report",
-                detail: "12 WEEKS · \(includedSessionCount) SESSIONS",
-                action: "SHARE"
+                detail: "12 weeks · \(includedSessionCount) sessions",
+                symbol: "square.and.arrow.up"
             )
         }
         .buttonStyle(PressableButtonStyle())
@@ -118,28 +121,14 @@ struct BackupManagementView: View {
             ) {
                 recordAction(
                     title: "Workout backup",
-                    detail: "JSON · \(workouts.count) SESSIONS",
-                    action: "EXPORT"
+                    detail: "\(workouts.count) sessions",
+                    symbol: "square.and.arrow.up"
                 )
             }
             .buttonStyle(PressableButtonStyle())
 
             Button(action: restore) {
-                HStack(spacing: 14) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Restore backup")
-                            .font(AtelierType.script(20))
-                        Text("Existing sessions are never duplicated")
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(InkPalette.softInk)
-                    }
-                    Spacer()
-                    Text("CHOOSE")
-                        .font(.system(.caption, design: .monospaced, weight: .semibold))
-                        .foregroundStyle(InkPalette.cinnabar)
-                }
-                .padding(.horizontal, 15)
-                .frame(minHeight: 72)
+                recordAction(title: "Restore backup", detail: "Existing sessions are never duplicated", symbol: "arrow.down.document")
             }
             .buttonStyle(PressableButtonStyle())
         }
@@ -149,23 +138,23 @@ struct BackupManagementView: View {
 private func recordAction(
     title: String,
     detail: String,
-    action: String
+    symbol: String
 ) -> some View {
     HStack(spacing: 14) {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(AtelierType.script(20))
+                .font(.subheadline.weight(.medium))
             Text(detail)
-                .font(.system(.caption2, design: .monospaced))
+                .font(.caption)
                 .foregroundStyle(InkPalette.softInk)
                 .monospacedDigit()
         }
         Spacer(minLength: 12)
-        Text(action)
-            .font(.system(.caption, design: .monospaced, weight: .semibold))
-            .foregroundStyle(InkPalette.cinnabar)
+        Image(systemName: symbol).font(.system(size: 16, weight: .medium))
+            .frame(width: 44, height: 44).background(InkPalette.mist, in: Circle())
+            .accessibilityHidden(true)
     }
-    .padding(.horizontal, 15)
+    .padding(.horizontal, 7)
     .frame(minHeight: 72)
     .contentShape(Rectangle())
 }

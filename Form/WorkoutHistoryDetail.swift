@@ -50,15 +50,12 @@ struct SavedWorkoutView: View {
                 Text(SessionRecordSummary.text(for: workout))
                     .font(.subheadline).foregroundStyle(InkPalette.softInk)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
-                Button {
-                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { details.toggle() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(details ? "Hide details" : "View details")
-                        Image(systemName: "chevron.down").rotationEffect(.degrees(details ? 180 : 0))
-                    }.font(.subheadline).frame(maxWidth: .infinity, minHeight: 44)
-                }.buttonStyle(PressableButtonStyle()).accessibilityValue(details ? "Expanded" : "Collapsed")
-                if details {
+                CounterweightControl(title: details ? "Hide details" : "View details", symbol: details ? "chevron.up" : "chevron.down") {
+                    withAnimation(reduceMotion ? nil : CounterweightMotion.expand) { details.toggle() }
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityValue(details ? "Expanded" : "Collapsed")
+                CounterweightRevealLayout(amount: details ? 1 : 0) {
                     VStack(alignment: .leading, spacing: 20) {
                         if completedExercises.isEmpty && workout.cardioEntries.isEmpty {
                             Text("No sets or cardio recorded.").font(.subheadline)
@@ -80,8 +77,9 @@ struct SavedWorkoutView: View {
                             }
                         }
                         Text(workout.healthSyncStatus.title).font(.caption).foregroundStyle(InkPalette.softInk)
-                    }.transition(CounterweightMotion.transition(reduced: reduceMotion))
+                    }
                 }
+                .clipped().allowsHitTesting(details).accessibilityHidden(!details)
             }
             .padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 32)
         }
@@ -93,13 +91,10 @@ struct SavedWorkoutView: View {
                 .background(InkPalette.paper)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                FormWordmark()
-                Spacer()
+            CounterweightHeader {
                 CounterweightIconButton(symbol: "arrow.left", label: "Back", action: done)
                 CounterweightControl(title: "Edit", symbol: "pencil") { showingEditor = true }
-            }.buttonStyle(PressableButtonStyle()).padding(.horizontal, 24)
-                .background(InkPalette.paper)
+            }
         }
         .fullScreenCover(isPresented: $showingEditor) { WorkoutEditorView(workout: workout) }
         .onAppear {

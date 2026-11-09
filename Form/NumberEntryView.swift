@@ -74,24 +74,19 @@ struct EntryKeyboardControls: View {
     var adjust: ((Double) -> Void)? = nil
 
     var body: some View {
-        HStack(spacing: 2) {
-            Button { form.move(-1) } label: { icon("chevron.up") }
-                .disabled(!form.canMove(-1)).accessibilityLabel("Previous field")
-            Button { form.move(1) } label: { icon("chevron.down") }
-                .disabled(!form.canMove(1)).accessibilityLabel("Next field")
-            Spacer(minLength: 8)
+        HStack(spacing: 4) {
+            CounterweightIconButton(symbol: "chevron.up", label: "Previous field") { form.move(-1) }
+                .disabled(!form.canMove(-1))
+            CounterweightIconButton(symbol: "chevron.down", label: "Next field") { form.move(1) }
+                .disabled(!form.canMove(1))
+            Spacer(minLength: 4)
             if let adjust {
-                Button { adjust(-1) } label: { icon("minus") }.accessibilityLabel("Decrease value")
-                Button { adjust(1) } label: { icon("plus") }.accessibilityLabel("Increase value")
+                CounterweightIconButton(symbol: "minus", label: "Decrease value") { adjust(-1) }
+                CounterweightIconButton(symbol: "plus", label: "Increase value") { adjust(1) }
             }
-            Button("Done") { form.done(); dismissKeyboard() }
-                .font(AtelierType.script(17)).frame(minWidth: 64, minHeight: 44)
+            CounterweightIconButton(symbol: "checkmark", label: "Done editing") { form.done(); dismissKeyboard() }
         }
-        .padding(.horizontal, 12).padding(.vertical, 4)
+        .padding(.horizontal, 12).padding(.vertical, 6)
         .background(InkPalette.paper)
-    }
-
-    private func icon(_ name: String) -> some View {
-        Image(systemName: name).font(.system(size: 20)).frame(width: 44, height: 44)
     }
 }

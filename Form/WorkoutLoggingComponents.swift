@@ -11,9 +11,7 @@ struct ActiveWorkoutHeader: View {
     let requestDiscard: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            FormWordmark()
-            Spacer(minLength: 0)
+        CounterweightHeader {
             CounterweightControl(title: "Pause", symbol: "pause") { pause() }
                 .accessibilityLabel("Pause and close")
                 .accessibilityHint("Saves this session so you can resume it from Today")
@@ -21,8 +19,6 @@ struct ActiveWorkoutHeader: View {
 
         }
         .buttonStyle(PressableButtonStyle())
-        .padding(.horizontal, 24).padding(.vertical, 6)
-        .background(InkPalette.paper)
         .sheet(isPresented: $showingActions, onDismiss: {
             let action = pendingAction; pendingAction = nil
             if action == .finish { requestFinish() }

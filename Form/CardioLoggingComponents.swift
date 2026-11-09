@@ -49,7 +49,7 @@ struct CardioLoggingSection: View {
                         }
                     }
                     Spacer()
-                    Button(timedWalk == nil ? "Start walk" : "Finish walk") {
+                    CounterweightControl(title: timedWalk == nil ? "Start walk" : "Finish walk", symbol: timedWalk == nil ? "play" : "checkmark") {
                         if timedWalk == nil { startWalk() } else { finishWalk?() }
                     }
                     .frame(minHeight: 44)
@@ -65,19 +65,12 @@ struct CardioLoggingSection: View {
                 }
             }
 
-            Button {
+            CounterweightControl(title: entries.isEmpty ? (prescribedWalk ? "Record a walk" : "Cardio") : "Cardio", symbol: "plus") {
                 withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) {
                     entries.append(CardioDraft(kind: availableKinds.first ?? .other, durationMinutes: 0, averageSpeed: 0, incline: 0))
                 }
-            } label: {
-                HStack(spacing: 8) {
-                    Text(entries.isEmpty ? (prescribedWalk ? "Record a walk already done" : "Add cardio") : "Add another cardio entry")
-                }
-                .font(AtelierType.script(17))
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 48)
             }
-            .buttonStyle(PressableButtonStyle())
+            .accessibilityLabel(prescribedWalk ? "Record a walk already done" : "Add cardio")
         }
     }
 }
@@ -85,6 +78,7 @@ struct CardioLoggingSection: View {
 struct CardioEntryEditor: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var showingKinds = false
     @Binding var entry: CardioDraft
     var availableKinds: [CardioKind] = CardioKind.allCases
     let delete: () -> Void
@@ -93,34 +87,14 @@ struct CardioEntryEditor: View {
         VStack(spacing: 12) {
             let headerLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
             headerLayout {
-                Menu {
-                    Picker("Cardio type", selection: $entry.kind) {
-                        ForEach(CardioKind.allCases.filter { availableKinds.contains($0) || $0 == entry.kind }) { kind in
-                            Text(kind.title).tag(kind)
-                        }
-                    }
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(entry.kind.title)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Image(systemName: "chevron.down").font(.system(size: 16))
-                    }
-                    .frame(minHeight: 44)
+                CounterweightControl(title: entry.kind.title, symbol: "chevron.down") {
+                    dismissKeyboard()
+                    showingKinds = true
                 }
                 .accessibilityLabel("Cardio type")
                 .accessibilityValue(entry.kind.title)
-                .tint(InkPalette.ink)
-                .font(.system(.body, design: .default))
-                .fixedSize(horizontal: false, vertical: true)
                 if !typeSize.isAccessibilitySize { Spacer() }
-                Button(action: delete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 22))
-                        .foregroundStyle(InkPalette.cinnabar)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityLabel("Delete \(entry.kind.title) entry")
+                CounterweightIconButton(symbol: "minus", label: "Remove \(entry.kind.title) entry", action: delete)
             }
 
             Text(entry.kind.supportsIncline ? "Distance, speed and incline are optional." : "Distance and speed are optional.")
@@ -138,13 +112,23 @@ struct CardioEntryEditor: View {
                 cardioField("SPEED · KM/H", field: "speed", value: $entry.averageSpeed)
                 if entry.kind.supportsIncline {
                     cardioField("INCLINE · %", field: "incline", value: $entry.incline)
-                        .transition(.opacity)
+                        .transition(.identity)
                 }
             }
         }
         .padding(.vertical, 10)
         .inkCard()
-        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: entry.kind)
+        .animation(reduceMotion ? nil : CounterweightMotion.expand, value: entry.kind)
+        .sheet(isPresented: $showingKinds) {
+            CounterweightSheet(title: "Cardio type") {
+                ForEach(CardioKind.allCases.filter { availableKinds.contains($0) || $0 == entry.kind }) { kind in
+                    CounterweightChoice(title: kind.title, selected: entry.kind == kind) {
+                        entry.kind = kind
+                        showingKinds = false
+                    }
+                }
+            }
+        }
     }
 
     private func cardioField(

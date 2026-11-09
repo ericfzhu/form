@@ -63,7 +63,7 @@ struct ExerciseProgressView: View {
         .background { InteractivePopGestureBridge(isEnabled: true) }
         .safeAreaInset(edge: .top, spacing: 0) {
             InkTextHeader(
-                title: exercise.name.lowercased(),
+                title: exercise.name,
                 leadingTitle: "Back",
                 leadingAction: { dismiss() }
             )
@@ -78,21 +78,9 @@ struct ExerciseProgressView: View {
     private var periodControl: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: typeSize.isAccessibilitySize ? 2 : 4), spacing: 8) {
             ForEach(ProgressPeriod.allCases) { period in
-                Button {
+                CounterweightChoice(title: period.title, selected: selectedPeriod == period, compact: true) {
                     selectedPeriod = period
-                } label: {
-                    Text(period.title.lowercased())
-                        .font(AtelierType.script(15))
-                        .foregroundStyle(selectedPeriod == period
-                            ? InkPalette.verdigris
-                            : InkPalette.softInk)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .overlay(alignment: .bottom) {
-                            if selectedPeriod == period { InkDivider() }
-                        }
                 }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityAddTraits(selectedPeriod == period ? .isSelected : [])
             }
         }
     }
@@ -102,13 +90,13 @@ struct ExerciseProgressView: View {
             let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16)) : AnyLayout(HStackLayout(spacing: 16))
             layout {
                 DemonstrationImage(assetName: exercise.assetName, outlined: false)
-                    .frame(width: 132, height: 118)
+                    .frame(width: 96, height: 96)
                 VStack(alignment: .leading, spacing: 8) {
                 Text("target")
                     .font(AtelierType.script(16))
                         .foregroundStyle(InkPalette.softInk)
                     Text(exercise.targetText)
-                        .font(.system(.title3, design: .monospaced, weight: .semibold))
+                        .font(.system(.title3, design: .default, weight: .semibold))
                         .monospacedDigit()
                     if let latest = allPerformances.first {
                         Text("Last · \(sessionSummary(latest))")
@@ -122,7 +110,7 @@ struct ExerciseProgressView: View {
             }
 
             if !exercise.formCues.isEmpty {
-                Text("form")
+                Text("Technique")
                     .font(AtelierType.script(17))
                     .foregroundStyle(InkPalette.softInk)
                     .accessibilityAddTraits(.isHeader)
@@ -134,7 +122,7 @@ struct ExerciseProgressView: View {
                                 .foregroundStyle(InkPalette.cinnabar)
                                 .frame(minWidth: 20, alignment: .leading)
                             Text(cue)
-                                .font(.system(.subheadline, design: .monospaced))
+                                .font(.system(.subheadline, design: .default))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .accessibilityElement(children: .combine)
@@ -153,10 +141,10 @@ struct ExerciseProgressView: View {
                 .foregroundStyle(InkPalette.softInk)
                 .accessibilityAddTraits(.isHeader)
             Text(recommendation.title)
-                .font(.system(.headline, design: .monospaced, weight: .semibold))
+                .font(.system(.headline, design: .default, weight: .semibold))
                 .foregroundStyle(InkPalette.cinnabar)
             Text(recommendation.detail)
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.caption, design: .default))
                 .foregroundStyle(InkPalette.softInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -182,7 +170,7 @@ struct ExerciseProgressView: View {
                 .font(AtelierType.script(14))
                 .foregroundStyle(InkPalette.softInk)
             Text(value)
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .font(.system(.subheadline, design: .default, weight: .semibold))
                 .monospacedDigit()
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -192,23 +180,11 @@ struct ExerciseProgressView: View {
 
     private var trendChart: some View {
         VStack(alignment: .leading, spacing: 14) {
-            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
-            layout {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 8) {
                 ForEach(availableMetrics, id: \.self) { metric in
-                    Button { selectedMetric = metric } label: {
-                        Text(metric.title(for: exercise.measurement))
-                            .font(AtelierType.script(15))
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 44)
-                            .foregroundStyle(selectedMetric == metric
-                                ? InkPalette.verdigris
-                                : InkPalette.softInk)
-                            .overlay(alignment: .bottom) {
-                                if selectedMetric == metric { InkDivider() }
-                            }
+                    CounterweightChoice(title: metric.title(for: exercise.measurement), selected: selectedMetric == metric) {
+                        selectedMetric = metric
                     }
-                    .buttonStyle(PressableButtonStyle())
-                    .accessibilityAddTraits(selectedMetric == metric ? .isSelected : [])
                 }
             }
 
@@ -260,7 +236,7 @@ struct ExerciseProgressView: View {
             let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout())
             layout {
                 Text(shortDate(performances[0].date))
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(.system(.subheadline, design: .default))
                     .foregroundStyle(InkPalette.softInk)
                 if !typeSize.isAccessibilitySize { Spacer() }
                 Text(sessionSummary(performances[0]))
@@ -270,7 +246,7 @@ struct ExerciseProgressView: View {
             .frame(minHeight: 48)
             .accessibilityElement(children: .combine)
             Text("A trend will appear after the next recorded session in this period.")
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.caption, design: .default))
                 .foregroundStyle(InkPalette.softInk.opacity(0.78))
         }
     }
@@ -287,7 +263,7 @@ struct ExerciseProgressView: View {
                 let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 14))
                 layout {
                     Text(shortDate(performance.date))
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(.system(.subheadline, design: .default))
                         .foregroundStyle(InkPalette.softInk)
                         .frame(minWidth: 64, alignment: .leading)
                     Text(sessionSummary(performance))

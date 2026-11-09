@@ -49,9 +49,7 @@ struct RootView: View {
                 liveRoute = LiveSessionRoute(id: id, snapshot: snapshot)
             } catch { recoveryError = error.localizedDescription; selection = .today }
         }
-        .alert("Couldn’t restore session", isPresented: Binding(
-            get: { recoveryError != nil }, set: { if !$0 { recoveryError = nil } }
-        )) { Button("OK", role: .cancel) {} } message: { Text(recoveryError ?? "") }
+        .counterweightNotice("Couldn’t restore session", message: $recoveryError)
         .fullScreenCover(item: $liveRoute) { route in
             if let routine = route.snapshot.resolvedRoutine {
                 ActiveWorkoutView(routine: routine, snapshot: route.snapshot)
@@ -81,12 +79,12 @@ private struct PaperTabBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            InkDivider().padding(.horizontal, 28)
+            InkDivider().padding(.horizontal, CounterweightLayout.pageInset)
             HStack(spacing: 8) {
                 tab(.today, title: "Today")
                 tab(.history, title: "History")
             }
-            .padding(.horizontal, 28)
+            .padding(.horizontal, CounterweightLayout.pageInset)
             .padding(.top, 8)
             .padding(.bottom, 2)
         }

@@ -16,6 +16,7 @@ struct HistoryView: View {
     @State private var showingBackupImporter = false
     @State private var restoreMessage: String?
     @State private var pendingDeletion: WorkoutRecord?
+    @State private var confirmedDeletion: WorkoutRecord?
     let openWorkout: (WorkoutRecord) -> Void
 
     private struct MonthPage: Identifiable {
@@ -51,11 +52,12 @@ struct HistoryView: View {
                         pageHeading
                         EmptyHistoryView(showRestore: { showingBackupImporter = true })
                     }
-                    .padding(20)
+                    .padding(.horizontal, CounterweightLayout.pageInset)
+                    .padding(.top, 24).padding(.bottom, 32)
                 }
             } else {
                 List {
-                    pageHeading.historyRow(top: 12, bottom: 12)
+                    pageHeading.historyRow(top: 24, bottom: 12)
                     if selectedSection == .overview {
                         HistoryWeeklySummary(workouts: workouts)
                             .historyRow(bottom: 18)
@@ -86,39 +88,37 @@ struct HistoryView: View {
                                     }
                                     .tint(InkPalette.cinnabar)
                                 }
-                                .contextMenu {
-                                    Button("Delete session", role: .destructive) {
-                                        pendingDeletion = workout
-                                    }
-                                }
+                                .accessibilityAction(named: "Delete session") { pendingDeletion = workout }
+                                .onLongPressGesture { pendingDeletion = workout }
                             }
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .contentMargins(.top, 0, for: .scrollContent)
                 .contentMargins(.bottom, 18, for: .scrollContent)
             }
         }
-        .safeAreaInset(edge: .top) {
-            HStack {
-                FormWordmark()
-                Spacer()
+        .safeAreaInset(edge: .top, spacing: 0) {
+            CounterweightHeader {
                 CounterweightIconButton(symbol: "ellipsis", label: "History options") { showingOptions = true }
                 CounterweightIconButton(symbol: "slider.horizontal.3", label: "Settings") { showingSettings = true }
-            }.padding(.horizontal, 28).background(InkPalette.paper.ignoresSafeArea(edges: .top))
-        }
-        .confirmationDialog("Delete this session?", isPresented: Binding(
-            get: { pendingDeletion != nil },
-            set: { if !$0 { pendingDeletion = nil } }
-        ), presenting: pendingDeletion) { workout in
-            Button("Delete session", role: .destructive) {
-                delete(workout)
-                pendingDeletion = nil
             }
-            Button("Cancel", role: .cancel) { pendingDeletion = nil }
-        } message: { workout in
-            Text("Delete \(workout.displayName)? This also requests removal of its Apple Health workout and can’t be undone.")
+        }
+        .sheet(item: $pendingDeletion, onDismiss: {
+            if let workout = confirmedDeletion {
+                confirmedDeletion = nil
+                delete(workout)
+            }
+        }) { workout in
+            CounterweightConfirmationSheet(
+                title: "Delete this session?",
+                message: "Delete \(workout.displayName)? This also requests removal of its Apple Health workout and can’t be undone.",
+                actionTitle: "Delete session", destructive: true, cancelTitle: "Keep session",
+                confirm: { confirmedDeletion = workout; pendingDeletion = nil },
+                cancel: { pendingDeletion = nil }
+            )
         }
         .sheet(isPresented: $showingOptions, onDismiss: {
             let option = pendingOption; pendingOption = nil
@@ -153,19 +153,10 @@ struct HistoryView: View {
         ) { result in
             restore(result)
         }
-        .alert("Form record", isPresented: Binding(
-            get: { saveErrorMessage != nil || restoreMessage != nil },
-            set: {
-                if !$0 {
-                    saveErrorMessage = nil
-                    restoreMessage = nil
-                }
-            }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(saveErrorMessage ?? restoreMessage ?? "")
-        }
+        .counterweightNotice("Form record", message: Binding(
+            get: { saveErrorMessage ?? restoreMessage },
+            set: { if $0 == nil { saveErrorMessage = nil; restoreMessage = nil } }
+        ))
     }
 
     private func delete(_ workout: WorkoutRecord) {
@@ -210,7 +201,7 @@ private extension View {
     func historyRow(top: CGFloat = 0, bottom: CGFloat = 0) -> some View {
         listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: top, leading: 20, bottom: bottom, trailing: 20))
+            .listRowInsets(EdgeInsets(top: top, leading: CounterweightLayout.pageInset, bottom: bottom, trailing: CounterweightLayout.pageInset))
     }
 }
 

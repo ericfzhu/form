@@ -4,10 +4,6 @@ import SwiftUI
 import UIKit
 
 struct RoutineListView: View {
-    @AppStorage("progression-load-increment") private var loadIncrement = 2.5
-    @AppStorage("keep-screen-awake") private var keepScreenAwake = true
-    @StateObject private var health = HealthKitService.shared
-    @StateObject private var healthSync = HealthSyncCoordinator.shared
     @State private var showingSettings = false
 
     var body: some View {
@@ -17,11 +13,7 @@ struct RoutineListView: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     HStack {
                         Spacer()
-                        Button("settings") { showingSettings = true }
-                            .font(.system(.subheadline, design: .default))
-                            .foregroundStyle(InkPalette.softInk)
-                            .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
-                            .buttonStyle(PressableButtonStyle())
+                        CounterweightIconButton(symbol: "slider.horizontal.3", label: "Settings") { showingSettings = true }
                     }
                     .padding(.bottom, 28)
 
@@ -40,76 +32,10 @@ struct RoutineListView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task {
-            await health.refresh()
-            await healthSync.refreshPendingCount()
-        }
-        .sheet(isPresented: $showingSettings) {
-            ZStack {
-                PaperBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack {
-                            Text("settings")
-                                .font(.system(.title3, design: .default))
-                                .foregroundStyle(InkPalette.ink)
-                            Spacer()
-                            Button("Done") { showingSettings = false }
-                                .font(AtelierType.script(17))
-                                .foregroundStyle(InkPalette.mineral)
-                                .frame(minWidth: 50, minHeight: 44, alignment: .trailing)
-                                .buttonStyle(PressableButtonStyle())
-                        }
-                        .padding(.bottom, 6)
-
-                        settings
-                        CloudIntegrationSection()
-                        HealthIntegrationSection(health: health, healthSync: healthSync)
-                    }
-                    .padding(20)
-                }
-            }
-            .presentationDetents([.medium, .large])
-        }
+        .sheet(isPresented: $showingSettings) { FormSettingsView() }
     }
-
-    private var settings: some View {
-        VStack(spacing: 0) {
-            FieldSectionTitle(title: "preferences")
-            HStack {
-                Text("load increment")
-                    .font(AtelierType.script(17))
-                    .foregroundStyle(InkPalette.softInk)
-                Spacer()
-                Picker("Load increment", selection: $loadIncrement) {
-                    ForEach([1.0, 1.25, 2.0, 2.5, 5.0], id: \.self) { value in
-                        Text("\(WorkoutValueFormatter.decimal(value)) kg").tag(value)
-                    }
-                }
-                .pickerStyle(.menu)
-                .tint(InkPalette.ink)
-            }
-            .frame(minHeight: 52)
-            .padding(.horizontal, 12)
-
-            Toggle(isOn: $keepScreenAwake) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("KEEP SCREEN AWAKE")
-                        .font(AtelierType.script(17))
-                        .textCase(.lowercase)
-                        .foregroundStyle(InkPalette.softInk)
-                    Text("While a session is in progress")
-                        .font(.system(.caption, design: .default))
-                        .foregroundStyle(InkPalette.softInk.opacity(0.76))
-                }
-            }
-            .tint(InkPalette.verdigris)
-            .frame(minHeight: 58)
-            .padding(.horizontal, 12)
-        }
-    }
-
 }
+
 
 struct CloudIntegrationSection: View {
     var body: some View {
@@ -147,22 +73,20 @@ struct CloudIntegrationSection: View {
 struct HealthIntegrationSection: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var workouts: [WorkoutRecord]
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ObservedObject var health: HealthKitService
     @ObservedObject var healthSync: HealthSyncCoordinator
 
     var body: some View {
         VStack(spacing: 0) {
             FieldSectionTitle(title: "Apple Health")
-            HStack(alignment: .center, spacing: 14) {
+            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14)) : AnyLayout(HStackLayout(spacing: 14))
+            layout {
                 Text(detail)
                     .font(.system(.caption, design: .default))
                     .foregroundStyle(InkPalette.softInk.opacity(0.8))
-                Spacer(minLength: 12)
-                Button(actionTitle) { performAction() }
-                    .font(AtelierType.script(14))
-                    .foregroundStyle(InkPalette.plum)
-                    .frame(minWidth: 72, minHeight: 44, alignment: .trailing)
-                    .buttonStyle(PressableButtonStyle())
+                if !typeSize.isAccessibilitySize { Spacer(minLength: 12) }
+                CounterweightControl(title: actionTitle, symbol: "heart", action: performAction)
                     .disabled(health.accessState == .unavailable)
             }
             .padding(.horizontal, 7)
@@ -197,10 +121,10 @@ struct HealthIntegrationSection: View {
 
     private var actionTitle: String {
         switch health.accessState {
-        case .unavailable: "UNAVAILABLE"
-        case .notConnected: "CONNECT"
-        case .denied: "SETTINGS"
-        case .connected: "REFRESH"
+        case .unavailable: "Unavailable"
+        case .notConnected: "Connect"
+        case .denied: "Settings"
+        case .connected: "Refresh"
         }
     }
 
@@ -318,14 +242,12 @@ struct TodayView: View {
                             .buttonStyle(PressableButtonStyle())
                     }.padding(.top, 24)
                 }
-            }.padding(.horizontal, 24).padding(.top, 24).padding(.bottom, 32)
+            }.padding(.horizontal, CounterweightLayout.pageInset).padding(.top, 24).padding(.bottom, 32)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack {
-                FormWordmark()
-                Spacer()
+            CounterweightHeader {
                 CounterweightIconButton(symbol: "slider.horizontal.3", label: "Settings") { showingSettings = true }
-            }.padding(.horizontal, 24).background(InkPalette.paper)
+            }
         }
         .background(PaperBackground())
         .toolbar(.hidden, for: .navigationBar)
@@ -391,27 +313,38 @@ struct TodayView: View {
 }
 
 struct FormSettingsView: View {
-    @Environment(\.dismiss) private var dismiss
     @AppStorage("progression-load-increment") private var loadIncrement = 2.5
     @AppStorage("keep-screen-awake") private var keepScreenAwake = true
     @StateObject private var health = HealthKitService.shared
     @StateObject private var sync = HealthSyncCoordinator.shared
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Preferences") {
-                    Picker("Load increment", selection: $loadIncrement) {
-                        ForEach([1.0, 1.25, 2, 2.5, 5], id: \.self) { value in
-                            Text("\(WorkoutValueFormatter.decimal(value)) kg").tag(value)
-                        }
+        CounterweightSheet(title: "Settings") {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Load increment").font(.subheadline.weight(.medium))
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 8) {
+                    ForEach([1.0, 1.25, 2, 2.5, 5], id: \.self) { value in
+                        CounterweightChoice(title: "\(WorkoutValueFormatter.decimal(value)) kg", selected: loadIncrement == value) {
+                            loadIncrement = value
+                        }.accessibilityLabel("Load increment, \(WorkoutValueFormatter.decimal(value)) kilograms")
                     }
-                    Toggle("Keep screen awake during sessions", isOn: $keepScreenAwake)
                 }
-                CloudIntegrationSection()
-                HealthIntegrationSection(health: health, healthSync: sync)
-            }.scrollContentBackground(.hidden).background(.white)
-                .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
-                .toolbar { Button("Done") { dismiss() } }
+            }
+            InkDivider()
+            Toggle(isOn: $keepScreenAwake) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Keep screen awake").font(.subheadline.weight(.medium))
+                    Text("During a workout").font(.caption).foregroundStyle(InkPalette.softInk)
+                }
+            }.tint(InkPalette.ink)
+            InkDivider()
+            CloudIntegrationSection()
+            InkDivider()
+            HealthIntegrationSection(health: health, healthSync: sync)
+        }
+        .task {
+            await health.refresh()
+            await sync.refreshPendingCount()
         }
     }
 }

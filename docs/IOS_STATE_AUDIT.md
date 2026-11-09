@@ -2,6 +2,32 @@
 
 Reviewed 25–26 October 2026. This is a source review plus targeted regression testing, not a claim that every possible interaction has been verified on a device.
 
+## Persistent-header alignment — 9 November 2026
+
+- Replaced separate Today, History, active-workout and saved-workout brand bars with `CounterweightHeader`: a shared 24-point side inset, 56-point minimum height, explicit 8-point action spacing, and an opaque background covering the top safe area. Trailing actions grow toward the wordmark, keeping the last control anchored at the same right edge.
+- Today and History both use zero top-inset spacing. Empty/populated History use the same 24-point page-title inset as Today; the populated list explicitly removes its automatic top content margin. Bottom-tab divider margins use the same page inset.
+- Validation: simulator Debug build succeeds; Today/History screenshots show identical wordmark pixels and identical Settings-glyph bounds (375–390 × 164–176 in the captured 456 × 972 window). Their page titles align visually. History Sessions → Overview → bottom scroll → Sessions preserves the header position. No workout data was modified. Existing 82-test result from the preceding pass remains applicable; no model behavior changed and the suite was not repeated for this layout correction.
+
+## Reachable-surface polish — 9 November 2026
+
+This pass follows the routes exposed by the current `RootView` (Today and History), including nested editors and sheets. It is a source inventory plus targeted simulator checks, not a certification of every combination of content, Dynamic Type, VoiceOver and device size.
+
+| Surface | Treatment |
+| --- | --- |
+| Today, routine, active-session recovery | Existing Counterweight controls and routine/discard sheets retained; Settings now shares the same sheet shell. |
+| Workout, focused set, rest, technique, reorder | Rest adjustments read **−30 / +30**, with seconds retained in accessibility labels. Manual rest and keyboard navigation use the shared controls. Reorder retains native drag handles with a plain white list and matching modal chrome. |
+| Empty finish / review before saving | Authored confirmation sheets replace alerts. Closing/Keep training does not finalize the session; confirmed save/end executes after dismissal. |
+| Completion / saved record | Shared saved surface retained. Details now use a clipped height reveal without fading the contents; View details uses the common capsule. |
+| Saved-workout editor | Common type, spacing and controls; set identity/type/removal sit above the numeric fields. Add exercise shows an illustrated picker; set and cardio types use choice sheets. Cancel with edits uses the shared confirmation. Header background covers the status-bar area when scrolling. |
+| History sessions / overview | Delete from swipe, long press or accessibility action opens the same confirmation. Calendar arrows, share/backup affordances and empty-state restore match the control system. Calendar accessibility labels include date and session count. |
+| Exercise index / progress | Matching modal header, search field and close control; period/metric choice pills and readable system type across technique, recommendations, baseline, trends and empty states. |
+| Error and restore notices | Current root/session/editor/history messages use the same sheet shell; message content remains stable while dismissing. |
+| System-owned surfaces | Date/time selection, keyboard, share, Files, Health/notification permissions and Live Activity containers retain platform behavior. Live Activity already uses the Counterweight palette and artwork. |
+
+The dormant `PlanHomeView` / `GymProfileView` and their routine-swapping/conflict screens have no launch route in the current app. They are not counted as reachable coverage; re-enabling that product flow requires a separate pass. The legacy routine list now reuses the shared Settings sheet rather than maintaining a second settings design.
+
+Validation: simulator Debug build and all 82 existing regression tests pass. Simulator review covers Settings at both detents; editor set-type, illustrated exercise and cardio pickers; cancelling an unsaved cardio draft back to the original record; History delete cancellation; History overview scrolling to backup actions; and exercise-index navigation to a populated progress baseline. Final-build checks also confirm normal History-row taps, the saved-details reveal, unwrapped editor set types, the opaque header while revealing a lower field, both 30-second rest adjustments, and empty-finish cancellation. The fresh zero-set review workout is left paused on Today with no rest timer running. No saved workout was deleted or edited during these checks. Physical-iPhone testing remains skipped. Native automation does not consistently expose sheets presented over full-screen covers in its accessibility tree, so those sheets were inspected visually; this is not a completed VoiceOver audit.
+
 ## Control and motion polish — 9 November 2026
 
 - Exercise changes now animate one clipped reveal layout instead of inserting/removing fading editors. Artwork and header action slots stay the same size. Editors remain mounted, with collapsed content excluded from interaction and accessibility. Automatic animated scrolling on exercise selection is removed; initial restoration and validation-driven field reveal remain.

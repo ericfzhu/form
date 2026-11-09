@@ -58,18 +58,14 @@ struct HistoryConsistencyView: View {
 
     private var calendarHeader: some View {
         HStack {
-            Button { changeMonth(by: -1) } label: {
-                Image(systemName: "chevron.left").frame(width: 44, height: 44)
-            }
+            CounterweightIconButton(symbol: "chevron.left", label: "Previous month") { changeMonth(by: -1) }
             Spacer()
             Text(displayedMonth.formatted(.dateTime.month(.wide).year()))
                 .font(AtelierType.script(20))
             Spacer()
-            Button { changeMonth(by: 1) } label: {
-                Image(systemName: "chevron.right").frame(width: 44, height: 44)
-            }
+            CounterweightIconButton(symbol: "chevron.right", label: "Next month") { changeMonth(by: 1) }
             .disabled(isCurrentMonth)
-            .opacity(isCurrentMonth ? 0.24 : 1)
+
         }
         .buttonStyle(PressableButtonStyle())
     }
@@ -89,6 +85,7 @@ struct HistoryConsistencyView: View {
                 }
             }
             .accessibilityHidden(date == nil)
+            .accessibilityLabel(date.map { "\($0.formatted(date: .complete, time: .omitted)), \(count) session\(count == 1 ? "" : "s")" } ?? "")
     }
 
     private var weekdaySymbols: [String] {

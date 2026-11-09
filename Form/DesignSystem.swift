@@ -57,6 +57,7 @@ struct CounterweightRevealLayout: Layout {
 }
 
 struct CounterweightControl: View {
+    @Environment(\.isEnabled) private var isEnabled
     let title: String
     let symbol: String
     var action: () -> Void
@@ -70,11 +71,12 @@ struct CounterweightControl: View {
             .background(InkPalette.mist, in: Capsule())
             .overlay { Capsule().strokeBorder(InkPalette.ink.opacity(0.09), lineWidth: 1) }
             .foregroundStyle(InkPalette.ink).contentShape(Capsule())
-        }.buttonStyle(PressableButtonStyle())
+        }.buttonStyle(PressableButtonStyle()).opacity(isEnabled ? 1 : 0.4)
     }
 }
 
 struct CounterweightIconButton: View {
+    @Environment(\.isEnabled) private var isEnabled
     let symbol: String
     let label: String
     var action: () -> Void
@@ -85,7 +87,7 @@ struct CounterweightIconButton: View {
                 .background(InkPalette.mist, in: Circle())
                 .overlay { Circle().strokeBorder(InkPalette.ink.opacity(0.09), lineWidth: 1) }
                 .contentShape(Circle())
-        }.buttonStyle(PressableButtonStyle()).accessibilityLabel(label)
+        }.buttonStyle(PressableButtonStyle()).accessibilityLabel(label).opacity(isEnabled ? 1 : 0.4)
     }
 }
 
@@ -112,11 +114,77 @@ struct CounterweightSheet<Content: View>: View {
             }.padding(24).background(InkPalette.paper)
         }
         .background(InkPalette.paper)
+        .foregroundStyle(InkPalette.ink)
         .presentationBackground(InkPalette.paper)
         .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
         .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
     }
+}
+
+struct CounterweightChoice: View {
+    let title: String
+    let selected: Bool
+    var compact = false
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title).font((compact ? Font.caption : .subheadline).weight(.medium))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, compact ? 8 : 14).padding(.vertical, 10)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .foregroundStyle(selected ? InkPalette.paper : InkPalette.ink)
+                .background(selected ? InkPalette.ink : InkPalette.mist, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+/// Used for app-owned confirmations. Closing the sheet never confirms an action.
+struct CounterweightConfirmationSheet: View {
+    let title: String
+    let message: String
+    let actionTitle: String
+    var destructive = false
+    var cancelTitle = "Cancel"
+    let confirm: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        CounterweightSheet(title: title) {
+            Text(message).font(.subheadline).foregroundStyle(InkPalette.softInk)
+                .fixedSize(horizontal: false, vertical: true)
+            if destructive {
+                CounterweightActionRow(title: actionTitle, symbol: "trash", destructive: true, action: confirm)
+                InkPrimaryButton(title: cancelTitle, action: cancel)
+            } else {
+                InkPrimaryButton(title: actionTitle, action: confirm)
+                CounterweightControl(title: cancelTitle, symbol: "arrow.left", action: cancel)
+            }
+        }
+    }
+}
+
+extension View {
+    func counterweightNotice(_ title: String, message: Binding<String?>) -> some View {
+        sheet(item: Binding(get: { message.wrappedValue.map(CounterweightNoticeMessage.init) }, set: {
+            if $0 == nil { message.wrappedValue = nil }
+        })) { notice in
+            CounterweightSheet(title: title) {
+                Text(notice.text).font(.subheadline).foregroundStyle(InkPalette.softInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                InkPrimaryButton(title: "Done") { message.wrappedValue = nil }
+            }
+        }
+    }
+}
+
+private struct CounterweightNoticeMessage: Identifiable {
+    let text: String
+    var id: String { text }
 }
 
 struct CounterweightActionRow: View {
@@ -169,6 +237,27 @@ struct FormWordmark: View {
     var body: some View {
         Text("form").font(.system(size: 27, weight: .bold)).tracking(-1.5)
             .accessibilityHidden(true)
+    }
+}
+
+enum CounterweightLayout {
+    static let pageInset: CGFloat = 24
+    static let headerHeight: CGFloat = 56
+}
+
+/// Keep the brand and trailing action anchored when the screen's actions change.
+struct CounterweightHeader<Actions: View>: View {
+    @ViewBuilder let actions: () -> Actions
+
+    var body: some View {
+        HStack(spacing: 8) {
+            FormWordmark()
+            Spacer(minLength: 8)
+            HStack(spacing: 8, content: actions)
+        }
+        .frame(minHeight: CounterweightLayout.headerHeight)
+        .padding(.horizontal, CounterweightLayout.pageInset)
+        .background(InkPalette.paper.ignoresSafeArea(edges: .top))
     }
 }
 
@@ -300,7 +389,7 @@ struct InkTextHeader: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
             .buttonStyle(PressableButtonStyle())
         }
-        .background { PaperSurface() }
+        .background { PaperSurface().ignoresSafeArea(edges: .top) }
     }
 }
 

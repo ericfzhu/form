@@ -15,11 +15,7 @@ struct EmptyHistoryView: View {
             Text("Completed sessions will appear here.")
                 .font(.system(.body, design: .default))
                 .foregroundStyle(InkPalette.softInk)
-            Button("Restore a backup", action: showRestore)
-                .font(AtelierType.script(22))
-                .foregroundStyle(InkPalette.cinnabar)
-                .frame(minHeight: 44)
-                .buttonStyle(PressableButtonStyle())
+            CounterweightControl(title: "Restore a backup", symbol: "arrow.down.document", action: showRestore)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -42,12 +42,12 @@ struct EmptyExerciseRecord: View {
     var body: some View {
         VStack(spacing: 12) {
             Text("No completed sets in \(period.title.lowercased())")
-                .font(.system(.headline, design: .monospaced, weight: .semibold))
+                .font(.system(.headline, design: .default, weight: .semibold))
             Text("Choose another period or complete this movement to begin its record.")
-                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(.subheadline, design: .default))
                 .foregroundStyle(InkPalette.softInk)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 38)
+                .padding(.horizontal, 16)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)

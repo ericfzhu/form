@@ -18,6 +18,8 @@ struct WorkoutEditorView: View {
     @State private var cardioEntries: [CardioDraft]
     @State private var saveErrorMessage: String?
     @State private var showingDiscardConfirmation = false
+    @State private var discardAfterSheet = false
+    @State private var showingExercisePicker = false
 
     // Keep the baseline alongside the drafts: SwiftUI can recreate this view
     // while retaining its State, and new draft UUIDs would look like edits.
@@ -78,7 +80,7 @@ struct WorkoutEditorView: View {
                     addExerciseMenu
                     CardioLoggingSection(entries: $cardioEntries)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
                 .padding(.top, 14)
                 .padding(.bottom, 36)
             }
@@ -105,7 +107,7 @@ struct WorkoutEditorView: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             InkTextHeader(
-                title: "edit session",
+                title: "Edit session",
                 leadingTitle: "Cancel",
                 leadingAction: requestCancel,
                 trailingTitle: "Save",
@@ -113,29 +115,25 @@ struct WorkoutEditorView: View {
             )
         }
         .interactiveDismissDisabled()
-        .confirmationDialog("Discard unsaved changes?", isPresented: $showingDiscardConfirmation) {
-            Button("Discard changes", role: .destructive) { dismiss() }
-            Button("Keep editing", role: .cancel) {}
+        .sheet(isPresented: $showingDiscardConfirmation, onDismiss: {
+            if discardAfterSheet { discardAfterSheet = false; dismiss() }
+        }) {
+            CounterweightConfirmationSheet(
+                title: "Discard changes?", message: "Your saved session will stay as it was before editing.",
+                actionTitle: "Discard changes", destructive: true, cancelTitle: "Keep editing",
+                confirm: { discardAfterSheet = true; showingDiscardConfirmation = false },
+                cancel: { showingDiscardConfirmation = false }
+            )
         }
-        .alert("Couldn’t save changes", isPresented: Binding(
-            get: { saveErrorMessage != nil },
-            set: { if !$0 { saveErrorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(saveErrorMessage ?? "")
-        }
+        .counterweightNotice("Couldn’t save changes", message: $saveErrorMessage)
         }
         .environment(entryForm)
     }
 
     private var sessionDetails: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("session")
-                .font(.system(.body, design: .monospaced))
-                .foregroundStyle(InkPalette.softInk)
             VStack(alignment: .leading, spacing: 5) {
-                Text("OPTIONAL TITLE")
+                Text("Title · optional")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(InkPalette.softInk)
                 TextField(workout.routineName, text: $sessionTitle)
@@ -154,32 +152,46 @@ struct WorkoutEditorView: View {
                 }
             } else {
                 DatePicker("Date and time", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                    .font(.system(.body, design: .monospaced))
+                    .font(.body)
                     .tint(InkPalette.cinnabar)
             }
-            NumberEntryField(id: EntryID.duration, label: "Session duration in minutes", value: $durationMinutes, caption: "DURATION · MINUTES")
+            NumberEntryField(id: EntryID.duration, label: "Session duration in minutes", value: $durationMinutes, caption: "Duration · minutes")
         }
         .padding(.vertical, 12)
         .inkCard()
     }
 
     private var addExerciseMenu: some View {
-        Menu {
-            ForEach(availableExercises) { template in
-                Button(template.name) {
-                    exercises.append(EditableExerciseDraft(
-                        record: nil,
-                        template: template,
-                        sets: (0..<template.sets).map { _ in
-                            EditableSetDraft(weight: 0, repetitions: template.minimumRepetitions)
-                        }
-                    ))
+        CounterweightControl(title: "Exercise", symbol: "plus") {
+            entryForm.done()
+            dismissKeyboard()
+            showingExercisePicker = true
+        }
+        .accessibilityLabel("Add exercise")
+        .disabled(availableExercises.isEmpty)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(isPresented: $showingExercisePicker) {
+            CounterweightSheet(title: "Add exercise") {
+                ForEach(availableExercises) { template in
+                    Button {
+                        exercises.append(EditableExerciseDraft(
+                            record: nil, template: template,
+                            sets: (0..<template.sets).map { _ in
+                                EditableSetDraft(weight: 0, repetitions: template.minimumRepetitions)
+                            }
+                        ))
+                        showingExercisePicker = false
+                    } label: {
+                        HStack(spacing: 16) {
+                            DemonstrationImage(assetName: template.assetName).frame(width: 56, height: 56)
+                            Text(template.name).font(.subheadline.weight(.medium)).multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            Image(systemName: "plus").font(.subheadline)
+                        }.contentShape(Rectangle())
+                    }.buttonStyle(PressableButtonStyle())
+                    InkDivider()
                 }
             }
-        } label: {
-            Text("Add exercise")
-                .font(AtelierType.script(17))
-                .frame(maxWidth: .infinity, minHeight: 48)
         }
     }
 
@@ -254,65 +266,50 @@ private struct EditableExerciseCard: View {
                 DemonstrationImage(assetName: exercise.template.assetName)
                     .frame(width: 72, height: 72)
                 Text(exercise.template.name)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.body)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
-                Button("Remove", role: .destructive, action: remove)
-                    .accessibilityLabel("Remove \(exercise.template.name)")
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(InkPalette.cinnabar)
-                    .frame(minHeight: 44)
+                CounterweightIconButton(symbol: "minus", label: "Remove \(exercise.template.name)", action: remove)
             }
             .padding(.vertical, 11)
             ForEach($exercise.sets) { $set in
                 let setNumber = (exercise.sets.firstIndex { $0.id == set.id } ?? 0) + 1
-                layout {
-                    Picker("Set type", selection: $set.kind) {
-                        ForEach(SetKind.allCases) { Text($0.shortTitle).tag($0) }
+                VStack(spacing: 12) {
+                    layout {
+                        Text("Set \(setNumber)").font(.caption).foregroundStyle(InkPalette.softInk)
+                        Spacer(minLength: 0)
+                        EditorSetKindControl(kind: $set.kind, label: "\(exercise.template.name), set \(setNumber)")
+                        CounterweightIconButton(symbol: "minus", label: "Remove \(exercise.template.name), set \(setNumber)") {
+                            exercise.sets.removeAll { $0.id == set.id }
+                        }
                     }
-                    .pickerStyle(.menu)
-                    .accessibilityLabel("\(exercise.template.name), set \(setNumber), type")
-                    .accessibilityValue(set.kind.title)
-                    .frame(minWidth: 44)
-                    if exercise.template.recordsLoad {
-                        editField(exercise.template.loadLabel, id: EntryID.load(set.id), value: $set.weight,
-                                  accessibilityLabel: "\(exercise.template.name), set \(setNumber), weight in kilograms")
+                    layout {
+                        if exercise.template.recordsLoad {
+                            editField(exercise.template.loadLabel, id: EntryID.load(set.id), value: $set.weight,
+                                      accessibilityLabel: "\(exercise.template.name), set \(setNumber), weight in kilograms")
+                        }
+                        VStack(spacing: 4) {
+                            Text(exercise.template.recordsTime ? "SEC" : "REPS")
+                                .font(.caption2.weight(.semibold)).foregroundStyle(InkPalette.softInk)
+                            NumberEntryField(id: EntryID.count(set.id), label: "\(exercise.template.name), set \(setNumber), \(exercise.template.recordsTime ? "seconds" : "repetitions")", value: Binding(get: { Double(set.repetitions) }, set: { set.repetitions = Int($0) }), whole: true, alignment: .center)
+                        }.frame(maxWidth: .infinity)
                     }
-                    VStack(spacing: 4) {
-                        Text(exercise.template.recordsTime ? "SEC" : "REPS")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(InkPalette.softInk)
-                        NumberEntryField(id: EntryID.count(set.id), label: "\(exercise.template.name), set \(setNumber), \(exercise.template.recordsTime ? "seconds" : "repetitions")", value: Binding(get: { Double(set.repetitions) }, set: { set.repetitions = Int($0) }), whole: true, alignment: .center)
-                    }
-                    .frame(maxWidth: .infinity)
-                    Button {
-                        exercise.sets.removeAll { $0.id == set.id }
-                    } label: {
-                        Image(systemName: "minus")
-                            .foregroundStyle(InkPalette.cinnabar)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("Remove \(exercise.template.name), set \(setNumber)")
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
+                .padding(.vertical, 12)
             }
 
-            Button {
+            CounterweightControl(title: "Set", symbol: "plus") {
                 let last = exercise.sets.last
                 exercise.sets.append(EditableSetDraft(
                     weight: last?.weight ?? 0,
                     repetitions: last?.repetitions ?? exercise.template.minimumRepetitions
                 ))
-            } label: {
-                Text("Add set")
-                    .font(AtelierType.script(17))
-                    .frame(maxWidth: .infinity, minHeight: 46)
             }
-            .buttonStyle(PressableButtonStyle())
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityLabel("Add set to \(exercise.template.name)")
             .padding(.horizontal, 12)
-            .padding(.bottom, 8)
+            .padding(.vertical, 16)
+            InkDivider()
         }
         .inkCard()
     }
@@ -332,5 +329,30 @@ extension Array where Element == ExerciseTemplate {
     func uniquedByName() -> [ExerciseTemplate] {
         var seen = Set<String>()
         return filter { seen.insert($0.name).inserted }
+    }
+}
+
+private struct EditorSetKindControl: View {
+    @Binding var kind: SetKind
+    let label: String
+    @State private var showingKinds = false
+
+    var body: some View {
+        CounterweightControl(title: kind.title, symbol: "chevron.down") {
+            dismissKeyboard()
+            showingKinds = true
+        }
+        .accessibilityLabel("\(label), type")
+        .accessibilityValue(kind.title)
+        .sheet(isPresented: $showingKinds) {
+            CounterweightSheet(title: "Set type", subtitle: label) {
+                ForEach(SetKind.allCases) { option in
+                    CounterweightChoice(title: option.title, selected: kind == option) {
+                        kind = option
+                        showingKinds = false
+                    }
+                }
+            }
+        }
     }
 }

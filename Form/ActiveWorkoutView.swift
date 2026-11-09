@@ -31,6 +31,8 @@ struct ActiveWorkoutView: View {
     @State var showingExerciseList = false
     @State var showingDiscardConfirmation = false
     @State private var discardAfterSheet = false
+    @State private var finishAfterSheet = false
+    @State private var endAfterSheet = false
     @State var showingEmptyFinishConfirmation = false
     @State var showingIncompleteFinishConfirmation = false
     @State var completedRecord: WorkoutRecord?
@@ -113,35 +115,30 @@ struct ActiveWorkoutView: View {
                 discardAfterSheet = true; showingDiscardConfirmation = false
             }, keep: { showingDiscardConfirmation = false })
         }
-        .alert(
-            "End this workout?",
-            isPresented: $showingEmptyFinishConfirmation
-        ) {
-            Button("End workout", role: .destructive, action: discardWorkout)
-            Button("Keep training", role: .cancel) {}
-        } message: {
-            Text("No completed sets or cardio entries will be saved.")
+        .sheet(isPresented: $showingEmptyFinishConfirmation, onDismiss: {
+            if endAfterSheet { endAfterSheet = false; discardWorkout() }
+        }) {
+            CounterweightConfirmationSheet(
+                title: "End this workout?", message: "No completed sets or cardio entries will be saved.",
+                actionTitle: "End workout", destructive: true, cancelTitle: "Keep training",
+                confirm: { endAfterSheet = true; showingEmptyFinishConfirmation = false },
+                cancel: { showingEmptyFinishConfirmation = false }
+            )
         }
-        .alert(
-            "Finish workout?",
-            isPresented: $showingIncompleteFinishConfirmation
-        ) {
-            Button("Save recorded work", action: finishWorkout)
-            Button("Keep training", role: .cancel) {}
-        } message: {
-            Text(finishReviewMessage)
+        .sheet(isPresented: $showingIncompleteFinishConfirmation, onDismiss: {
+            if finishAfterSheet { finishAfterSheet = false; finishWorkout() }
+        }) {
+            CounterweightConfirmationSheet(
+                title: "Finish workout?", message: finishReviewMessage,
+                actionTitle: "Save recorded work", cancelTitle: "Keep training",
+                confirm: { finishAfterSheet = true; showingIncompleteFinishConfirmation = false },
+                cancel: { showingIncompleteFinishConfirmation = false }
+            )
         }
         .leadingEdgeSwipe {
             if completedRecord == nil { saveAndClose() }
         }
-        .alert("Couldn’t save session", isPresented: Binding(
-            get: { saveErrorMessage != nil },
-            set: { if !$0 { saveErrorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(saveErrorMessage ?? "")
-        }
+        .counterweightNotice("Couldn’t save session", message: $saveErrorMessage)
     }
 
     var body: some View {
@@ -314,13 +311,11 @@ struct ActiveWorkoutView: View {
                         .transition(.opacity)
                 } else {
                     HStack {
-                        Button {
+                        CounterweightControl(title: "Rest", symbol: "timer") {
                             let exercise = session.drafts.first(where: { $0.id == session.expandedExerciseID })?.template
                             let seconds = exercise.map { ExerciseRestPreference.seconds(for: $0) } ?? 60
                             session.startManualRest(seconds: seconds > 0 ? seconds : 60)
-                        } label: {
-                            Label("Rest", systemImage: "timer").font(.subheadline).frame(minHeight: 44)
-                        }.buttonStyle(PressableButtonStyle()).accessibilityLabel("Start rest timer")
+                        }.accessibilityLabel("Start rest timer")
                         Spacer()
                         if let exercise = session.drafts.first(where: { $0.id == session.expandedExerciseID })?.template {
                             ExerciseRestPicker(exercise: exercise).id(exercise.id)
@@ -355,11 +350,13 @@ struct ActiveWorkoutView: View {
                             Text("\(draft.sets.filter { $0.completed && $0.kind == .working }.count)/\(draft.sets.filter { $0.kind == .working }.count)")
                                 .font(.caption.monospacedDigit()).foregroundStyle(InkPalette.softInk)
                         }.padding(.vertical, 8)
+                            .listRowBackground(Color.clear)
                     }
                     .onMove { source, destination in
                         session.drafts.move(fromOffsets: source, toOffset: destination)
                     }
                 }
+                .listStyle(.plain)
                 .environment(\.editMode, .constant(.active))
                 .scrollContentBackground(.hidden)
                 .background(PaperBackground())
@@ -372,6 +369,9 @@ struct ActiveWorkoutView: View {
                     }.padding(24).background(InkPalette.paper)
                 }
             }
+            .presentationBackground(InkPalette.paper)
+            .presentationCornerRadius(28)
+            .presentationDragIndicator(.visible)
     }
 
 }
