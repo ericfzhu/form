@@ -242,6 +242,7 @@ struct TodayView: View {
     @State private var presentedRoutine: RoutineTemplate?
     @State private var showingRoutine = false
     @State private var showingDiscardConfirmation = false
+    @State private var discardAfterSheet = false
     @State private var showingSettings = false
 
     @State private var recoveryError: String?
@@ -280,7 +281,7 @@ struct TodayView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Session needs attention").font(.headline)
                         Text(recoveryError).font(.subheadline)
-                        Button("Retry restoring session", action: reloadSession).frame(minHeight: 44)
+                        CounterweightControl(title: "Retry", symbol: "arrow.clockwise", action: reloadSession)
                     }
                 }
                 CounterweightFigure(resting: snapshot != nil)
@@ -305,10 +306,9 @@ struct TodayView: View {
                             Text(snapshot == nil ? "Start workout" : "Resume workout").font(.subheadline.weight(.semibold))
                         }.padding(.vertical, 16).frame(maxWidth: .infinity)
                     }.buttonStyle(PressableButtonStyle()).disabled(recoveryError != nil)
-                    Button("View routine") { showingRoutine = true }.font(.subheadline).frame(minHeight: 44)
+                    CounterweightControl(title: "View routine", symbol: "list.bullet") { showingRoutine = true }
                     if snapshot != nil || recoveryError != nil {
-                        Button("Discard workout", role: .destructive) { showingDiscardConfirmation = true }
-                            .font(.subheadline).frame(minHeight: 44)
+                        CounterweightControl(title: "Discard workout", symbol: "trash") { showingDiscardConfirmation = true }
                     }
                 }.frame(maxWidth: .infinity).multilineTextAlignment(.center)
                 if let last = history.first {
@@ -324,25 +324,24 @@ struct TodayView: View {
             HStack {
                 FormWordmark()
                 Spacer()
-                Button { showingSettings = true } label: {
-                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
-                }.accessibilityLabel("Settings")
+                CounterweightIconButton(symbol: "slider.horizontal.3", label: "Settings") { showingSettings = true }
             }.padding(.horizontal, 24).background(InkPalette.paper)
         }
         .background(PaperBackground())
         .toolbar(.hidden, for: .navigationBar)
-        .confirmationDialog("Discard this session?", isPresented: $showingDiscardConfirmation) {
-            Button("Discard session", role: .destructive) {
-                do { try ActiveWorkoutStore.clearChecked() }
-                catch { recoveryError = "Couldn’t discard the saved session. Try again."; return }
-                recoveryError = nil
-                snapshot = nil
-                RestFeedbackService.shared.cancel()
-                Task { await WorkoutLiveActivityController.forceEnd() }
-            }
-            Button("Keep session", role: .cancel) {}
-        } message: {
-            Text("This removes the unfinished session. Your saved workout history is kept.")
+        .sheet(isPresented: $showingDiscardConfirmation, onDismiss: {
+            guard discardAfterSheet else { return }
+            discardAfterSheet = false
+            do { try ActiveWorkoutStore.clearChecked() }
+            catch { recoveryError = "Couldn’t discard the saved session. Try again."; return }
+            recoveryError = nil
+            snapshot = nil
+            RestFeedbackService.shared.cancel()
+            Task { await WorkoutLiveActivityController.forceEnd() }
+        }) {
+            CounterweightDiscardSheet(discard: {
+                discardAfterSheet = true; showingDiscardConfirmation = false
+            }, keep: { showingDiscardConfirmation = false })
         }
         .onAppear { reloadSession() }
         .onChange(of: history.map(\.persistentModelID)) { _, _ in
@@ -355,26 +354,22 @@ struct TodayView: View {
             ActiveWorkoutView(routine: routine, snapshot: snapshot)
         }
         .sheet(isPresented: $showingRoutine) {
-            NavigationStack {
-                List {
-                    ForEach(FormRoutine.sessions) { routine in
-                        Section(routine.name) {
-                            ForEach(routine.exercises) { exercise in
-                                HStack {
-                                    DemonstrationImage(assetName: exercise.id).frame(width: 64, height: 56)
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        Text(exercise.name)
-                                        Text(exercise.targetText + (exercise.id == "reverse-lunge" ? " / side" : ""))
-                                            .font(.caption).foregroundStyle(InkPalette.softInk)
-                                    }
-                                }
+            CounterweightSheet(title: "The routine") {
+                ForEach(FormRoutine.sessions) { routine in
+                    Text(routine.name).font(.headline).accessibilityAddTraits(.isHeader)
+                    ForEach(routine.exercises) { exercise in
+                        HStack(spacing: 16) {
+                            DemonstrationImage(assetName: exercise.id).frame(width: 54, height: 54)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(exercise.name).font(.subheadline)
+                                Text(exercise.targetText + (exercise.id == "reverse-lunge" ? " / side" : ""))
+                                    .font(.caption).foregroundStyle(InkPalette.softInk)
                             }
-                            Text("Optional: a 15 min treadmill walk.").font(AtelierType.script(20))
                         }
                     }
-                }.scrollContentBackground(.hidden).background(.white)
-                    .navigationTitle("The routine").navigationBarTitleDisplayMode(.inline)
-                    .toolbar { Button("Done") { showingRoutine = false } }
+                    Text("Optional: a 15 min treadmill walk.").font(.caption).foregroundStyle(InkPalette.softInk)
+                    InkDivider()
+                }
             }
         }
         .sheet(isPresented: $showingSettings) { FormSettingsView() }

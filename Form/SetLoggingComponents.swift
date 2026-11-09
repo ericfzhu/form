@@ -43,6 +43,9 @@ struct FocusedSetControls: View {
     @Environment(NumberEntryForm.self) private var entryForm
     @State private var editingRecordedSet = false
     @State private var completionPulse = 0
+    @State private var showingActions = false
+    @State private var pendingAction: SetAction?
+    private enum SetAction { case copy, unrecord, remove }
     let template: ExerciseTemplate
     let index: Int
     @Binding var set: SetDraft
@@ -68,30 +71,9 @@ struct FocusedSetControls: View {
             HStack {
                 Text(title).font(.subheadline).accessibilityAddTraits(.isHeader)
                 Spacer()
-                Menu {
-                    Button("Copy to remaining sets", action: copy).disabled(!canCopy)
-                    ForEach(SetKind.allCases) { kind in
-                        Button {
-                            withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { set.kind = kind }
-                        } label: {
-                            if set.kind == kind { Label(kind.title, systemImage: "checkmark") }
-                            else { Text(kind.title) }
-                        }
-                    }
-                    if set.completed {
-                        Button("Mark unrecorded") {
-                            entryForm.done(); dismissKeyboard()
-                            withAnimation(reduceMotion ? nil : CounterweightMotion.settle) {
-                                set.completed = false
-                                editingRecordedSet = false
-                                didToggleCompletion(false, set.kind)
-                            }
-                        }
-                    }
-                    if canDelete { Button("Remove set", role: .destructive, action: delete) }
-                } label: {
-                    Image(systemName: "ellipsis").frame(width: 44, height: 44)
-                }.accessibilityLabel("\(template.name), \(title), actions")
+                CounterweightIconButton(symbol: "ellipsis", label: "\(template.name), \(title), actions") {
+                    entryForm.done(); dismissKeyboard(); showingActions = true
+                }
             }
             // Both entry and recorded states use the same footprint at standard text sizes.
             Group {
@@ -107,7 +89,7 @@ struct FocusedSetControls: View {
                                          value: Binding(get: { Double(set.repetitions) }, set: { set.repetitions = Int($0) }),
                                          whole: true, caption: template.recordsTime ? "seconds" : "reps")
                     }
-                    .transition(.opacity)
+                    .transition(.identity)
                 } else {
                     HStack(alignment: .center, spacing: 16) {
                         VStack(alignment: .leading, spacing: 6) {
@@ -117,11 +99,11 @@ struct FocusedSetControls: View {
                             Label("Recorded", systemImage: "checkmark").font(.caption).foregroundStyle(InkPalette.softInk)
                         }
                         Spacer(minLength: 0)
-                        Button("Edit") {
+                        CounterweightControl(title: "Edit", symbol: "pencil") {
                             withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { editingRecordedSet = true }
-                        }.font(.subheadline).frame(minWidth: 44, minHeight: 44)
+                        }
                     }
-                    .transition(CounterweightMotion.transition(reduced: reduceMotion))
+                    .transition(.identity)
                 }
             }
             .frame(minHeight: typeSize.isAccessibilitySize ? 0 : 76, alignment: .center)
@@ -142,6 +124,62 @@ struct FocusedSetControls: View {
         }
         .buttonStyle(PressableButtonStyle())
         .animation(reduceMotion ? nil : CounterweightMotion.settle, value: set.completed)
+        .sheet(isPresented: $showingActions, onDismiss: performPendingAction) {
+            CounterweightSheet(title: title, subtitle: template.name) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { kindButtons }
+                    VStack(spacing: 10) { kindButtons }
+                }
+                InkDivider()
+                CounterweightActionRow(title: "Copy to remaining sets", symbol: "square.on.square") {
+                    pendingAction = .copy; showingActions = false
+                }.disabled(!canCopy)
+                if set.completed {
+                    CounterweightActionRow(title: "Undo recording", symbol: "arrow.uturn.backward") {
+                        pendingAction = .unrecord; showingActions = false
+                    }
+                }
+                if canDelete {
+                    InkDivider()
+                    CounterweightActionRow(title: "Remove set", symbol: "minus", destructive: true) {
+                        pendingAction = .remove; showingActions = false
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var kindButtons: some View {
+        ForEach(SetKind.allCases) { kind in
+            Button {
+                withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { set.kind = kind }
+            } label: {
+                HStack(spacing: 8) {
+                    Text(kind.title)
+                    Image(systemName: set.kind == kind ? "checkmark.circle.fill" : "circle")
+                }
+                .font(.subheadline.weight(.medium)).frame(maxWidth: .infinity, minHeight: 48)
+                .foregroundStyle(set.kind == kind ? InkPalette.paper : InkPalette.ink)
+                .background(set.kind == kind ? InkPalette.ink : InkPalette.mist, in: Capsule())
+            }.buttonStyle(PressableButtonStyle())
+                .accessibilityAddTraits(set.kind == kind ? .isSelected : [])
+                .accessibilityLabel("\(kind.title) set")
+        }
+    }
+
+    private func performPendingAction() {
+        let action = pendingAction; pendingAction = nil
+        switch action {
+        case .copy: copy()
+        case .remove: delete()
+        case .unrecord:
+            withAnimation(reduceMotion ? nil : CounterweightMotion.settle) {
+                set.completed = false
+                editingRecordedSet = false
+                didToggleCompletion(false, set.kind)
+            }
+        case nil: break
+        }
     }
 
     private func primaryAction() {

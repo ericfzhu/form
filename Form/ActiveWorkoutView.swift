@@ -30,6 +30,7 @@ struct ActiveWorkoutView: View {
     @State var session: WorkoutSessionState
     @State var showingExerciseList = false
     @State var showingDiscardConfirmation = false
+    @State private var discardAfterSheet = false
     @State var showingEmptyFinishConfirmation = false
     @State var showingIncompleteFinishConfirmation = false
     @State var completedRecord: WorkoutRecord?
@@ -105,9 +106,12 @@ struct ActiveWorkoutView: View {
 
     private var guardedPresentation: some View {
         presentation
-        .confirmationDialog("Discard this session?", isPresented: $showingDiscardConfirmation) {
-            Button("Discard session", role: .destructive, action: discardWorkout)
-            Button("Keep training", role: .cancel) {}
+        .sheet(isPresented: $showingDiscardConfirmation, onDismiss: {
+            if discardAfterSheet { discardAfterSheet = false; discardWorkout() }
+        }) {
+            CounterweightDiscardSheet(discard: {
+                discardAfterSheet = true; showingDiscardConfirmation = false
+            }, keep: { showingDiscardConfirmation = false })
         }
         .alert(
             "End this workout?",
@@ -198,10 +202,10 @@ struct ActiveWorkoutView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .background(PaperBackground())
                 .safeAreaInset(edge: .bottom, spacing: 0) { loggerFooter }
-                .task(id: session.expandedExerciseID) {
+                .task {
                     await Task.yield()
                     guard entryForm.focusedID == nil, let id = session.expandedExerciseID else { return }
-                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { proxy.scrollTo(id, anchor: .top) }
+                    proxy.scrollTo(id, anchor: .top)
                 }
                 .task(id: entryForm.focusRequest) {
                     await Task.yield()
@@ -229,8 +233,9 @@ struct ActiveWorkoutView: View {
             HStack {
                 Text("Exercises").font(.caption).foregroundStyle(InkPalette.softInk)
                 Spacer()
-                Button("Reorder") { entryForm.done(); showingExerciseList = true }
-                    .font(.subheadline).frame(minHeight: 44)
+                CounterweightControl(title: "Reorder", symbol: "arrow.up.arrow.down") {
+                    entryForm.done(); showingExerciseList = true
+                }
             }.padding(.bottom, 8)
             ForEach($session.drafts) { $draft in
                 ExerciseLoggingCard(
@@ -243,7 +248,7 @@ struct ActiveWorkoutView: View {
                     isExpanded: session.expandedExerciseID == draft.id,
                     toggleExpanded: {
                         entryForm.done(); dismissKeyboard()
-                        withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) {
+                        withAnimation(reduceMotion ? nil : CounterweightMotion.expand) {
                             session.expandedExerciseID = session.expandedExerciseID == draft.id ? nil : draft.id
                         }
                     },
@@ -358,9 +363,14 @@ struct ActiveWorkoutView: View {
                 .environment(\.editMode, .constant(.active))
                 .scrollContentBackground(.hidden)
                 .background(PaperBackground())
-                .navigationTitle("Your exercise order")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar { Button("Done") { showingExerciseList = false } }
+                .toolbar(.hidden, for: .navigationBar)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    HStack {
+                        Text("Exercise order").font(.title3.weight(.semibold))
+                        Spacer()
+                        CounterweightIconButton(symbol: "xmark", label: "Close exercise order") { showingExerciseList = false }
+                    }.padding(24).background(InkPalette.paper)
+                }
             }
     }
 

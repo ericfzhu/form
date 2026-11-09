@@ -96,8 +96,8 @@ struct SavedWorkoutView: View {
             HStack {
                 FormWordmark()
                 Spacer()
-                Button(action: done) { Image(systemName: "arrow.left").frame(width: 44, height: 44) }.accessibilityLabel("Back")
-                Button("Edit") { showingEditor = true }.font(.subheadline).frame(minWidth: 44, minHeight: 44)
+                CounterweightIconButton(symbol: "arrow.left", label: "Back", action: done)
+                CounterweightControl(title: "Edit", symbol: "pencil") { showingEditor = true }
             }.buttonStyle(PressableButtonStyle()).padding(.horizontal, 24)
                 .background(InkPalette.paper)
         }

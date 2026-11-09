@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct ActiveWorkoutHeader: View {
+    @State private var showingActions = false
+    @State private var pendingAction: Action?
+    private enum Action { case finish, discard }
     let index: String
     let progress: String
     let requestFinish: () -> Void
@@ -11,18 +14,30 @@ struct ActiveWorkoutHeader: View {
         HStack(spacing: 8) {
             FormWordmark()
             Spacer(minLength: 0)
-            Button("Pause and close", action: pause)
-                .font(.subheadline).frame(minHeight: 44)
-            Menu {
-                Button("Finish workout", action: requestFinish)
-                Button("Discard workout", role: .destructive, action: requestDiscard)
-            } label: {
-                Image(systemName: "ellipsis").frame(width: 44, height: 44)
-            }.accessibilityLabel("Workout options")
+            CounterweightControl(title: "Pause", symbol: "pause") { pause() }
+                .accessibilityLabel("Pause and close")
+                .accessibilityHint("Saves this session so you can resume it from Today")
+            CounterweightIconButton(symbol: "ellipsis", label: "Workout options") { showingActions = true }
+
         }
         .buttonStyle(PressableButtonStyle())
         .padding(.horizontal, 24).padding(.vertical, 6)
         .background(InkPalette.paper)
+        .sheet(isPresented: $showingActions, onDismiss: {
+            let action = pendingAction; pendingAction = nil
+            if action == .finish { requestFinish() }
+            if action == .discard { requestDiscard() }
+        }) {
+            CounterweightSheet(title: "Workout") {
+                CounterweightActionRow(title: "Finish workout", symbol: "checkmark") {
+                    pendingAction = .finish; showingActions = false
+                }
+                InkDivider()
+                CounterweightActionRow(title: "Discard workout", symbol: "trash", destructive: true) {
+                    pendingAction = .discard; showingActions = false
+                }
+            }
+        }
     }
 }
 
@@ -53,7 +68,7 @@ struct ExerciseLoggingCard: View {
                 Button(action: toggleExpanded) {
                     HStack(spacing: 14) {
                         DemonstrationImage(assetName: draft.template.assetName)
-                            .frame(width: isExpanded ? 78 : 54, height: isExpanded ? 78 : 54)
+                            .frame(width: 64, height: 64)
                             .phaseAnimator([0.0, 1.0, 0.0], trigger: logPulse) { art, phase in
                                 art.scaleEffect(x: reduceMotion ? 1 : 1 + phase * 0.035,
                                                 y: reduceMotion ? 1 : 1 - phase * 0.035, anchor: .bottom)
@@ -65,9 +80,6 @@ struct ExerciseLoggingCard: View {
                                 .font(.caption).foregroundStyle(InkPalette.softInk)
                         }
                         Spacer(minLength: 0)
-                        if !isExpanded {
-                            Image(systemName: completedSetCount == workingSetCount && workingSetCount > 0 ? "checkmark" : "chevron.down").font(.caption)
-                        }
                     }
                     .foregroundStyle(InkPalette.ink).padding(.vertical, 16).contentShape(Rectangle())
                 }
@@ -75,13 +87,18 @@ struct ExerciseLoggingCard: View {
                 .accessibilityValue("\(completedSetCount) of \(workingSetCount) working sets recorded. \(isExpanded ? "Expanded" : "Collapsed")")
                 .accessibilityHint(isExpanded ? "Show all exercises" : "Open focused set controls")
                 if isExpanded && !draft.template.formCues.isEmpty {
-                    Button { entryForm.done(); dismissKeyboard(); showingTechnique = true } label: {
-                        Image(systemName: "info.circle").font(.body).frame(width: 44, height: 44)
-                    }.accessibilityLabel("Technique for \(draft.template.name)")
+                    CounterweightIconButton(symbol: "info", label: "Technique for \(draft.template.name)") {
+                        entryForm.done(); dismissKeyboard(); showingTechnique = true
+                    }
+                } else {
+                    CounterweightIconButton(
+                        symbol: isExpanded ? "chevron.up" : (completedSetCount == workingSetCount && workingSetCount > 0 ? "checkmark" : "chevron.down"),
+                        label: "\(isExpanded ? "Close" : "Open") \(draft.template.name)", action: toggleExpanded
+                    ).accessibilityHidden(true)
                 }
             }
             .buttonStyle(PressableButtonStyle())
-            if isExpanded {
+            CounterweightRevealLayout(amount: isExpanded ? 1 : 0) {
                 VStack(alignment: .leading, spacing: 18) {
                     setMarks
                     if let index = selectedIndex {
@@ -98,12 +115,12 @@ struct ExerciseLoggingCard: View {
                             didUpdateSet(draft.sets[index].id, completed, kind)
                         })
                         .id(draft.sets[index].id)
-                        .transition(.opacity)
+                        .transition(.identity)
                     }
                     HStack(spacing: 20) {
-                        Button { addSet(warmup: false) } label: { Label("Set", systemImage: "plus") }
+                        CounterweightControl(title: "Set", symbol: "plus") { addSet(warmup: false) }
                             .accessibilityLabel("Add working set")
-                        Button { addSet(warmup: true) } label: { Label("Warm-up", systemImage: "plus") }
+                        CounterweightControl(title: "Warm-up", symbol: "plus") { addSet(warmup: true) }
                             .accessibilityLabel("Add warm-up set")
                     }
                     .font(.caption).buttonStyle(PressableButtonStyle()).frame(minHeight: 44)
@@ -112,10 +129,12 @@ struct ExerciseLoggingCard: View {
                     }
                 }
                 .padding(.bottom, 24)
-                .transition(CounterweightMotion.transition(reduced: reduceMotion))
             }
+            .clipped()
+            .allowsHitTesting(isExpanded)
+            .accessibilityHidden(!isExpanded)
         }
-        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: isExpanded)
+        .animation(reduceMotion ? nil : CounterweightMotion.expand, value: isExpanded)
         .sheet(isPresented: $showingTechnique) { ExerciseTechniqueView(exercise: draft.template) }
     }
 
@@ -226,44 +245,47 @@ struct ExerciseLoggingCard: View {
 }
 
 private struct ExerciseTechniqueView: View {
-    @Environment(\.dismiss) private var dismiss
     let exercise: ExerciseTemplate
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    DemonstrationImage(assetName: exercise.assetName)
-                        .frame(width: 144, height: 144).frame(maxWidth: .infinity)
-                    Text(exercise.name).font(.title2.weight(.bold)).accessibilityAddTraits(.isHeader)
-                    ForEach(exercise.formCues, id: \.self) { cue in
-                        Text(cue).font(.body).fixedSize(horizontal: false, vertical: true)
-                    }
-                    if exercise.id == "reverse-lunge" { Text("Record repetitions per side.").font(.subheadline) }
-                }.padding(24)
+        CounterweightSheet(title: "Technique", subtitle: exercise.name) {
+            DemonstrationImage(assetName: exercise.assetName)
+                .frame(width: 112, height: 112).frame(maxWidth: .infinity)
+            ForEach(exercise.formCues, id: \.self) { cue in
+                Text(cue).font(.body).fixedSize(horizontal: false, vertical: true)
             }
-            .background(PaperBackground()).navigationTitle("Technique").navigationBarTitleDisplayMode(.inline)
-            .toolbar { Button("Done") { dismiss() } }
-        }.presentationDetents([.medium, .large])
+            if exercise.id == "reverse-lunge" { Text("Record repetitions per side.").font(.subheadline) }
+        }
     }
 }
 
 struct ExerciseRestPicker: View {
     @AppStorage private var seconds: Int
+    @State private var showingOptions = false
     private let exerciseName: String
     init(exercise: ExerciseTemplate) {
         exerciseName = exercise.name
         _seconds = AppStorage(wrappedValue: exercise.restSeconds, ExerciseRestPreference.key(for: exercise.id))
     }
     private var options: [Int] { Array(Set([0, 30, 60, 90, 120, 150, 180, 240, 300, seconds])).sorted() }
+    private func label(_ value: Int) -> String { value == 0 ? "Off" : String(format: "%d:%02d", value / 60, value % 60) }
     var body: some View {
-        HStack(spacing: 4) {
-            Text("Auto").font(.caption).foregroundStyle(InkPalette.softInk)
-            Picker("Rest", selection: $seconds) {
-                ForEach(options, id: \.self) { value in
-                    Text(value == 0 ? "Off" : String(format: "%d:%02d", value / 60, value % 60)).tag(value)
+        CounterweightControl(title: "Auto " + label(seconds), symbol: "timer") { showingOptions = true }
+            .accessibilityLabel("\(exerciseName), automatic rest between sets")
+            .accessibilityValue(label(seconds))
+            .sheet(isPresented: $showingOptions) {
+                CounterweightSheet(title: "Rest between sets", subtitle: exerciseName) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 12) {
+                        ForEach(options, id: \.self) { value in
+                            Button { seconds = value; showingOptions = false } label: {
+                                Text(label(value)).font(.subheadline.monospacedDigit().weight(.medium))
+                                    .frame(maxWidth: .infinity, minHeight: 48)
+                                    .foregroundStyle(seconds == value ? InkPalette.paper : InkPalette.ink)
+                                    .background(seconds == value ? InkPalette.ink : InkPalette.mist, in: Capsule())
+                            }.buttonStyle(PressableButtonStyle())
+                                .accessibilityAddTraits(seconds == value ? .isSelected : [])
+                        }
+                    }
                 }
-            }.pickerStyle(.menu).accessibilityLabel("\(exerciseName), automatic rest between sets")
-                .font(.caption.monospacedDigit()).tint(InkPalette.ink).frame(minHeight: 44)
-        }
+            }
     }
 }

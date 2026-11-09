@@ -7,6 +7,9 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \WorkoutRecord.date, order: .reverse) private var workouts: [WorkoutRecord]
     @State private var showingSettings = false
+    @State private var showingOptions = false
+    @State private var pendingOption: HistoryOption?
+    private enum HistoryOption { case exercises, restore }
     @State private var saveErrorMessage: String?
     @State private var selectedSection: HistorySection = .sessions
     @State private var showingExerciseIndex = false
@@ -101,20 +104,8 @@ struct HistoryView: View {
             HStack {
                 FormWordmark()
                 Spacer()
-                Menu {
-                    Button("Sessions") { selectedSection = .sessions }
-                    Button("Overview") { selectedSection = .overview }
-                    Button("Exercise progress") { showingExerciseIndex = true }
-                    Divider()
-                    ShareLink(item: WorkoutBackup(workouts: workouts), preview: SharePreview("Form workout backup")) {
-                        Label("Export a backup", systemImage: "square.and.arrow.up")
-                    }
-                    Button("Restore a backup") { showingBackupImporter = true }
-                } label: { Image(systemName: "ellipsis").font(.system(size: 22)).frame(width: 44, height: 44) }
-                    .accessibilityLabel("History options")
-                Button { showingSettings = true } label: {
-                    Image(systemName: "slider.horizontal.3").font(.system(size: 22)).frame(width: 44, height: 44)
-                }.accessibilityLabel("Settings")
+                CounterweightIconButton(symbol: "ellipsis", label: "History options") { showingOptions = true }
+                CounterweightIconButton(symbol: "slider.horizontal.3", label: "Settings") { showingSettings = true }
             }.padding(.horizontal, 28).background(InkPalette.paper.ignoresSafeArea(edges: .top))
         }
         .confirmationDialog("Delete this session?", isPresented: Binding(
@@ -128,6 +119,29 @@ struct HistoryView: View {
             Button("Cancel", role: .cancel) { pendingDeletion = nil }
         } message: { workout in
             Text("Delete \(workout.displayName)? This also requests removal of its Apple Health workout and can’t be undone.")
+        }
+        .sheet(isPresented: $showingOptions, onDismiss: {
+            let option = pendingOption; pendingOption = nil
+            if option == .exercises { showingExerciseIndex = true }
+            if option == .restore { showingBackupImporter = true }
+        }) {
+            CounterweightSheet(title: "History") {
+                CounterweightActionRow(title: "Exercise progress", symbol: "chart.xyaxis.line") {
+                    pendingOption = .exercises; showingOptions = false
+                }
+                InkDivider()
+                ShareLink(item: WorkoutBackup(workouts: workouts), preview: SharePreview("Form workout backup")) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "square.and.arrow.up").font(.system(size: 16, weight: .medium))
+                            .frame(width: 40, height: 40).background(InkPalette.mist, in: Circle())
+                        Text("Export a backup").font(.subheadline.weight(.medium))
+                        Spacer()
+                    }.foregroundStyle(InkPalette.ink).padding(.vertical, 5).contentShape(Rectangle())
+                }.buttonStyle(PressableButtonStyle())
+                CounterweightActionRow(title: "Restore a backup", symbol: "arrow.down.document") {
+                    pendingOption = .restore; showingOptions = false
+                }
+            }
         }
         .sheet(isPresented: $showingSettings) { FormSettingsView() }
         .toolbar(.hidden, for: .navigationBar)

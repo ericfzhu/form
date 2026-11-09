@@ -2,6 +2,16 @@
 
 Reviewed 25–26 October 2026. This is a source review plus targeted regression testing, not a claim that every possible interaction has been verified on a device.
 
+## Control and motion polish — 9 November 2026
+
+- Exercise changes now animate one clipped reveal layout instead of inserting/removing fading editors. Artwork and header action slots stay the same size. Editors remain mounted, with collapsed content excluded from interaction and accessibility. Automatic animated scrolling on exercise selection is removed; initial restoration and validation-driven field reveal remain.
+- Set selection no longer crossfades duplicate input/result views. Selection marks retain their small physical movement; rest remains in its reserved dock. Reduce Motion changes the expanded layout immediately.
+- Shared Counterweight capsule and circular controls cover Pause, Edit, set addition, reorder, Today routine/discard/retry/settings, saved-record navigation, and nested editor/progress headers.
+- Set and workout three-dot menus, History options, and automatic-rest selection now open authored Counterweight sheets. Set type is a pair of selected/unselected controls, with copy, undo recording and removal grouped below. Routine, Technique and discard confirmation use the same header and close control. History still exposes exercise progress, backup export and restore; Sessions/Overview remain in the visible section control.
+- Sheet actions that open another presentation or mutate the current editor run after dismissal. Discard still requires its own explicit confirmation; closing or keeping the sheet preserves the session. System share/import surfaces and error alerts retain platform behavior.
+
+Validation: simulator build and 82 existing regression tests pass. Targeted simulator checks cover Romanian deadlift ↔ incline-press expansion, routine and discard-sheet presentation/cancellation, set-action layout, and History → exercise progress after the action sheet closes. Physical-iPhone checks remain skipped. Timing and feel still warrant user evaluation on the running simulator; this is not a claim of exhaustive animation/accessibility coverage.
+
 ## Focused-set interaction pass — 9 November 2026
 
 This supersedes the expanded set-table and inline-rest presentation described in the initial Counterweight pass below.

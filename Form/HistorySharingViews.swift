@@ -18,12 +18,10 @@ struct ExerciseIndexView: View {
                 PaperBackground()
                 VStack(spacing: 0) {
                     HStack {
-                        Text("exercise progress")
-                            .font(.system(.body, design: .monospaced))
+                        Text("Exercise progress")
+                            .font(.headline)
                         Spacer()
-                        Button("done") { dismiss() }
-                            .font(.system(.subheadline, design: .monospaced))
-                            .frame(minWidth: 52, minHeight: 44, alignment: .trailing)
+                        CounterweightIconButton(symbol: "xmark", label: "Close exercise progress") { dismiss() }
                     }
                     .padding(.horizontal, 20)
 
@@ -36,7 +34,7 @@ struct ExerciseIndexView: View {
                             .focused($searchFocused)
                             .submitLabel(.search)
                             .onSubmit { searchFocused = false }
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(.body, design: .default))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                         if !searchText.isEmpty {
@@ -58,9 +56,9 @@ struct ExerciseIndexView: View {
                             HStack(spacing: 14) {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(exercise.name)
-                                        .font(.system(.body, design: .monospaced))
+                                        .font(.system(.body, design: .default))
                                     Text(exercise.targetText)
-                                        .font(.system(.caption2, design: .monospaced))
+                                        .font(.system(.caption2, design: .default))
                                         .foregroundStyle(InkPalette.softInk.opacity(0.8))
                                 }
                                 Spacer()

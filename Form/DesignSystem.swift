@@ -132,7 +132,6 @@ struct CounterweightActionRow: View {
                     .frame(width: 40, height: 40).background(InkPalette.mist, in: Circle())
                 Text(title).font(.subheadline.weight(.medium)).multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
-                Image(systemName: "arrow.up.right").font(.caption)
             }.foregroundStyle(InkPalette.ink).padding(.vertical, 5)
                 .opacity(isEnabled ? 1 : 0.4).contentShape(Rectangle())
         }.buttonStyle(PressableButtonStyle())
@@ -285,9 +284,7 @@ struct InkTextHeader: View {
                     .accessibilityAddTraits(.isHeader)
             }
             HStack(spacing: 12) {
-                Button(leadingTitle, action: leadingAction)
-                    .font(AtelierType.script(16))
-                    .frame(minWidth: 60, minHeight: 52)
+                CounterweightControl(title: leadingTitle, symbol: leadingTitle == "Back" ? "arrow.left" : "xmark", action: leadingAction)
                 if typeSize.isAccessibilitySize { Spacer(minLength: 0) }
                 else {
                     Text(title).font(AtelierType.script(16)).lineLimit(1)
@@ -295,14 +292,12 @@ struct InkTextHeader: View {
                         .accessibilityAddTraits(.isHeader)
                 }
                 if let trailingTitle, let trailingAction {
-                    Button(trailingTitle, action: trailingAction)
-                        .font(AtelierType.script(16))
-                        .frame(minWidth: 60, minHeight: 52)
+                    CounterweightControl(title: trailingTitle, symbol: "checkmark", action: trailingAction)
                 } else if !typeSize.isAccessibilitySize {
                     Color.clear.frame(width: 60, height: 52).accessibilityHidden(true)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 12).padding(.vertical, 6)
             .buttonStyle(PressableButtonStyle())
         }
         .background { PaperSurface() }
