@@ -69,6 +69,26 @@ struct RoutineTemplate: Identifiable, Hashable, Codable {
 
 enum WorkoutCatalog {
     static let formCues: [String: [String]] = [
+        "barbell-bench-press": [
+            "Keep your feet planted and your shoulders supported by the bench.",
+            "Lower the bar under control toward your chest, with your wrists above your forearms.",
+            "Press back up while keeping your shoulders against the bench."
+        ],
+        "barbell-incline-press": [
+            "Use a modest bench incline and keep your feet firmly planted.",
+            "Lower the bar toward your upper chest with your forearms beneath it.",
+            "Press upward while keeping your shoulders supported by the bench."
+        ],
+        "barbell-romanian-deadlift": [
+            "Soften your knees, brace, and keep the bar close to your legs.",
+            "Send your hips backward until your hamstrings limit the movement.",
+            "Stand by driving your hips forward without leaning back."
+        ],
+        "reverse-lunge": [
+            "Step one foot back into a stable stance.",
+            "Lower under control, keeping your front foot planted and your front knee tracking over your toes.",
+            "Push through your front foot to return to standing, then alternate sides."
+        ],
         "barbell-back-squat": [
             "Set the bar across your upper back and brace before leaving the rack.",
             "Keep your whole foot planted as your knees track over your toes.",

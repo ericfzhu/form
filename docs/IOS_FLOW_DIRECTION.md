@@ -1,6 +1,6 @@
 # Form — Counterweight flow and state model
 
-Status: native core journey implemented, 9 November 2026. Today, the expandable workout, independent rest/walk, shared saved-workout surface, and History now use Counterweight. The coverage table remains the acceptance checklist, not a claim of exhaustive device verification. See [IOS_STATE_AUDIT.md](IOS_STATE_AUDIT.md) for current evidence and limits.
+Status: native focused-set interaction implemented, 9 November 2026. Today, the expandable workout, independent rest/walk, shared saved-workout surface, and History now use Counterweight. The coverage table remains the acceptance checklist, not a claim of exhaustive device verification. See [IOS_STATE_AUDIT.md](IOS_STATE_AUDIT.md) for current evidence and limits.
 
 ## Product contract
 
@@ -58,23 +58,23 @@ While restoration is unresolved, do not offer a Start action that could overwrit
 
 ### 2. Work in the order that suits the gym
 
-The active surface is a workout with an exercise list, not a sequence of required pages. Selecting a movement expands its editable area in place. Other movement names and progress remain reachable through a visible Exercises control; selecting a movement never logs or skips it automatically. Reordering lives in that list and affects this session only.
+The active surface is a workout with an exercise list, not a sequence of required pages. Selecting a movement opens its focused set workspace and brings the exercise header into view. Other movement names and progress remain reachable through a visible Exercises control; selecting a movement never logs or skips it automatically. Reordering lives in that list and affects this session only.
 
-Preserve warm-up/working-set controls, adding/removing sets, previous performance, measurement-specific fields and existing rest preferences. A fully recorded movement becomes a compact completed entry with recorded values. There is no separate exercise-complete page or compulsory Continue action. Reopen it to correct or unmark a set.
+A horizontal strip of numbered set marks selects any set directly. Only that set’s inputs are shown. A successful log settles those inputs into a recorded result in the same footprint; Next set is explicit and can return to an earlier unrecorded set. Edit corrects recorded values without restarting rest. Warm-up and working-set addition sit together; copy, type and removal actions belong to the selected set. Technique is a separate sheet from the exercise header. Preserve previous performance, measurement-specific fields and existing rest preferences. A fully recorded movement becomes a compact completed entry with recorded values. There is no separate exercise-complete page or compulsory Continue action. Reopen it to correct or unmark a set.
 
-Keep identity and scroll position stable across expansion. If animation is used, the selected movement remains identifiable throughout; do not move an input away while someone is editing it.
+Keep set identities and their selected mark stable while editing and logging. Each exercise remembers its selected set across switching and pause/relaunch. If animation is used, the selected movement remains identifiable throughout; do not move an input away while someone is editing it.
 
 ### 3. Log a set and rest without surrendering control
 
 A valid Log set action records once immediately. The character compresses with press, gives a short release response on recording, then settles if rest starts. Animation is feedback, never the authority for saving or unlocking controls. Repeated input must not duplicate a set. Rest and completion animations do not run on restoration.
 
-Rest is an independent condition of the active workout, not a route. Keep one session rest deadline, associated with the set that started it. Keep exercise selection, fields, logging, walk access and Finish usable. Another completed eligible set replaces that deadline. Undo cancels rest only when it belongs to the undone set; it does not cancel a newer set's timer.
+Rest is an independent condition of the active workout, not a route. A reserved bottom dock keeps the idle rest action, running timer and Ready state in the same location; it never inserts a panel above the exercise. The keyboard accessory sits beneath this same dock when needed. Keep one session rest deadline, associated with the set that started it. Keep exercise selection, fields, logging, walk access and Finish usable. Another completed eligible set replaces that deadline. Undo cancels rest only when it belongs to the undone set; it does not cancel a newer set's timer.
 
 Retain per-exercise and warm-up rest preferences, including no automatic rest where configured. Do not hard-code the preview's two-minute interval into the product.
 
 If no planned working sets remain, do not automatically start another rest merely to place a timer between training and finishing. Offer manual Rest from the workout actions for someone continuing with extra work. If planned sets remain elsewhere, normal configured rest still applies. Adding a set makes it part of the remaining work.
 
-Controls: subtract/add 30 seconds, Skip, and a quiet Ready state on expiry. Expiry never changes movement, logs work or finishes the session. With a keyboard open, rest becomes compact. Keep its deadline across foreground/background transitions; explicit Pause and close stops active duration and walk accumulation, while an existing rest deadline continues by wall clock.
+Controls: subtract/add 30 seconds, Skip, and a quiet Ready state on expiry. Expiry never changes movement, logs work or finishes the session. Rest stays compact and visible when the keyboard opens. Keep its deadline across foreground/background transitions; explicit Pause and close stops active duration and walk accumulation, while an existing rest deadline continues by wall clock.
 
 ### 4. Record cardio without a forced handoff
 
@@ -145,7 +145,7 @@ Model these independently rather than constructing one enum for every visual com
 
 Rest can coexist with editing, movement selection or a walk. A saved workout cannot coexist with an active timer for the same session. A save failure cannot produce the saved presentation. Pause closes only after the snapshot write succeeds. Acknowledgement animations are transient view effects and never persisted lifecycle states.
 
-Snapshot schema 4 now persists stable set IDs, initial values, raw edited number strings, the rest source set, and walk disclosure state. Versions 1–3 still decode with defaults. Pause preserves unfinished text; finishing validates recorded work and reviews exclusions. Rest-source identity survives restoration.
+Snapshot schema 5 persists stable set IDs, initial values, raw edited number strings, the rest source set, walk disclosure state and the selected set for each exercise. Versions 1–4 still decode with defaults; a missing or removed selected set falls back to an unrecorded set or the last recorded set. Pause preserves unfinished text; finishing validates recorded work and reviews exclusions. Rest-source identity survives restoration.
 
 If a write succeeds but snapshot cleanup fails, durable saved-session identity must suppress Resume for that session. Preserve the repository's completed-record reconciliation and exercise it again in migration tests.
 

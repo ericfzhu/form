@@ -2,6 +2,67 @@ import XCTest
 @testable import FormCore
 
 final class CounterweightWorkflowTests: XCTestCase {
+    func testEveryPrescribedExerciseHasTechniqueContent() {
+        for exercise in FormRoutine.sessions.flatMap(\.exercises) {
+            XCTAssertFalse(exercise.formCues.isEmpty, "Missing technique for \(exercise.id)")
+        }
+    }
+
+    @MainActor
+    func testFocusedSetSurvivesLoggingSwitchingAndRelaunch() throws {
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0])
+        let exercise = session.drafts[0].id
+        let laterSet = session.drafts[0].sets[1].id
+        session.selectSet(laterSet, for: exercise)
+        session.drafts[0].sets[1].completed = true
+        session.didCompleteSet(for: exercise, kind: .working, setID: laterSet)
+        XCTAssertEqual(session.selectedSetID(for: exercise), laterSet, "Logging must not move the editor")
+        session.expandedExerciseID = session.drafts[1].id
+        let restored = WorkoutSessionState(routine: session.routine, snapshot: try JSONDecoder().decode(
+            ActiveWorkoutSnapshot.self, from: JSONEncoder().encode(session.snapshot)))
+        XCTAssertEqual(restored.expandedExerciseID, session.drafts[1].id)
+        XCTAssertEqual(restored.selectedSetID(for: exercise), laterSet)
+        XCTAssertEqual(restored.restSourceSetID, laterSet)
+    }
+
+    @MainActor
+    func testSelectionRecoversAfterRemovalAndFromOldSnapshots() {
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0])
+        let exercise = session.drafts[0].id
+        let removed = session.drafts[0].sets[1].id
+        session.selectSet(removed, for: exercise)
+        session.drafts[0].sets.removeLast()
+        XCTAssertEqual(session.selectedSetID(for: exercise), session.drafts[0].sets[0].id)
+        session.selectSet(UUID(), for: exercise)
+        XCTAssertEqual(session.selectedSetID(for: exercise), session.drafts[0].sets[0].id)
+        var snapshot = session.snapshot
+        snapshot.selectedSetIDs = nil
+        let restored = WorkoutSessionState(routine: session.routine, snapshot: snapshot)
+        XCTAssertEqual(restored.selectedSetID(for: exercise), restored.drafts[0].sets[0].id)
+    }
+
+    @MainActor
+    func testExplicitCopyReplacesInvalidRawTextEvenWhenValueIsUnchanged() {
+        let form = NumberEntryForm(locale: Locale(identifier: "en_AU"))
+        form.configure([NumberFieldSpec(id: "load", label: "Weight", value: 35, rule: .load)], order: ["load"])
+        XCTAssertNil(form.edit("-", id: "load"))
+        XCTAssertFalse(form.validate())
+        form.replaceValue(35, id: "load")
+        XCTAssertEqual(form.text(for: "load", fallback: 0), "35")
+        XCTAssertTrue(form.validate())
+        XCTAssertTrue(form.editedTexts.isEmpty)
+    }
+
+    @MainActor
+    func testManualRestUsesChosenDurationWithoutRecordingAnything() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let session = WorkoutSessionState(routine: FormRoutine.sessions[0], now: now)
+        session.startManualRest(seconds: 150, now: now)
+        XCTAssertEqual(session.restEnd, now.addingTimeInterval(150))
+        XCTAssertNil(session.restSourceSetID)
+        XCTAssertFalse(session.hasRecordedWork)
+    }
+
     @MainActor
     func testRestBelongsToItsSetAcrossRelaunchAndUndo() throws {
         let session = WorkoutSessionState(routine: FormRoutine.sessions[0])

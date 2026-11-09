@@ -35,104 +35,129 @@ struct LastPerformanceSummary: View {
     }
 }
 
-struct SetLoggingRow: View {
+/// One editable set at a time. Logging settles this same workspace into a receipt;
+/// selecting another mark or Next set is an explicit navigation action.
+struct FocusedSetControls: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var completionPulse = 0
-    let exerciseID: String
-    let index: Int
-    let measurement: ExerciseTemplate.Measurement
-    @Binding var set: SetDraft
     @Environment(NumberEntryForm.self) private var entryForm
+    @State private var editingRecordedSet = false
+    @State private var completionPulse = 0
+    let template: ExerciseTemplate
+    let index: Int
+    @Binding var set: SetDraft
     let canDelete: Bool
+    let canCopy: Bool
+    let copy: () -> Void
     let delete: () -> Void
+    let nextSet: (() -> Void)?
+    let showExercises: () -> Void
     let didToggleCompletion: (Bool, SetKind) -> Void
 
-    private var exerciseName: String { WorkoutCatalog.exercise(id: exerciseID)?.name ?? exerciseID }
-    private var setDescription: String { self.set.kind == .warmup ? "warm-up set \(index)" : "set \(index)" }
+    private var title: String { self.set.kind == .warmup ? "Warm-up \(index)" : "Set \(index)" }
+    private var fieldIDs: [String] {
+        (template.recordsLoad ? [EntryID.load(set.id)] : []) + [EntryID.count(set.id)]
+    }
+    private var isEditing: Bool {
+        !set.completed || editingRecordedSet || fieldIDs.contains(entryForm.focusedID ?? "")
+            || !entryForm.invalidIDs.isDisjoint(with: fieldIDs)
+    }
 
     var body: some View {
-        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
-        layout {
-            Menu {
-                ForEach(SetKind.allCases) { kind in
-                    Button {
-                        set.kind = kind
-                    } label: {
-                        if set.kind == kind { Label(kind.title, systemImage: "checkmark") }
-                        else { Text(kind.title) }
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(title).font(.subheadline).accessibilityAddTraits(.isHeader)
+                Spacer()
+                Menu {
+                    Button("Copy to remaining sets", action: copy).disabled(!canCopy)
+                    ForEach(SetKind.allCases) { kind in
+                        Button {
+                            withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { set.kind = kind }
+                        } label: {
+                            if set.kind == kind { Label(kind.title, systemImage: "checkmark") }
+                            else { Text(kind.title) }
+                        }
                     }
-                }
-                if canDelete {
-                    Divider()
-                    Button("Delete set", role: .destructive, action: delete)
-                }
-            } label: {
-                HStack(spacing: 2) {
-                    Text(set.kind == .warmup ? set.kind.shortTitle : "\(index)")
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 7, weight: .bold))
-                }
-                .font(.system(.body, design: .default, weight: .semibold))
-                .foregroundStyle(set.kind == .warmup ? InkPalette.plum : InkPalette.softInk)
-                .frame(minWidth: 40, minHeight: 44)
+                    if set.completed {
+                        Button("Mark unrecorded") {
+                            entryForm.done(); dismissKeyboard()
+                            withAnimation(reduceMotion ? nil : CounterweightMotion.settle) {
+                                set.completed = false
+                                editingRecordedSet = false
+                                didToggleCompletion(false, set.kind)
+                            }
+                        }
+                    }
+                    if canDelete { Button("Remove set", role: .destructive, action: delete) }
+                } label: {
+                    Image(systemName: "ellipsis").frame(width: 44, height: 44)
+                }.accessibilityLabel("\(template.name), \(title), actions")
             }
-            .tint(InkPalette.ink)
-            .accessibilityLabel("\(exerciseName), \(setDescription), type: \(set.kind.title)")
-
-            if measurement == .weighted || measurement == .weightedTimed {
-                if typeSize.isAccessibilitySize { Text("Weight · kg").font(.caption) }
-                NumberEntryField(id: EntryID.load(set.id), label: "\(exerciseName), \(setDescription), weight in kilograms", value: $set.weight, alignment: .center)
-            } else {
-                Text("body")
-                    .font(.system(.caption, design: .default))
-                    .foregroundStyle(InkPalette.softInk)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 42)
+            // Both entry and recorded states use the same footprint at standard text sizes.
+            Group {
+                if isEditing {
+                    let layout = typeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(spacing: 16)) : AnyLayout(HStackLayout(spacing: 24))
+                    layout {
+                        if template.recordsLoad {
+                            NumberEntryField(id: EntryID.load(set.id), label: "\(template.name), \(title), weight in kilograms",
+                                             value: $set.weight, caption: "kg")
+                        }
+                        NumberEntryField(id: EntryID.count(set.id), label: "\(template.name), \(title), \(template.recordsTime ? "seconds" : "repetitions")",
+                                         value: Binding(get: { Double(set.repetitions) }, set: { set.repetitions = Int($0) }),
+                                         whole: true, caption: template.recordsTime ? "seconds" : "reps")
+                    }
+                    .transition(.opacity)
+                } else {
+                    HStack(alignment: .center, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(WorkoutValueFormatter.setText(weight: set.weight, repetitions: set.repetitions, template: template))
+                                .font(.title3.monospacedDigit().weight(.medium))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Label("Recorded", systemImage: "checkmark").font(.caption).foregroundStyle(InkPalette.softInk)
+                        }
+                        Spacer(minLength: 0)
+                        Button("Edit") {
+                            withAnimation(reduceMotion ? nil : CounterweightMotion.quiet) { editingRecordedSet = true }
+                        }.font(.subheadline).frame(minWidth: 44, minHeight: 44)
+                    }
+                    .transition(CounterweightMotion.transition(reduced: reduceMotion))
+                }
             }
-
-            if typeSize.isAccessibilitySize {
-                Text(measurement == .timed || measurement == .weightedTimed ? "Seconds" : "Repetitions").font(.caption)
-            }
-            NumberEntryField(id: EntryID.count(set.id), label: "\(exerciseName), \(setDescription), \(measurement == .timed || measurement == .weightedTimed ? "seconds" : "repetitions")", value: Binding(get: { Double(set.repetitions) }, set: { set.repetitions = Int($0) }), whole: true, alignment: .center)
-
-            Button {
-                let ids = [EntryID.count(set.id)] + ((measurement == .weighted || measurement == .weightedTimed) ? [EntryID.load(set.id)] : [])
-                guard set.completed || entryForm.validate(ids: ids) else { return }
-                entryForm.done()
-                set.completed.toggle()
-                let completed = set.completed
-                if completed { completionPulse += 1 }
-                dismissKeyboard()
-                didToggleCompletion(completed, set.kind)
-            } label: {
+            .frame(minHeight: typeSize.isAccessibilitySize ? 0 : 76, alignment: .center)
+            Button(action: primaryAction) {
                 HStack(spacing: 10) {
-                    ZStack {
-                        Circle().fill(set.completed ? InkPalette.ink : InkPalette.paper)
-                        Circle().strokeBorder(InkPalette.ink.opacity(set.completed ? 1 : 0.18), lineWidth: 1)
-                        Image(systemName: set.completed ? "checkmark" : "plus")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(set.completed ? InkPalette.paper : InkPalette.ink)
-                            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
-                    }
-                    .frame(width: 42, height: 42)
-                    .phaseAnimator([0.0, 1.0, 0.0], trigger: completionPulse) { mark, phase in
-                        mark.scaleEffect(reduceMotion ? 1 : 1 + phase * 0.1)
-                    } animation: { _ in CounterweightMotion.press }
-                    if typeSize.isAccessibilitySize {
-                        Text(set.completed ? "Completed" : "Complete set").font(.body)
-                    }
+                    Text(isEditing ? (set.completed ? "Done" : "Log set") : (nextSet == nil ? "Exercises" : "Next set"))
+                    Image(systemName: isEditing ? "checkmark" : "arrow.right")
                 }
-                .frame(minWidth: 52, minHeight: 52)
-                .contentShape(Rectangle())
+                .font(.subheadline.weight(.medium)).frame(maxWidth: .infinity, minHeight: 48)
+                .foregroundStyle(InkPalette.paper).background(InkPalette.ink, in: Capsule())
+                .phaseAnimator([0.0, 1.0, 0.0], trigger: completionPulse) { mark, phase in
+                    mark.scaleEffect(x: reduceMotion ? 1 : 1 + phase * 0.015,
+                                     y: reduceMotion ? 1 : 1 - phase * 0.045)
+                } animation: { _ in CounterweightMotion.press }
             }
-            .buttonStyle(PressableButtonStyle())
+            .accessibilityLabel(isEditing ? (set.completed ? "Finish editing \(title)" : "Log \(template.name), \(title)") : (nextSet == nil ? "Show exercises" : "Next unrecorded set"))
             .sensoryFeedback(.impact(weight: .medium, intensity: 0.65), trigger: completionPulse)
-            .accessibilityLabel("\(exerciseName), \(setDescription), \(set.completed ? "mark incomplete" : "mark complete")")
-            .accessibilityValue(set.completed ? "Completed" : "Not completed")
         }
-        .padding(.vertical, 2)
+        .buttonStyle(PressableButtonStyle())
+        .animation(reduceMotion ? nil : CounterweightMotion.settle, value: set.completed)
+    }
 
+    private func primaryAction() {
+        if isEditing {
+            guard entryForm.validate(ids: fieldIDs) else { return }
+            entryForm.done(); dismissKeyboard()
+            withAnimation(reduceMotion ? nil : CounterweightMotion.settle) {
+                editingRecordedSet = false
+                if !set.completed {
+                    set.completed = true
+                    completionPulse += 1
+                    didToggleCompletion(true, set.kind)
+                }
+            }
+        } else if let nextSet { nextSet() }
+        else { showExercises() }
     }
 }
 
@@ -148,17 +173,4 @@ struct InkInput: ViewModifier {
 
 extension View {
     func inkInput() -> some View { modifier(InkInput()) }
-}
-
-/// The slightly uneven stroke belongs to the same hand-drawn language as Form's tabs.
-struct InkCheckStroke: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
-        path.addQuadCurve(to: CGPoint(x: rect.width * 0.36, y: rect.height * 0.85),
-                          control: CGPoint(x: rect.width * 0.22, y: rect.height * 0.68))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.height * 0.1),
-                          control: CGPoint(x: rect.width * 0.72, y: rect.height * 0.28))
-        return path
-    }
 }

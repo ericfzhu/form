@@ -5,7 +5,6 @@ struct RestTimer: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let end: Date
-    var arrival = 0
     var compact = false
     var exerciseName = "Rest"
     let adjust: (Int) -> Void
@@ -21,6 +20,7 @@ struct RestTimer: View {
             layout {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(exerciseName).font(.caption).foregroundStyle(InkPalette.softInk)
+                        .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
                     Text(remaining == 0 ? "Ready" : String(format: "%d:%02d", remaining / 60, remaining % 60))
                         .font((compact ? Font.title3 : .title2).monospacedDigit())
                         .contentTransition(.numericText(countsDown: true))
@@ -29,6 +29,7 @@ struct RestTimer: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(remaining == 0 ? "Rest complete" : "Rest remaining")
                 .accessibilityValue(remaining == 0 ? "Ready" : "\(remaining / 60) minutes, \(remaining % 60) seconds")
+                .accessibilityHint(exerciseName)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 0) }
                 HStack(spacing: 0) {
                     Button("−30s") { adjust(-30) }.accessibilityLabel("Subtract 30 seconds from rest")

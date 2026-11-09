@@ -30,8 +30,125 @@ enum CounterweightMotion {
     static let disclosure = Animation.spring(response: 0.34, dampingFraction: 0.9)
     static let settle = Animation.spring(response: 0.46, dampingFraction: 0.8)
     static let quiet = Animation.easeOut(duration: 0.18)
+    static let expand = Animation.spring(response: 0.38, dampingFraction: 1)
     static func transition(reduced: Bool) -> AnyTransition {
         reduced ? .opacity : .offset(y: 8).combined(with: .opacity)
+    }
+}
+
+/// The content keeps its natural size while its visible height changes.
+/// No opacity blend, duplicated editor, or changing text layout during expansion.
+struct CounterweightRevealLayout: Layout {
+    var amount: CGFloat
+    var animatableData: CGFloat {
+        get { amount }
+        set { amount = newValue }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let size = subviews.first?.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil)) ?? .zero
+        return CGSize(width: size.width, height: size.height * max(0, min(1, amount)))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, anchor: .topLeading,
+                             proposal: ProposedViewSize(width: bounds.width, height: nil))
+    }
+}
+
+struct CounterweightControl: View {
+    let title: String
+    let symbol: String
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol).font(.system(size: 13, weight: .medium))
+                Text(title).font(.subheadline.weight(.medium))
+            }
+            .padding(.horizontal, 14).frame(minHeight: 44)
+            .background(InkPalette.mist, in: Capsule())
+            .overlay { Capsule().strokeBorder(InkPalette.ink.opacity(0.09), lineWidth: 1) }
+            .foregroundStyle(InkPalette.ink).contentShape(Capsule())
+        }.buttonStyle(PressableButtonStyle())
+    }
+}
+
+struct CounterweightIconButton: View {
+    let symbol: String
+    let label: String
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 16, weight: .medium))
+                .foregroundStyle(InkPalette.ink).frame(width: 44, height: 44)
+                .background(InkPalette.mist, in: Circle())
+                .overlay { Circle().strokeBorder(InkPalette.ink.opacity(0.09), lineWidth: 1) }
+                .contentShape(Circle())
+        }.buttonStyle(PressableButtonStyle()).accessibilityLabel(label)
+    }
+}
+
+struct CounterweightSheet<Content: View>: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
+    let title: String
+    var subtitle: String? = nil
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20, content: content)
+                .padding(.horizontal, 24).padding(.top, 12).padding(.bottom, 32)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(InkPalette.softInk) }
+                }
+                Spacer(minLength: 0)
+                CounterweightIconButton(symbol: "xmark", label: "Close \(title)") { dismiss() }
+            }.padding(24).background(InkPalette.paper)
+        }
+        .background(InkPalette.paper)
+        .presentationBackground(InkPalette.paper)
+        .presentationCornerRadius(28)
+        .presentationDragIndicator(.visible)
+        .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+    }
+}
+
+struct CounterweightActionRow: View {
+    @Environment(\.isEnabled) private var isEnabled
+    let title: String
+    let symbol: String
+    var destructive = false
+    var action: () -> Void
+    var body: some View {
+        Button(role: destructive ? .destructive : nil, action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: symbol).font(.system(size: 16, weight: .medium))
+                    .frame(width: 40, height: 40).background(InkPalette.mist, in: Circle())
+                Text(title).font(.subheadline.weight(.medium)).multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right").font(.caption)
+            }.foregroundStyle(InkPalette.ink).padding(.vertical, 5)
+                .opacity(isEnabled ? 1 : 0.4).contentShape(Rectangle())
+        }.buttonStyle(PressableButtonStyle())
+    }
+}
+
+struct CounterweightDiscardSheet: View {
+    let discard: () -> Void
+    let keep: () -> Void
+    var body: some View {
+        CounterweightSheet(title: "Discard workout?") {
+            Text("This removes the unfinished session. Your saved workout history is kept.")
+                .font(.subheadline).foregroundStyle(InkPalette.softInk)
+            CounterweightActionRow(title: "Discard workout", symbol: "trash", destructive: true, action: discard)
+            InkPrimaryButton(title: "Keep workout", action: keep)
+        }
     }
 }
 

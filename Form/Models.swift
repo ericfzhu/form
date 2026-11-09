@@ -282,6 +282,7 @@ struct ActiveWorkoutSnapshot: Codable, Equatable {
     var restSourceSetID: UUID? = nil
     var entryTexts: [String: String]? = nil
     var isCardioExpanded: Bool? = nil
+    var selectedSetIDs: [String: UUID]? = nil
 }
 
 struct CardioDraft: Identifiable, Equatable, Codable {

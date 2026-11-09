@@ -2,6 +2,19 @@
 
 Reviewed 25–26 October 2026. This is a source review plus targeted regression testing, not a claim that every possible interaction has been verified on a device.
 
+## Focused-set interaction pass — 9 November 2026
+
+This supersedes the expanded set-table and inline-rest presentation described in the initial Counterweight pass below.
+
+- Each exercise now has selectable numbered set marks and one focused editor. Logging settles that editor into a recorded result with Edit and an explicit Next set action; there is no automatic advancement. A fully recorded exercise offers Exercises, returning to the list. Any mark remains selectable.
+- Set marks have fixed widths so recorded values do not displace their selection targets. Selection uses a short moving outline, entry/result use a local settle, and switching sets uses a short crossfade. Logging feedback never gates persistence or navigation. Reduce Motion removes travel and compression.
+- Rest has a reserved bottom dock in idle, running and Ready states, with the same position while switching sets/exercises or scrolling. The keyboard toolbar appears beneath that dock. Auto rest preferences remain per exercise; manual rest uses the selected duration (one minute when automatic rest is off).
+- Warm-up and working-set addition are adjacent. Copy-to-remaining, type, unrecord and removal belong to the selected set's menu. Copy intentionally replaces raw target drafts, including invalid strings whose underlying numeric value has not changed, and does not alter recorded sets.
+- Technique is a sheet reached from the exercise header. Missing cues for four current routine IDs have been supplied; unsupported legacy exercises do not expose an empty Technique sheet. The old Set options / Movement notes disclosures and repeated generic effort instruction are removed.
+- Schema 5 adds the selected set per exercise. Existing schema 1–4 snapshots restore with a sensible selection; removed or invalid selection IDs fall back safely. Keyboard traversal and finish validation select the owning exercise and set before revealing the field.
+
+Verification: iOS Simulator build and 82 automated tests (63 XCTest + 19 Swift Testing). Added cases cover selected-set stability after logging/switching/relaunch, removal and old-snapshot fallback, explicit-copy replacement of an invalid draft, manual rest duration, and technique coverage for the prescribed routine. Simulator checks cover recorded-set editing without restarting rest, explicit Next set, invalid logging, pause/relaunch with the raw draft and selected set preserved, copy into that draft, Technique presentation, warm-up insertion, keyboard traversal between sets, and Finish revealing a hidden invalid recorded set. Physical-iPhone checks remain skipped; this is targeted coverage, not certification of every accessibility/device permutation.
+
 ## Counterweight native pass — 9 November 2026
 
 The core journey now uses Counterweight in SwiftUI, with nine distinct exercise/walk assets in both app and Live Activity bundles. The existing A/B prescription, records, editing, progression, backup and Health workflows remain available. Old paper artwork is retained as unused assets rather than deleting historical resources.

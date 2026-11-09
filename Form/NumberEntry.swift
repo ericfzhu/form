@@ -150,6 +150,16 @@ final class NumberEntryForm {
         }
     }
 
+    /// Explicit copy actions replace raw drafts even when the numeric value is unchanged.
+    func replaceValue(_ value: Double, id: String) {
+        guard var draft = drafts[id] else { return }
+        draft.text = format(value)
+        draft.edited = false
+        draft.revealed = false
+        draft.spec = NumberFieldSpec(id: id, label: draft.spec.label, value: value, rule: draft.spec.rule)
+        drafts[id] = draft
+    }
+
     @discardableResult
     func validate(ids: [String]? = nil) -> Bool {
         let ids = ids ?? order

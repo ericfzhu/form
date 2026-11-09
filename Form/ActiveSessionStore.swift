@@ -11,7 +11,7 @@ final class ActiveSessionStore {
         let snapshot: ActiveWorkoutSnapshot
     }
 
-    private let schemaVersion = 4
+    private let schemaVersion = 5
     private let legacyDefaultsKey = "active-workout-snapshot-v1"
     private let fileURL: URL
     private let defaults: UserDefaults

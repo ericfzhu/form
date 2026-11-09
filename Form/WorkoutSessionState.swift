@@ -55,6 +55,7 @@ final class WorkoutSessionState {
     var restSourceSetID: UUID?
     var entryTexts: [String: String]
     var isCardioExpanded: Bool
+    var selectedSetIDs: [String: UUID]
 
     private var duration: ActiveDurationAccumulator
 
@@ -111,6 +112,12 @@ final class WorkoutSessionState {
         restSourceSetID = validSnapshot?.restSourceSetID
         entryTexts = validSnapshot?.entryTexts ?? [:]
         isCardioExpanded = validSnapshot?.isCardioExpanded ?? (validSnapshot?.timedWalk != nil)
+        selectedSetIDs = validSnapshot?.selectedSetIDs ?? [:]
+        for draft in drafts {
+            if !draft.sets.contains(where: { $0.id == selectedSetIDs[draft.id] }) {
+                selectedSetIDs[draft.id] = draft.sets.first(where: { !$0.completed })?.id ?? draft.sets.last?.id
+            }
+        }
         timedWalk = validSnapshot?.timedWalk
         if let savedOrder = validSnapshot?.exercises.map(\.exerciseID) {
             drafts.sort {
@@ -189,7 +196,8 @@ final class WorkoutSessionState {
             timedWalk: timedWalk,
             restSourceSetID: restSourceSetID,
             entryTexts: entryTexts,
-            isCardioExpanded: isCardioExpanded
+            isCardioExpanded: isCardioExpanded,
+            selectedSetIDs: selectedSetIDs
         )
     }
 
@@ -265,9 +273,20 @@ final class WorkoutSessionState {
         if restSourceSetID == id { clearRest() }
     }
 
-    func startManualRest(now: Date = Date()) {
+    func startManualRest(seconds: Int = 60, now: Date = Date()) {
         restSourceSetID = nil
-        restEnd = now.addingTimeInterval(60)
+        restEnd = now.addingTimeInterval(TimeInterval(max(1, seconds)))
+    }
+
+    func selectedSetID(for exerciseID: String) -> UUID? {
+        guard let draft = drafts.first(where: { $0.id == exerciseID }) else { return nil }
+        if let id = selectedSetIDs[exerciseID], draft.sets.contains(where: { $0.id == id }) { return id }
+        return draft.sets.first(where: { !$0.completed })?.id ?? draft.sets.last?.id
+    }
+
+    func selectSet(_ id: UUID, for exerciseID: String) {
+        guard drafts.contains(where: { $0.id == exerciseID && $0.sets.contains(where: { $0.id == id }) }) else { return }
+        selectedSetIDs[exerciseID] = id
     }
 
     var hasRemainingWorkingSets: Bool {

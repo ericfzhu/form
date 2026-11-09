@@ -38,7 +38,6 @@ struct ActiveWorkoutView: View {
     @State var didEndSession = false
     @State private var didPrefill = false
     @State private var didRestoreEntries = false
-    @State private var restArrival = 0
     @State var snapshotSaveTask: Task<Void, Never>?
     @State var entryForm = NumberEntryForm()
     var focusedInput: WorkoutInputField? {
@@ -98,6 +97,7 @@ struct ActiveWorkoutView: View {
             guard let id else { return }
             if let field = inputFields.first(where: { $0.id == id }) {
                 session.expandedExerciseID = field.exerciseID
+                session.selectSet(field.setID, for: field.exerciseID)
             } else if id.hasPrefix("cardio-") { session.isCardioExpanded = true }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -198,6 +198,11 @@ struct ActiveWorkoutView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .background(PaperBackground())
                 .safeAreaInset(edge: .bottom, spacing: 0) { loggerFooter }
+                .task(id: session.expandedExerciseID) {
+                    await Task.yield()
+                    guard entryForm.focusedID == nil, let id = session.expandedExerciseID else { return }
+                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { proxy.scrollTo(id, anchor: .top) }
+                }
                 .task(id: entryForm.focusRequest) {
                     await Task.yield()
                     if let id = entryForm.focusedID {
@@ -221,12 +226,6 @@ struct ActiveWorkoutView: View {
                 Text("\(session.recordedSetCount) set\(session.recordedSetCount == 1 ? "" : "s") recorded")
                     .font(.caption).foregroundStyle(InkPalette.softInk).contentTransition(.numericText())
             }.padding(.vertical, 24)
-            if let end = session.restEnd, !isKeyboardVisible {
-                RestTimer(end: end, arrival: restArrival, exerciseName: session.restExerciseName,
-                          adjust: adjustRest, cancel: clearRest, complete: completeRest)
-                    .padding(.bottom, 18)
-                    .transition(CounterweightMotion.transition(reduced: reduceMotion))
-            }
             HStack {
                 Text("Exercises").font(.caption).foregroundStyle(InkPalette.softInk)
                 Spacer()
@@ -236,6 +235,9 @@ struct ActiveWorkoutView: View {
             ForEach($session.drafts) { $draft in
                 ExerciseLoggingCard(
                     draft: $draft,
+                    selectedSetID: Binding(get: { session.selectedSetID(for: draft.id) }, set: { id in
+                        if let id { session.selectSet(id, for: draft.id) }
+                    }),
                     previous: ProgressionEngine.latestCompleted(for: draft.template, in: history.filter { $0.date < session.startedAt }),
                     recommendation: nil,
                     isExpanded: session.expandedExerciseID == draft.id,
@@ -251,7 +253,6 @@ struct ActiveWorkoutView: View {
                             if completed {
                                 session.didCompleteSet(for: draft.id, kind: kind, setID: id,
                                                        restSeconds: ExerciseRestPreference.seconds(for: draft.template))
-                                if session.restEnd != nil { restArrival += 1 }
                             } else { session.undoSet(id) }
                         }
                     },
@@ -287,14 +288,8 @@ struct ActiveWorkoutView: View {
                 HStack(spacing: 20) { finishControls }
                 VStack(alignment: .leading, spacing: 12) { finishControls }
             }.padding(.top, 20)
-            if session.restEnd == nil {
-                Button("Rest") {
-                    withAnimation(reduceMotion ? nil : CounterweightMotion.disclosure) { session.startManualRest() }
-                }.font(.subheadline).frame(maxWidth: .infinity, minHeight: 44)
-            }
         }
         .padding(.horizontal, 24).padding(.bottom, 28)
-        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.restEnd != nil)
         .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.isCardioExpanded)
     }
 
@@ -306,14 +301,32 @@ struct ActiveWorkoutView: View {
 
     private var loggerFooter: some View {
         VStack(spacing: 0) {
-            if let end = session.restEnd, isKeyboardVisible {
-                VStack(spacing: 0) {
-                    InkDivider()
-                    RestTimer(end: end, arrival: restArrival, compact: true, exerciseName: session.restExerciseName,
+            InkDivider()
+            ZStack {
+                if let end = session.restEnd {
+                    RestTimer(end: end, compact: true, exerciseName: session.restExerciseName,
                               adjust: adjustRest, cancel: clearRest, complete: completeRest)
+                        .transition(.opacity)
+                } else {
+                    HStack {
+                        Button {
+                            let exercise = session.drafts.first(where: { $0.id == session.expandedExerciseID })?.template
+                            let seconds = exercise.map { ExerciseRestPreference.seconds(for: $0) } ?? 60
+                            session.startManualRest(seconds: seconds > 0 ? seconds : 60)
+                        } label: {
+                            Label("Rest", systemImage: "timer").font(.subheadline).frame(minHeight: 44)
+                        }.buttonStyle(PressableButtonStyle()).accessibilityLabel("Start rest timer")
+                        Spacer()
+                        if let exercise = session.drafts.first(where: { $0.id == session.expandedExerciseID })?.template {
+                            ExerciseRestPicker(exercise: exercise).id(exercise.id)
+                        }
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .transition(.opacity)
                 }
-                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
+            .frame(minHeight: 76)
+            .padding(.horizontal, 16).padding(.vertical, 4)
             if isKeyboardVisible {
                 if focusedInput != nil {
                     EntryKeyboardControls(adjust: { adjustFocusedInput(by: $0) })
@@ -323,7 +336,7 @@ struct ActiveWorkoutView: View {
             }
         }
         .background(InkPalette.paper)
-        .animation(reduceMotion ? nil : CounterweightMotion.disclosure, value: session.restEnd != nil)
+        .animation(reduceMotion ? nil : CounterweightMotion.quiet, value: session.restEnd != nil)
     }
 
     private var exerciseOrderSheet: some View {
