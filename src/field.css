@@ -1,5 +1,5 @@
 @font-face{font-family:Gaegu;src:url('/fonts/Gaegu-Regular.ttf') format('truetype');font-display:swap}
-:root{--ink:#051230;--blue:#97acc8;--gray:#b6bfc1;--quiet:#657080;color:var(--ink);background:#fff;font-family:Gaegu,cursive;font-synthesis:none;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}body{margin:0;min-width:320px}html{scroll-behavior:smooth}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}a{color:inherit;text-decoration:none}a:hover,footer button:hover{text-decoration:underline;text-underline-offset:5px}button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:7px}::selection{background:#97acc850}h1,h2,p{margin:0;font-weight:400}.quiet-nav{position:fixed;z-index:3;top:0;left:0;width:100%;padding:28px 5%;display:flex;align-items:center;justify-content:space-between}.signature{font-size:28px;letter-spacing:.03em}.quiet-nav button{font-size:16px;letter-spacing:.02em;padding:10px 0}.quiet-nav button:hover{text-decoration:underline;text-underline-offset:6px}.page{position:relative;max-width:1200px;margin:auto;min-height:800px;height:100svh;max-height:1080px;overflow:hidden}.page header{position:absolute;z-index:1;pointer-events:none}.page h1,.page h2{font-size:42px;letter-spacing:.12em;line-height:1.28}.page header p{font-size:18px;letter-spacing:.04em;line-height:1.6;margin-top:26px}.encounter header{top:20%;left:29%;transform:rotate(-3deg)}.encounter .scene-button{position:absolute;bottom:5%;left:5%;width:90%}.pencil-note{position:absolute;font-size:17px;letter-spacing:.08em;pointer-events:none}.encounter .pencil-note{left:72%;bottom:23%;transform:rotate(5deg)}.scroll-note{position:absolute;bottom:27px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--quiet);white-space:nowrap}.rhythm header{left:66%;top:16%;transform:rotate(4deg)}.rhythm .scene-button{position:absolute;left:0;bottom:7%;width:90%}.rhythm .pencil-note{left:21%;bottom:15%;transform:rotate(-5deg)}.rest header{left:22%;top:15%;transform:rotate(-2deg)}.rest .scene-button{position:absolute;bottom:3%;left:7%;width:93%}.rest .pencil-note{left:65%;top:49%;transform:rotate(5deg)}.returning{height:85svh;min-height:670px}.returning header{top:17%;left:46%;transform:rotate(-4deg)}.returning .scene-button{position:absolute;left:0;bottom:10%;width:100%}.return-link{position:absolute;left:50%;transform:translateX(-50%);bottom:30px;font-size:16px;color:var(--quiet);white-space:nowrap}footer{padding:35px 5%;display:flex;justify-content:space-between;gap:20px;font-size:14px;letter-spacing:.03em;color:var(--quiet)}footer button{padding:0;white-space:nowrap}.paper-defs{position:absolute}.scene-button{display:block;padding:0}.drawing{width:100%;height:auto;display:block;overflow:visible;stroke:var(--ink);stroke-width:1.25;fill:none;stroke-linecap:round;stroke-linejoin:round}.drawing path,.drawing ellipse,.drawing circle{vector-effect:non-scaling-stroke}.paper{fill:url(#white-stock)}.blue{fill:url(#blue-stock)}.gray{stroke:var(--gray)}.cutout,.rest-leg{filter:url(#paper-edge)}.annotation{fill:var(--ink);stroke:none;font:20px Gaegu;letter-spacing:2px}.rest-leg{transform-origin:594px 310px;animation:leg 7s ease-in-out infinite}.breath{transform-origin:540px 300px;animation:breathing 7s ease-in-out infinite}.paused *{animation-play-state:paused!important}@keyframes leg{0%,30%,100%{transform:rotate(0)}55%{transform:rotate(7deg)}75%{transform:rotate(-2deg)}}@keyframes breathing{0%,100%{transform:rotate(0)}50%{transform:rotate(-1deg)}}@keyframes paper-breath{0%,65%,100%{transform:translateY(0)}80%{transform:translateY(-4px)}}
+:root{--ink:#051230;--blue:#97acc8;--gray:#b6bfc1;--quiet:#657080;color:var(--ink);background:#fff;font-family:Gaegu,cursive;font-synthesis:none;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}body{margin:0;min-width:320px}html{scroll-behavior:smooth}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}a{color:inherit;text-decoration:none}a:hover,footer button:hover{text-decoration:underline;text-underline-offset:5px}button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:7px}::selection{background:#97acc850}h1,h2,p{margin:0;font-weight:400}.quiet-nav{position:fixed;z-index:3;top:0;left:0;width:100%;padding:28px 5%;display:flex;align-items:center;justify-content:space-between}.signature{font-size:28px;letter-spacing:.03em}.quiet-nav button{font-size:16px;letter-spacing:.02em;padding:10px 0}.quiet-nav button:hover{text-decoration:underline;text-underline-offset:6px}.page{position:relative;max-width:1200px;margin:auto;min-height:800px;height:100svh;max-height:1080px;overflow:hidden}.page header{position:absolute;z-index:1;pointer-events:none}.page h1,.page h2{font-size:42px;letter-spacing:.12em;line-height:1.28}.page header p{font-size:18px;letter-spacing:.04em;line-height:1.6;margin-top:26px}.encounter header{top:20%;left:29%;transform:rotate(-3deg)}.encounter .scene-button{position:absolute;bottom:5%;left:5%;width:90%}.pencil-note{position:absolute;font-size:17px;letter-spacing:.08em;pointer-events:none}.encounter .pencil-note{left:72%;bottom:23%;transform:rotate(5deg)}.scroll-note{position:absolute;bottom:27px;left:50%;transform:translateX(-50%);font-size:14px;color:var(--quiet);white-space:nowrap}.rhythm header{left:66%;top:16%;transform:rotate(4deg)}.rhythm .scene-button{position:absolute;left:0;bottom:7%;width:90%}.rhythm .pencil-note{left:21%;bottom:15%;transform:rotate(-5deg)}.rest header{left:22%;top:15%;transform:rotate(-2deg)}.rest .scene-button{position:absolute;bottom:3%;left:7%;width:93%}.rest .pencil-note{left:65%;top:49%;transform:rotate(5deg)}.returning{height:85svh;min-height:670px}.returning header{top:17%;left:46%;transform:rotate(-4deg)}.returning .scene-button{position:absolute;left:0;bottom:10%;width:100%}.return-link{position:absolute;left:50%;transform:translateX(-50%);bottom:30px;font-size:16px;color:var(--quiet);white-space:nowrap}footer{padding:35px 5%;display:flex;justify-content:space-between;gap:20px;font-size:14px;letter-spacing:.03em;color:var(--quiet)}footer button{padding:0;white-space:nowrap}.scene-button{display:block;padding:0}.drawing{width:100%;height:auto;display:block;overflow:visible;stroke:var(--ink);stroke-width:1.25;fill:none;stroke-linecap:round;stroke-linejoin:round}.drawing path,.drawing ellipse,.drawing circle{vector-effect:non-scaling-stroke}.gray{stroke:var(--gray)}.paused *{animation-play-state:paused!important}
 .workout{font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:var(--ink);width:min(540px,calc(100% - 36px));max-height:calc(100dvh - 50px);padding:26px 30px;border:1px solid #e1e5eb;border-radius:2px 18px 2px 2px;box-shadow:4px 12px 40px #05123019;background:#fff}.workout::backdrop{background:#fff9;backdrop-filter:blur(5px)}.workout-nav{display:flex;justify-content:space-between;align-items:center;font:18px Gaegu}.workout-nav button{padding:8px 0}.workout h2{font:36px Gaegu;margin:20px 0 12px}.workout-intro,.workout-footnote{font-size:12px;line-height:1.8;color:var(--quiet)}.workout-tabs{display:flex;gap:25px;border-bottom:1px solid #e1e5eb;margin-top:22px}.workout-tabs button{padding:12px 4px;font:21px Gaegu;border-bottom:2px solid transparent}.workout-tabs button[aria-selected=true]{border-bottom-color:var(--blue)}.session-time{font-size:11px;color:var(--quiet);line-height:1.7;margin:18px 0 5px}.workout ol{margin:0;padding:0;list-style:none}.workout li{padding:15px 0;border-bottom:1px solid #e9ecf0}.workout li strong{font-size:14px;font-weight:500;display:block}.workout li span{display:block;font-size:11px;color:var(--quiet);margin-top:7px}.cardio{padding:20px 0}.cardio strong{font:24px Gaegu}.cardio p{font-size:12px;margin-top:9px;line-height:1.7}
 @media(min-width:1500px){.page h1,.page h2{font-size:47px}}
 @media(max-width:650px){.quiet-nav{padding:20px 25px}.signature{font-size:26px}.quiet-nav button{font-size:15px}.page{min-height:690px;height:95svh;max-height:850px}.page h1,.page h2{font-size:36px}.page header p{font-size:17px;line-height:1.55;margin-top:21px}.encounter header{left:22%;top:20%}.encounter .scene-button{width:145%;left:-22.5%;bottom:10%}.encounter .pencil-note{left:80%;bottom:27%}.rhythm header{left:53%;top:12%}.rhythm .scene-button{width:140%;left:-31%;bottom:9%}.rhythm .pencil-note{left:14%;bottom:11%}.rest header{left:16%;top:13%}.rest .scene-button{width:145%;left:-20%;bottom:4%}.rest .pencil-note{left:65%;top:52%;font-size:14px}.returning{min-height:600px;height:80svh}.returning header{left:43%;top:14%}.returning .scene-button{width:155%;left:-27.5%;bottom:12%}.return-link{font-size:15px}footer{font-size:12px;gap:18px;padding:25px}.workout{padding:20px}.workout h2{font-size:32px}}
@@ -7,49 +7,66 @@
 
 .workout-nav h2{font:30px Gaegu;margin:0}.workout-intro{margin-top:12px}.cardio small{display:block;font-size:10px;line-height:1.7;color:var(--quiet);margin-top:8px}.workout-footnote{font-size:11px}
 
-/* A complete little effort, followed by enough stillness to breathe.
-   The second lift has a different balance correction from the first. */
-.lifter-rise{animation:small-lift 12s ease-in-out -1s infinite}
-.lifter-balance{transform-origin:0 0;animation:find-balance 12s ease-in-out -1s infinite}
-.lifted-plate{transform-origin:0 48px;animation:plate-wobble 12s ease-in-out -1s infinite}
-.neighbor-plate{transform-origin:0 35px;animation:neighbor-rock 12s ease-in-out -1s infinite}
-@keyframes small-lift{
- 0%,8%,46%,58%,96%,100%{transform:translateY(0)}
- 12%,62%{transform:translateY(3px)}
- 23%,36%,73%,86%{transform:translateY(-19px)}
- 41%,91%{transform:translateY(-7px)}
+/* Keep the story composition and handwriting; only the signature joins the app. */
+.quiet-nav .signature{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:27px;font-weight:700;letter-spacing:-1.5px}
+
+/* Articulated parts live inside the existing illustration frames. */
+.lifter-balance,.lifter-rise,.scene-rest .breath,#pusher,#return-circle{animation:none;transform:none}
+.character-rig path,.character-rig ellipse{vector-effect:none}
+
+/* The same flat ink and blue shapes as the character, in the original frames. */
+.prop-ink{fill:var(--ink);stroke:none}
+.prop-blue{fill:var(--blue);stroke:none}
+.plant-stem{stroke:var(--ink);stroke-width:4;vector-effect:none!important}
+.ground{stroke:var(--ink);stroke-width:1.5;opacity:.3}
+.scene-arrow{stroke:var(--blue);stroke-width:2.5}
+
+/* An opaque navigation surface keeps passing artwork out of the controls. */
+.quiet-nav{background:#fff}
+.quiet-nav::after{content:"";position:absolute;top:100%;left:0;right:0;height:16px;background:linear-gradient(#fff,transparent);pointer-events:none}
+.quiet-nav button,.workout-nav button,.scroll-note,.return-link{display:inline-flex;align-items:center;gap:8px;min-height:44px}
+.quiet-nav button{padding:0}
+.control-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border-radius:50%;background:var(--blue);color:var(--ink);transition:transform .18s ease-out}
+.control-mark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.quiet-nav button:hover,.scroll-note:hover,.return-link:hover{text-decoration:none}
+@media(hover:hover){
+ :is(button,a):hover>.control-mark{background:var(--ink);color:#fff;transform:rotate(-6deg)}
+ .workout-nav button:hover .control-mark{background:var(--blue);color:var(--ink)}
 }
-@keyframes find-balance{
- 0%,14%,38%,50%,64%,88%,100%{transform:translateX(0) rotate(0)}
- 22%{transform:translateX(-3px) rotate(-4deg)}
- 27%{transform:translateX(4px) rotate(3deg)}
- 32%{transform:translateX(1px) rotate(-1deg)}
- 72%{transform:translateX(3px) rotate(3deg)}
- 77%{transform:translateX(-2px) rotate(-2deg)}
- 82%{transform:translateX(0) rotate(.5deg)}
-}
-@keyframes plate-wobble{
- 0%,14%,36%,50%,64%,86%,100%{transform:rotate(0)}
- 22%{transform:rotate(-7deg)}27%{transform:rotate(5deg)}32%{transform:rotate(-2deg)}
- 72%{transform:rotate(5deg)}77%{transform:rotate(-4deg)}82%{transform:rotate(1deg)}
-}
-@keyframes neighbor-rock{
- 0%,44%,54%,94%,100%{transform:rotate(0)}
- 46%{transform:rotate(4deg)}49%{transform:rotate(-2deg)}52%{transform:rotate(1deg)}
- 96%{transform:rotate(-3deg)}98%{transform:rotate(1deg)}
+:is(button,a):active>.control-mark{transform:scale(.9)}
+.scroll-note,.return-link{color:var(--ink)}
+:is(.quiet-nav button,.scroll-note,.return-link,.workout-nav button):focus-visible{border-radius:24px;outline-color:var(--ink);outline-offset:4px}
+.quiet-nav .signature{min-height:44px;display:flex;align-items:center}
+.quiet-nav .signature:hover{text-decoration:none}
+
+.workout{border:0;border-radius:26px;box-shadow:none;background:#fff;overscroll-behavior:contain;scrollbar-gutter:stable;outline:none}
+.workout::backdrop{background:#05123045;backdrop-filter:none}
+.workout-nav button{padding:0;font-size:18px}
+.workout-nav .control-mark{width:36px;height:36px;background:var(--ink);color:#fff}
+.workout-tabs{gap:6px;border:0;background:#97acc829;border-radius:24px;padding:4px}
+.workout-tabs button{flex:1;min-height:44px;border:0;border-radius:20px;padding:8px 12px}
+.workout-tabs button:hover{background:#97acc850}
+.workout-tabs button[aria-selected=true]{background:var(--ink);color:#fff}
+.workout-tabs button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.workout li{border-bottom-color:#97acc83d}
+.cardio{padding-bottom:20px}
+@media(max-width:650px){
+ .rhythm header{left:auto;right:30px}
+ .quiet-nav{padding-top:max(20px,env(safe-area-inset-top));padding-bottom:16px}
+ .workout{border-radius:24px;max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
 }
 
-/* Keep the original silhouette; express the construction through tiny overlaps. */
-.paper-joint{filter:url(#paper-joint)}
-.character-turn{transform-origin:0 -42px;animation:paper-turn 12s ease-in-out -1s infinite}
-.lifter-glance{transform-origin:0 -50px;animation:follow-the-plate 12s ease-in-out -1s infinite}
-.lifting-arm.left{transform-origin:-17px -49px;animation:catch-left 12s ease-in-out -1s infinite}
-.lifting-arm.right{transform-origin:16px -49px;animation:catch-right 12s ease-in-out -1s infinite}
-.step-left{transform-origin:-15px -18px;animation:little-step-left 12s ease-in-out -1s infinite}
-.step-right{transform-origin:16px -18px;animation:little-step-right 12s ease-in-out -1s infinite}
-@keyframes paper-turn{0%,14%,38%,64%,88%,100%{transform:scaleX(1)}22%,27%{transform:scaleX(.94)}72%,77%{transform:scaleX(.96)}}
-@keyframes follow-the-plate{0%,10%,40%,60%,90%,100%{transform:rotate(0)}18%,23%{transform:rotate(-7deg)}29%,34%{transform:rotate(3deg)}68%,73%{transform:rotate(6deg)}79%,84%{transform:rotate(-2deg)}}
-@keyframes catch-left{0%,14%,38%,64%,88%,100%{transform:rotate(0)}22%{transform:rotate(-5deg)}27%{transform:rotate(3deg)}32%{transform:rotate(-1deg)}72%{transform:rotate(3deg)}77%{transform:rotate(-2deg)}}
-@keyframes catch-right{0%,14%,38%,64%,88%,100%{transform:rotate(0)}22%{transform:rotate(-3deg)}27%{transform:rotate(5deg)}32%{transform:rotate(-1deg)}72%{transform:rotate(4deg)}77%{transform:rotate(-3deg)}}
-@keyframes little-step-left{0%,19%,38%,69%,88%,100%{transform:translate(0,0) rotate(0)}23%{transform:translate(-4px,-3px) rotate(5deg)}27%,32%{transform:translate(-5px,0) rotate(0)}74%{transform:translate(-2px,-2px) rotate(3deg)}78%,83%{transform:translate(-2px,0) rotate(0)}}
-@keyframes little-step-right{0%,24%,42%,68%,88%,100%{transform:translate(0,0) rotate(0)}28%{transform:translate(3px,-3px) rotate(-4deg)}32%,36%{transform:translate(3px,0) rotate(0)}72%{transform:translate(4px,-3px) rotate(-5deg)}76%,82%{transform:translate(4px,0) rotate(0)}}
+/* The panel and its backdrop settle together on entry and dismissal. */
+.workout[open],.workout[open]::backdrop {
+ opacity:1;
+ transition:opacity .16s ease-out,transform .16s ease-out;
+}
+.workout[data-closing="true"],.workout[data-closing="true"]::backdrop { opacity:0 }
+.workout[data-closing="true"] { transform:translateY(6px) }
+@starting-style {
+ .workout[open],.workout[open]::backdrop { opacity:0 }
+ .workout[open] { transform:translateY(6px) }
+}
+@media(prefers-reduced-motion:reduce){
+ .workout[open]::backdrop{transition:none}
+}
